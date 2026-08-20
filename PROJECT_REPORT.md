@@ -119,6 +119,7 @@ SQLite、MDB、CSV 和 BIFF8 XLS 使用独立 Provider。数据库与普通表�
 | npm 安全审计 | 0 个已知漏洞 |
 | PAK 自包含运行时 | 通过 |
 | 官方 NPC 客户端素材 | 真实 `npc.wzl` 至 `npc4.wzl`：164 个外观、775 张正面帧，164 个外观逐项 PNG 解码通过 |
+| 原始地图 NPC 动画 | 每帧图片预载并解码后原子切换，图片、尺寸和偏移保持同帧；解包 VSIX 使用真实 `npc.wzl#490`、`npc2.wzl#80` 复验通过 |
 | 旧 GAMEOFMIR PAK | 1,376 槽、368 图、RGBA SHA-256 100% 匹配 |
 | GEEPAK2 真实包 | 未执行：本机未提供 `BOO_GEE2_PAK_PASSWORD` |
 | M2 原生源码重建 | 通过，生成 317,440 字节 x64 EXE |
@@ -145,9 +146,9 @@ npm run verify:packaged-dependencies -- "<解包后的 extension 目录>"
 当前安装包：
 
 - 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.2.vsix`
-- 大小：21,258,826 字节
+- 大小：21,259,160 字节
 - 压缩包条目：1,608
-- SHA-256：`EE7521FB4BA476B0341CD5ACE78F91A23E59080CDC1789B6F7BB17650AFE42EF`
+- SHA-256：`42BDB70A6AA279EFBD0C45AFD142CEC51A48603DA7F57750C468D46D817A2B88`
 
 ## 7. 已知边界
 
