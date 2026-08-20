@@ -39,6 +39,7 @@ button,input,select{font:inherit}
 .map-entity{position:absolute;pointer-events:auto;user-select:none;cursor:move}
 .npc-entity{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%) scale(var(--entity-scale,1));transform-origin:50% 100%}
 .npc-sprite{display:block;max-width:280px;max-height:260px;object-fit:contain;image-rendering:pixelated;pointer-events:none}
+.npc-sprite[hidden]{display:none}
 .npc-entity.offset-positioned{display:block;transform:scale(var(--entity-scale,1));transform-origin:0 0}
 .npc-entity.offset-positioned .npc-sprite{width:100%;height:100%;max-width:none;max-height:none;object-fit:fill}
 .npc-placeholder{width:24px;height:34px;border:1px dashed rgba(255,255,255,.35);background:rgba(0,0,0,.35)}
@@ -518,7 +519,7 @@ function normalizeNpcFrame(value){
   };
 }
 function applyNpcFrame(node,image,frame){
-  image.src=frame.url;
+  for(const candidate of node.querySelectorAll('.npc-sprite'))candidate.hidden=candidate!==image;
   node.classList.toggle('offset-positioned',frame.usesOffsets);
   if(frame.usesOffsets){
     node.dataset.frameOffsetX=String(frame.offsetX);node.dataset.frameOffsetY=String(frame.offsetY);
@@ -528,6 +529,19 @@ function applyNpcFrame(node,image,frame){
     node.style.removeProperty('width');node.style.removeProperty('height');
   }
   layoutEntityNode(node);
+}
+function waitNpcFrameImage(image){
+  const decode=()=>{
+    if(!image.naturalWidth)return Promise.resolve(false);
+    return typeof image.decode==='function'
+      ? image.decode().then(()=>true,()=>image.naturalWidth>0)
+      : Promise.resolve(true);
+  };
+  if(image.complete)return decode();
+  return new Promise(resolve=>{
+    image.addEventListener('load',()=>{decode().then(resolve)},{once:true});
+    image.addEventListener('error',()=>resolve(false),{once:true});
+  });
 }
 function rebuildEntities(){
   clearEntityAnimationTimers();
@@ -541,15 +555,30 @@ function rebuildEntities(){
       (state.entityDragging&&state.entityDragType==='npc'&&state.entityDragLine===npc.lineNumber?' dragging':'');
     node.dataset.entityType='npc';node.dataset.line=String(npc.lineNumber);
     const frames=Array.isArray(npc.frames)?npc.frames.map(normalizeNpcFrame).filter(frame=>frame.url):[];
-    let image=null;
+    const images=[];
     if(frames.length){
-      image=document.createElement('img');image.className='npc-sprite';image.alt='';image.draggable=false;node.appendChild(image);
+      for(const frame of frames){
+        const image=document.createElement('img');image.className='npc-sprite';image.alt='';image.draggable=false;
+        image.decoding='async';image.hidden=true;image.src=frame.url;node.appendChild(image);images.push(image);
+      }
     }else{
       const placeholder=document.createElement('span');placeholder.className='npc-placeholder';node.appendChild(placeholder);
     }
-    if(image){
-      applyNpcFrame(node,image,frames[0]);
-      if(frames.length>1){let frame=0;const timer=setInterval(()=>{if(!image.isConnected)return;frame=(frame+1)%frames.length;applyNpcFrame(node,image,frames[frame])},Math.max(16,Number(npc.frameInterval)||200));state.entityAnimationTimers.push(timer)}
+    if(images.length){
+      applyNpcFrame(node,images[0],frames[0]);
+      Promise.all(images.map(waitNpcFrameImage)).then(loaded=>{
+        if(!node.isConnected)return;
+        const ready=loaded.map((ok,index)=>ok?{image:images[index],frame:frames[index]}:null).filter(Boolean);
+        if(!ready.length)return;
+        applyNpcFrame(node,ready[0].image,ready[0].frame);
+        if(ready.length<2)return;
+        let frame=0;
+        const timer=setInterval(()=>{
+          if(!node.isConnected){clearInterval(timer);return}
+          frame=(frame+1)%ready.length;applyNpcFrame(node,ready[frame].image,ready[frame].frame);
+        },Math.max(16,Number(npc.frameInterval)||200));
+        state.entityAnimationTimers.push(timer);
+      });
     }
     node.title=(npc.displayName||'NPC')+' ('+npc.x+','+npc.y+') · '+(npc.appearanceLabel||'');
     node.addEventListener('mousedown',event=>beginEntityDrag(event,'npc',npc));

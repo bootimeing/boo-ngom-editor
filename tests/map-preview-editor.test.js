@@ -52,8 +52,13 @@ function main() {
   );
   assert.match(
     html,
-    /function applyNpcFrame\(node,image,frame\)[\s\S]*frameOffsetX[\s\S]*frameOffsetY[\s\S]*layoutEntityNode\(node\)/,
+    /function applyNpcFrame\(node,image,frame\)[\s\S]*candidate\.hidden=candidate!==image[\s\S]*frameOffsetX[\s\S]*frameOffsetY[\s\S]*layoutEntityNode\(node\)/,
     'custom NPC animation frames must carry their cached image offsets into layout'
+  );
+  assert.match(
+    html,
+    /function waitNpcFrameImage\(image\)[\s\S]*image\.decode\(\)[\s\S]*Promise\.all\(images\.map\(waitNpcFrameImage\)\)[\s\S]*ready\[frame\]\.image/,
+    'NPC animation must preload and decode every frame before switching visible frame metadata'
   );
   assert.match(
     html,
@@ -138,6 +143,7 @@ function main() {
   vm.createContext(context);
   vm.runInContext(extractFunction(html, 'layoutEntityNode'), context);
   vm.runInContext(extractFunction(html, 'layoutNpcName'), context);
+  vm.runInContext(extractFunction(html, 'applyNpcFrame'), context);
   vm.runInContext(extractFunction(html, 'clampViewOffset'), context);
   vm.runInContext(extractFunction(html, 'centerWorldPoint'), context);
   const spriteStyle = { setProperty() {} };
@@ -156,6 +162,26 @@ function main() {
   assert.equal(nameStyle.lineHeight, '8px');
   assert.equal(parseFloat(nameStyle.left) - parseFloat(spriteStyle.left), 25 * 0.5);
   assert.equal(parseFloat(nameStyle.top) - parseFloat(spriteStyle.top), 41 * 0.5);
+
+  const firstImage = { hidden: false, src: 'frame-1' };
+  const secondImage = { hidden: true, src: 'preloaded-frame-2' };
+  const animatedStyle = { setProperty() {} };
+  const animatedNode = {
+    dataset: { entityType: 'npc', line: '3' },
+    classList: { toggle() {}, contains: value => value === 'offset-positioned' },
+    querySelectorAll: () => [firstImage, secondImage],
+    style: animatedStyle,
+  };
+  context.applyNpcFrame(animatedNode, secondImage, {
+    url: 'frame-2', width: 65, height: 81, offsetX: 7, offsetY: -51, usesOffsets: true,
+  });
+  assert.equal(firstImage.hidden, true);
+  assert.equal(secondImage.hidden, false);
+  assert.equal(secondImage.src, 'preloaded-frame-2', 'switching frames must not rewrite the preloaded image source');
+  assert.equal(animatedNode.dataset.frameOffsetX, '7');
+  assert.equal(animatedNode.dataset.frameOffsetY, '-51');
+  assert.equal(animatedStyle.width, '65px');
+  assert.equal(animatedStyle.height, '81px');
 
   context.state.offsetX = 0;
   context.state.offsetY = 0;
