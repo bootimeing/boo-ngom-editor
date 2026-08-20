@@ -1,6 +1,4 @@
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 
 function main() {
   const {
@@ -102,20 +100,6 @@ function main() {
   assert.match(monGenColumns('GOM')[9], /QF/);
   assert.match(monGenColumns('GEE')[14], /QF/);
   assert.match(monGenColumns('996PC')[7], /刷新模式/);
-
-  const npcLookDirectory = path.join(__dirname, '..', 'resources', 'npc-looks');
-  const npcLooks = fs.readdirSync(npcLookDirectory).filter(name => name.endsWith('.webp'));
-  assert.equal(npcLooks.length, 165);
-  for (const required of ['0.webp', '272.webp', '273.webp']) {
-    const data = fs.readFileSync(path.join(npcLookDirectory, required));
-    assert.equal(data.subarray(0, 4).toString('ascii'), 'RIFF');
-    assert.equal(data.subarray(8, 12).toString('ascii'), 'WEBP');
-  }
-  const npcAssetBytes = npcLooks.reduce(
-    (total, name) => total + fs.statSync(path.join(npcLookDirectory, name)).size,
-    0
-  );
-  assert.ok(npcAssetBytes < 1_200_000, `NPC appearance assets are unexpectedly large: ${npcAssetBytes}`);
 
   console.log('map-entities.test.js: PASS');
 }

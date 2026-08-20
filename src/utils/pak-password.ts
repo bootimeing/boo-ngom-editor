@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { readFileGBK } from './text';
+import { decodeTextFile } from './text';
 
 export interface PakPasswordRecord {
   configuredPath: string;
@@ -9,6 +9,8 @@ export interface PakPasswordRecord {
   configPath: string;
   option?: string;
 }
+
+export type PakPasswordErrorKind = 'confirmed' | 'ambiguous' | 'none';
 
 export function pakPasswordSecretKey(pakPath: string): string {
   const normalized = path.resolve(pakPath).toLowerCase();
@@ -20,19 +22,61 @@ export function patchPasswordSecretKey(pakPath: string): string {
   return 'boo.patch.password.' + crypto.createHash('sha256').update(normalized).digest('hex');
 }
 
+export function classifyPakPasswordError(error: unknown): PakPasswordErrorKind {
+  const message = error instanceof Error ? error.message : String(error);
+  const errorName = error instanceof Error ? error.name : '';
+  if (
+    errorName === 'JpkPasswordError'
+    || /密码错误\s*[，,、/]?\s*或/i.test(message)
+    || /密码(?:未通过验证|可能错误)|密码或(?:资源|文件|格式|索引)/i.test(message)
+    || /password[^\r\n]{0,32}\bor\b[^\r\n]{0,32}(?:format|file|index)/i.test(message)
+  ) {
+    return 'ambiguous';
+  }
+  if (
+    /(?:password is incorrect|incorrect password|wrong password|password mismatch|password verification failed)/i.test(message)
+    || /(?:密码不正确|密码校验失败|密码验证失败|密码错误)(?:[。.!！]?\s*)$/i.test(message)
+  ) {
+    return 'confirmed';
+  }
+  return 'none';
+}
+
 export function isPakPasswordError(error: unknown): boolean {
-  return (error instanceof Error ? error.message : String(error)).includes('密码错误');
+  return classifyPakPasswordError(error) !== 'none';
+}
+
+export function isConfirmedPakPasswordError(error: unknown): boolean {
+  return classifyPakPasswordError(error) === 'confirmed';
+}
+
+export function selectPakPassword(
+  suppliedPassword?: string,
+  configuredPassword?: string,
+  savedPassword?: string
+): string | undefined {
+  return [suppliedPassword, configuredPassword, savedPassword]
+    .find(value => value !== undefined && value !== '');
 }
 
 export function readPakPasswordRecords(configPath: string): PakPasswordRecord[] {
-  const text = readFileGBK(fs.readFileSync(configPath));
+  const text = decodePakPasswordFile(fs.readFileSync(configPath));
   const records: PakPasswordRecord[] = [];
   for (const rawLine of text.split(/\r?\n/)) {
-    const fields = rawLine.split('|');
-    if (fields.length < 2) continue;
-    const configuredPath = unquote(fields[0]);
-    const password = unquote(fields[1]);
-    const option = fields.length >= 3 ? unquote(fields[2]) : undefined;
+    const firstSeparator = rawLine.indexOf('|');
+    if (firstSeparator <= 0) continue;
+    const configuredPath = unquote(rawLine.slice(0, firstSeparator));
+    let passwordField = rawLine.slice(firstSeparator + 1);
+    let option: string | undefined;
+    const lastSeparator = passwordField.lastIndexOf('|');
+    if (lastSeparator >= 0) {
+      const possibleOption = unquote(passwordField.slice(lastSeparator + 1));
+      if (/^[01]$/.test(possibleOption)) {
+        option = possibleOption;
+        passwordField = passwordField.slice(0, lastSeparator);
+      }
+    }
+    const password = unquote(passwordField);
     if (!configuredPath || !password || !/\.(?:pak|jpk)$/i.test(configuredPath)) continue;
     records.push({ configuredPath, password, configPath, option });
   }
@@ -191,4 +235,20 @@ function escapeRegExp(value: string): string {
 
 function unquote(value: string): string {
   return value.trim().replace(/^["']|["']$/g, '');
+}
+
+function decodePakPasswordFile(raw: Buffer): string {
+  if (raw.length >= 2 && raw[0] === 0xff && raw[1] === 0xfe) {
+    return raw.subarray(2).toString('utf16le');
+  }
+  if (raw.length >= 2 && raw[0] === 0xfe && raw[1] === 0xff) {
+    const littleEndian = Buffer.from(raw.subarray(2));
+    for (let index = 0; index + 1 < littleEndian.length; index += 2) {
+      const first = littleEndian[index];
+      littleEndian[index] = littleEndian[index + 1];
+      littleEndian[index + 1] = first;
+    }
+    return littleEndian.toString('utf16le');
+  }
+  return decodeTextFile(raw).text;
 }

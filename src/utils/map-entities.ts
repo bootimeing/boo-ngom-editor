@@ -414,7 +414,7 @@ function readIniNumber(section: Map<string, string> | undefined, key: string): n
 
 function archiveNameKey(value: string): string {
   const name = path.basename(String(value || '').trim());
-  return name.replace(/\.(?:pak|jpk|wzl)$/i, '').toLowerCase();
+  return name.replace(/\.(?:pak|jpk|wil|wzl)$/i, '').toLowerCase();
 }
 
 function validatedAnimation(value: CustomNpcAnimation): CustomNpcAnimation | undefined {

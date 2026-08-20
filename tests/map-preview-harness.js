@@ -323,7 +323,7 @@ async function main() {
     }
     const npcLookMatch = /^\/npc-look\/(\d+)\.webp$/.exec(url.pathname);
     if (npcLookMatch) {
-      const imagePath = path.join(__dirname, '..', 'resources', 'npc-looks', `${npcLookMatch[1]}.webp`);
+      const imagePath = path.join(__dirname, 'fixtures', 'npc-looks', `${npcLookMatch[1]}.webp`);
       if (!fs.existsSync(imagePath)) {
         fail(response, 404, 'NPC look not found');
         return;

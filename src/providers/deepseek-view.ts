@@ -1,5 +1,5 @@
 /**
- * DeepSeek Harness 入口（v4.3.1）
+ * DeepSeek Harness 入口（v4.3.2）
  *
  * 左侧活动栏最下方鲸鱼图标 → 点击后在右侧拆分编辑器（WebviewPanel，ViewColumn.Beside）内嵌本地 dsh web。
  *

@@ -183,13 +183,21 @@ async function main() {
         path.join(dataDirectory, 'mmap10.pak'),
         path.join(dataDirectory, 'mmap11.pak'),
         path.join(dataDirectory, 'items9.pak'),
+        path.join(dataDirectory, 'npc.pak'),
+        path.join(dataDirectory, 'npc2.wzl'),
+        path.join(dataDirectory, 'npc3.wil'),
+        path.join(dataDirectory, 'npc4.jpk'),
         path.join(dataDirectory, 'monster.pak'),
       ], []),
       [
         path.join(dataDirectory, 'mmap10.pak'),
         path.join(dataDirectory, 'items9.pak'),
+        path.join(dataDirectory, 'npc.pak'),
+        path.join(dataDirectory, 'npc2.wzl'),
+        path.join(dataDirectory, 'npc3.wil'),
+        path.join(dataDirectory, 'npc4.jpk'),
       ],
-      'fixed required PAKs must include only mmap10 and items through items9'
+      'fixed required resources must include mmap10, items through items9, and official NPC archives'
     );
     assert.deepEqual(
       findMissingEffectImageArchives(

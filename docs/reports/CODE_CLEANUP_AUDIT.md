@@ -329,7 +329,7 @@ ERR_MODULE_NOT_FOUND: Cannot find package 'fast-xml-parser'
 - `src/utils/cache-storage.ts` 的旧缓存迁移：已有安装用户升级时仍需迁移，至少再保留一个明确的升级窗口。
 - `out/**`：这是 VS Code 实际运行代码，`src/**` 反而不进 VSIX。
 - `src/utils/archive-image-worker.ts`：由 Worker 路径动态启动，普通 import 图不会显示调用。
-- `resources/npc-looks/*.webp`：文件名由 NPC 外观编号动态拼接，不能按文本引用数删除。
+- `tests/fixtures/npc-looks/*.webp`：仅供地图 Webview 离线布局测试，已从运行资源和 VSIX 中移出；原始地图官方 NPC 改为读取客户端 PAK/JPK/WIL/WZL。
 - `media/map-viewer.html` 与 `media/map-preview.html`：一个是地图查看器，一个是带标识/NPC/刷怪编辑的地图预览，功能不同。
 - `CsvEditorProvider`、`TableEditorProvider`、`XlsEditorProvider`：分别处理 CSV、merchant/mongen 中间表和 XLS，不是重复实现。
 - `iconv-lite`、`safer-buffer`、`sql.js`、`mdb-reader`、`xlsx`：都有运行时调用，不能因删除 `db-cache` 而移除依赖；`mdb-reader` 还必须保留完整传递依赖闭包。

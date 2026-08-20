@@ -104,6 +104,10 @@ export const REQUIRED_PATCH_PAK_NAMES = [
   'mmap10',
   'items',
   ...Array.from({ length: 9 }, (_, index) => `items${index + 1}`),
+  'npc',
+  'npc2',
+  'npc3',
+  'npc4',
 ];
 
 let cachedRoot = '';

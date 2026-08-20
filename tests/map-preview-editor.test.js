@@ -121,7 +121,9 @@ function main() {
   assert.doesNotMatch(extension, /merchantMapLinkProvider\.registerAltClick\(\)/);
   assert.match(extension, /registerCommand\([\s\S]*'boo\.openMerchantNpcOnMap'/);
   assert.match(provider, /MerchantNameColor|parseMerchantNameColor/);
-  assert.match(provider, /resources[\s\S]*npc-looks[\s\S]*\.webp/);
+  assert.match(provider, /resolveOfficialNpcAnimationPlan/);
+  assert.match(provider, /selectOfficialNpcArchiveFile/);
+  assert.doesNotMatch(provider, /resources[\s\S]*npc-looks[\s\S]*\.webp/);
   assert.match(
     provider,
     /assetTable!?\.width\[imageIndex\][\s\S]*assetTable!?\.height\[imageIndex\][\s\S]*assetTable!?\.offsetX\[imageIndex\][\s\S]*assetTable!?\.offsetY\[imageIndex\]/,

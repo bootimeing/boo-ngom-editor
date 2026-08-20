@@ -1,7 +1,7 @@
 # BOO 可视化编辑器项目报告
 
 > 报告日期：2026-08-20  
-> 当前版本：V4.3.1  
+> 当前版本：V4.3.2  
 > 项目类型：Visual Studio Code 扩展  
 > 发布标识：`boo1213.boo-NGOM-editor`
 
@@ -11,14 +11,14 @@ BOO 可视化编辑器面向传奇 GM、版本制作人员和脚本开发者，�
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 扩展版本 | V4.3.1 |
+| 扩展版本 | V4.3.2 |
 | VS Code 要求 | `^1.68.0` |
-| TypeScript 源文件 | 87 个，25,528 行 |
-| 自动回归文件 | 74 个 `*.test.js` |
+| TypeScript 源文件 | 88 个，27,866 行 |
+| 自动回归文件 | 75 个 `*.test.js` |
 | 注册命令 | 46 个 |
 | 内置主题 | 19 套 |
 | 生产依赖闭包 | 解包后验证 60 个实际包节点 |
-| 当前发布包 | `boo-ngom-editor-4.3.1.vsix` |
+| 当前发布包 | `boo-ngom-editor-4.3.2.vsix` |
 
 ## 2. 目录结构
 
@@ -34,10 +34,10 @@ BOO 可视化编辑器面向传奇 GM、版本制作人员和脚本开发者，�
 │  ├─ reports/              调查与审计报告
 │  └─ user-guide/           最终用户教程
 ├─ media/                   Webview 页面、样式和前端运行资源
-├─ resources/               扩展图标与 NPC 外观资源
+├─ resources/               扩展图标
 ├─ src/                     TypeScript 扩展源码
 ├─ syntaxes/                TextMate 语法定义
-├─ tests/                   自动回归、夹具与测试辅助代码
+├─ tests/                   自动回归、测试夹具与辅助代码
 ├─ themes/                  19 套脚本主题
 ├─ tools/
 │  ├─ data-maintenance/     语言目录生成、分类和审计工具
@@ -59,7 +59,7 @@ BOO 可视化编辑器面向传奇 GM、版本制作人员和脚本开发者，�
 
 ### 3.2 补丁与素材
 
-PAK/JPK/WIL/WZL 使用统一资源协议。常见格式通过索引直读和按图解码减少全量解压；PakBridge 自包含运行时保留为特殊 PAK 兼容回退。UI 编辑器、数据库详情、小地图和原始地图共用缓存与资源定位规则。
+PAK/JPK/WIL/WZL 使用统一资源协议。常见格式通过索引直读和按图解码减少全量解压；PakBridge 自包含运行时保留为特殊 PAK 兼容回退。UI 编辑器、数据库详情、小地图和原始地图共用缓存与资源定位规则。原始地图中的官方 NPC 优先读取自定义补丁 `npc` 至 `npc4` 的 PAK/JPK，缺少对应包时再读取客户端 WZL/WIL，并按实测映射保留正面动画与图片偏移；这四组资源已加入默认“读取需求资源”清单。
 
 ### 3.3 数据库与表格
 
@@ -87,6 +87,7 @@ SQLite、MDB、CSV 和 BIFF8 XLS 使用独立 Provider。数据库与普通表�
 - 删除旧 VSIX、旧功能源码快照、旧语言目录备份和 PakBridge 历史备份；项目内只保留当前版本安装包。
 - 删除误放在本项目中的 DeepSeek Harness 发布压缩包。
 - 删除第三方 `Reference` 和本地引擎帮助转换副本；这些资料不进入开源仓库。
+- 将已退出运行链的 NPC 帮助图移至 `tests/fixtures/npc-looks`，仅保留离线 Webview 布局测试用途，并通过 `.vscodeignore` 排除在 VSIX 外。
 - 删除 M2 `obj`、PakBridge Python 缓存和冻结运行时中的空目录。
 - 工作区总文件体积由 3,188,482,451 字节降为约 282 MB，减少约 2.91 GB；当前体积包含可重建的 `node_modules`。
 
@@ -104,7 +105,7 @@ SQLite、MDB、CSV 和 BIFF8 XLS 使用独立 Provider。数据库与普通表�
 - `tools/PakBridge/bin`：特殊 PAK 的冻结兼容运行时，不得按普通生成物删除。
 - `tools/M2Reloader/runtime/native-win-x64/M2Reloader.exe`：扩展实际发布的 M2 原生工具。
 - `data/audit-report`：语言目录准确性与人工逐项核对的正式回归基线。
-- `resources/npc-looks`：按编号动态定位，不能依据静态文件名引用次数裁剪。
+- `tests/fixtures/npc-looks`：仅供离线 Webview 布局测试，不属于扩展运行资源，也不进入 VSIX。
 - 旧缓存迁移、PAK/JPK/WIL/WZL 兼容和工作区状态迁移代码：仍服务已安装用户。
 
 ## 5. 当前验证结果
@@ -117,6 +118,7 @@ SQLite、MDB、CSV 和 BIFF8 XLS 使用独立 Provider。数据库与普通表�
 | Edge 页面冒烟 | 当前 Edge 151 无 DOM 输出，2 项明确 `SKIP`，临时目录正常清理 |
 | npm 安全审计 | 0 个已知漏洞 |
 | PAK 自包含运行时 | 通过 |
+| 官方 NPC 客户端素材 | 真实 `npc.wzl` 至 `npc4.wzl`：164 个外观、775 张正面帧，164 个外观逐项 PNG 解码通过 |
 | 旧 GAMEOFMIR PAK | 1,376 槽、368 图、RGBA SHA-256 100% 匹配 |
 | GEEPAK2 真实包 | 未执行：本机未提供 `BOO_GEE2_PAK_PASSWORD` |
 | M2 原生源码重建 | 通过，生成 317,440 字节 x64 EXE |
@@ -142,10 +144,10 @@ npm run verify:packaged-dependencies -- "<解包后的 extension 目录>"
 
 当前安装包：
 
-- 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.1.vsix`
-- 大小：22,282,403 字节
-- 压缩包条目：1,772
-- SHA-256：`C16A7F942D83FB566A86CCFB933A95B5118CF67FABC62602C742070E39797AF8`
+- 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.2.vsix`
+- 大小：21,258,826 字节
+- 压缩包条目：1,608
+- SHA-256：`EE7521FB4BA476B0341CD5ACE78F91A23E59080CDC1789B6F7BB17650AFE42EF`
 
 ## 7. 已知边界
 

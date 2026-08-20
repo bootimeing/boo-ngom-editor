@@ -3,10 +3,12 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { ensureGmBridge } from '../utils/gm-bridge';
 import {
-  isPakPasswordError,
+  classifyPakPasswordError,
+  isConfirmedPakPasswordError,
   patchPasswordSecretKey,
   readPakPasswordRecords,
   resolvePakPasswordFromRecords,
+  selectPakPassword,
 } from '../utils/pak-password';
 import { decodePakFully } from '../utils/pak-reader';
 import { openArchiveIndexed } from '../utils/archive-index';
@@ -464,16 +466,13 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
     const extension = path.extname(entry.path).slice(1).toLowerCase();
     const pairedArchive = isPairedArchiveExtension(extension);
     const secretKey = patchPasswordSecretKey(entry.path);
-    const savedPassword = pairedArchive
-      ? ''
-      : suppliedPassword ?? await this.context.secrets.get(secretKey);
+    const configuredPassword = pairedArchive
+      ? undefined
+      : resolvePakPasswordFromRecords(records, entry.path, this.passwordDataRoot(entry.path));
+    const savedPassword = pairedArchive ? undefined : await this.context.secrets.get(secretKey);
     const password = pairedArchive
       ? ''
-      : savedPassword || resolvePakPasswordFromRecords(
-          records,
-          entry.path,
-          this.passwordDataRoot(entry.path)
-        );
+      : selectPakPassword(suppliedPassword, configuredPassword, savedPassword);
     if (!pairedArchive && !password) {
       entry.status = 'password-error';
       entry.message = '未找到可用密码';
@@ -506,7 +505,7 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
           });
         } catch (error) {
           if (pairedArchive) throw error;
-          if (isPakPasswordError(error)) throw error;
+          if (isConfirmedPakPasswordError(error)) throw error;
           console.warn(
             `[BOO] ${entry.name} 高速读取失败，自动回退 V4.2.4 兼容模式:`,
             errorText(error)
@@ -537,6 +536,14 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
           ? `索引完成，共 ${result.slotCount} 项${checksumNote}`
           : `兼容缓存完成，共 ${result.slotCount} 项${checksumNote}`;
       entry.progress = 100;
+      if (
+        configuredPassword
+        && suppliedPassword === undefined
+        && savedPassword
+        && savedPassword !== configuredPassword
+      ) {
+        await this.context.secrets.delete(secretKey);
+      }
       invalidatePatchCacheIndex();
     } catch (error) {
       this.setEntryError(entry, error);
@@ -545,8 +552,13 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
   }
 
   private setEntryError(entry: PatchEntry, error: unknown): void {
-    entry.status = isPakPasswordError(error) ? 'password-error' : 'error';
-    entry.message = isPakPasswordError(error) ? '密码错误' : truncate(errorText(error), 180);
+    const passwordErrorKind = classifyPakPasswordError(error);
+    entry.status = passwordErrorKind === 'none' ? 'error' : 'password-error';
+    entry.message = passwordErrorKind === 'confirmed'
+      ? '密码错误'
+      : passwordErrorKind === 'ambiguous'
+        ? '密码或资源格式不匹配'
+        : truncate(errorText(error), 180);
     entry.progress = 0;
     this.postEntry(entry);
   }

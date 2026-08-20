@@ -51,6 +51,7 @@ import {
 } from './providers/deepseek-view';
 import {
   findPasswordInPakTxt as findPasswordInNearbyPakTxt,
+  isConfirmedPakPasswordError,
   isPakPasswordError,
   pakPasswordSecretKey,
   readPakPasswordRecords,
@@ -1334,7 +1335,7 @@ async function loadPakFiles(
               if (isPairedArchiveExtension(item.extension)) {
                 throw new Error(`${path.basename(item.pakPath)}: ${error instanceof Error ? error.message : String(error)}`);
               }
-              if (isPakPasswordError(error)) throw error;
+              if (isConfirmedPakPasswordError(error)) throw error;
               console.warn(
                 `[BOO] ${path.basename(item.pakPath)} 高速读取失败，自动回退 V4.2.4 兼容模式:`,
                 error instanceof Error ? error.message : String(error)
@@ -1365,12 +1366,12 @@ async function loadPakFiles(
             || !isPakPasswordError(error)
           ) throw error;
           if (findConfiguredPakPassword(context, item.pakPath, operationEngine) !== undefined) {
-            throw new Error(`${path.basename(item.pakPath)}: 资源密码文件中配置的密码错误`);
+            throw new Error(`${path.basename(item.pakPath)}: 资源密码文件中的密码未通过验证，或该资源格式暂未支持`);
           }
           await context.secrets.delete(pakPasswordSecretKey(item.pakPath));
           const retryPassword = await promptPakPassword(
             item.pakPath,
-            '上次保存的密码错误，请重新输入'
+            '密码未通过验证，请重新输入或确认资源格式'
           );
           if (retryPassword === undefined) {
             throw new Error(`${path.basename(item.pakPath)}: 已取消重新输入密码`);

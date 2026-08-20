@@ -87,6 +87,11 @@ import {
   updateMerchantCoordinates,
   updateMonGenFields,
 } from '../utils/map-entities';
+import {
+  officialNpcArchiveBaseName,
+  resolveOfficialNpcAnimationPlan,
+  selectOfficialNpcArchiveFile,
+} from '../utils/official-npc';
 
 const MARKER_FILE_STATE_KEY = 'boo.mapPreview.markerFile';
 const MARKER_FILE_PATHS_STATE_KEY = 'boo.mapPreview.markerFilesByWorkspace';
@@ -581,10 +586,17 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     if (monGenText === undefined) warnings.push('未找到 MonGen.txt');
 
     const nameColor = engineColor(parseMerchantNameColor(setupText || ''));
-    const patchPaks = this.activePatchPaks(engine);
+    const clientLayout = this.clientResourceLayout(engine);
+    const patchPaks = this.activePatchPaks(engine, clientLayout);
+    const officialArchiveFiles = this.officialNpcArchiveFiles(clientLayout);
     clearPakCache();
     const effectImageArchives = loadPakIndex(workspaceRoot)?.pakList || [];
     const customAnimations = new Map<number, {
+      frames: ResolvedNpcFrame[];
+      interval: number;
+      label: string;
+    }>();
+    const officialAnimations = new Map<number, {
       frames: ResolvedNpcFrame[];
       interval: number;
       label: string;
@@ -596,25 +608,21 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         let frameInterval = 0;
         let appearanceLabel = `官方外观 ${npc.appearance}`;
         if (npc.appearance < 10000) {
-          const imagePath = path.join(
-            this.context.extensionPath,
-            'resources',
-            'npc-looks',
-            `${npc.appearance}.webp`
-          );
-          const engineAllowsAppearance = engine === 'GEE' || npc.appearance !== 273;
-          if (engineAllowsAppearance && isFile(imagePath) && this.panel) {
-            frames = [{
-              url: this.panel.webview.asWebviewUri(vscode.Uri.file(imagePath)).toString(),
-              width: 0,
-              height: 0,
-              offsetX: 0,
-              offsetY: 0,
-              usesOffsets: false,
-            }];
-          } else {
-            appearanceLabel += '，帮助文档未提供图片';
+          let cached = officialAnimations.get(npc.appearance);
+          if (!cached) {
+            cached = this.resolveOfficialNpcAnimation(
+              npc.appearance,
+              engine,
+              resourceRoots,
+              clientLayout,
+              officialArchiveFiles,
+              patchPaks
+            );
+            officialAnimations.set(npc.appearance, cached);
           }
+          frames = cached.frames;
+          frameInterval = cached.interval;
+          appearanceLabel = cached.label;
         } else {
           let cached = customAnimations.get(npc.appearance);
           if (!cached) {
@@ -646,8 +654,11 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     return { npcs, spawns, resourceRoots: [...resourceRoots], warnings };
   }
 
-  private activePatchPaks(engine: EngineId): CachedPatchPak[] {
-    const resourceRoots = this.clientResourceLayout(engine)?.dataRoots || [];
+  private activePatchPaks(
+    engine: EngineId,
+    layout = this.clientResourceLayout(engine)
+  ): CachedPatchPak[] {
+    const resourceRoots = layout?.dataRoots || [];
     const supportedExtensions = uiEditorArchiveExtensions(engine);
     return listCachedPatchPaks(getPatchCacheRoot(this.context), resourceRoots)
       .filter(pak => isPatchCacheCurrent(pak))
@@ -662,6 +673,107 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     ) || this.context.workspaceState.get<SavedPatchManagerState>(PATCH_MANAGER_STATE_KEY);
     if (patchState?.engine && patchState.engine !== engine) return undefined;
     return clientResourceLayoutFromState(patchState);
+  }
+
+  private officialNpcArchiveFiles(layout: ClientResourceLayout | undefined): string[] {
+    if (!layout) return [];
+    const files = new Map<string, string>();
+    for (const archiveName of ['npc', 'npc2', 'npc3', 'npc4']) {
+      for (const extension of ['pak', 'jpk', 'wzl', 'wil'] as const) {
+        for (const dataRoot of layout.dataRoots) {
+          const sourcePath = resolveResourceFile([dataRoot], [archiveName], `.${extension}`);
+          if (sourcePath) files.set(path.resolve(sourcePath).toLowerCase(), sourcePath);
+        }
+      }
+    }
+    return [...files.values()];
+  }
+
+  private resolveOfficialNpcAnimation(
+    appearance: number,
+    engine: EngineId,
+    resourceRoots: Set<string>,
+    layout: ClientResourceLayout | undefined,
+    archiveFiles: readonly string[],
+    patchPaks: readonly CachedPatchPak[]
+  ): { frames: ResolvedNpcFrame[]; interval: number; label: string } {
+    const plan = resolveOfficialNpcAnimationPlan(appearance, engine);
+    if (!plan) {
+      return { frames: [], interval: 0, label: `官方外观 ${appearance}，未收录素材映射` };
+    }
+    if (!layout || layout.dataRoots.length === 0) {
+      return { frames: [], interval: 0, label: `官方外观 ${appearance}，未选择客户端目录` };
+    }
+    const sourcePath = selectOfficialNpcArchiveFile(
+      plan.archiveName,
+      archiveFiles,
+      layout.dataRoots,
+      layout.customPatchDirectories,
+      engine
+    );
+    if (!sourcePath) {
+      return {
+        frames: [],
+        interval: 0,
+        label: `官方外观 ${appearance}，未找到 ${plan.archiveName}.pak 或客户端 WZL/WIL`,
+      };
+    }
+
+    const pak = patchPaks
+      .find(candidate => sameFilePath(candidate.pakPath, sourcePath));
+    const sourceLabel = path.basename(sourcePath);
+    if (!pak || !isPatchCacheCurrent(pak) || !this.panel) {
+      return {
+        frames: [],
+        interval: plan.interval,
+        label: `官方外观 ${appearance} · ${sourceLabel} 未缓存`,
+      };
+    }
+
+    let assetTable: CachedPatchAssetTable;
+    try {
+      assetTable = this.originalAssetTable(pak);
+    } catch (error) {
+      console.warn('[BOO] 官方 NPC 素材索引读取失败:', error instanceof Error ? error.message : String(error));
+      return {
+        frames: [],
+        interval: plan.interval,
+        label: `官方外观 ${appearance} · ${sourceLabel} 索引不可用`,
+      };
+    }
+
+    const frames: ResolvedNpcFrame[] = [];
+    for (let frame = 0; frame < plan.frameWindow; frame++) {
+      const imageIndex = plan.startIndex + frame;
+      if (imageIndex >= pak.slotCount || imageIndex >= assetTable.slotCount) break;
+      if (
+        !assetTable.present[imageIndex]
+        || assetTable.blank[imageIndex]
+        || assetTable.width[imageIndex] <= 1
+        || assetTable.height[imageIndex] <= 1
+      ) continue;
+      const imagePath = patchImagePath(pak, imageIndex);
+      if (!pak.archiveId && !isFile(imagePath)) continue;
+      frames.push({
+        url: this.panel.webview.asWebviewUri(
+          pak.archiveId
+            ? archiveResourceUri(pak.archiveId, imageIndex)
+            : vscode.Uri.file(imagePath)
+        ).toString(),
+        width: assetTable.width[imageIndex],
+        height: assetTable.height[imageIndex],
+        offsetX: assetTable.offsetX[imageIndex],
+        offsetY: assetTable.offsetY[imageIndex],
+        usesOffsets: true,
+      });
+    }
+    if (!pak.archiveId) resourceRoots.add(pak.cacheDir);
+    const archiveLabel = officialNpcArchiveBaseName(sourcePath);
+    return {
+      frames,
+      interval: frames.length > 1 ? plan.interval : 0,
+      label: `官方外观 ${appearance} · ${archiveLabel}${path.extname(sourcePath)} · ${String(plan.startIndex).padStart(6, '0')} · ${frames.length}/${plan.frameWindow} 帧`,
+    };
   }
 
   private resolveCustomNpcAnimation(
@@ -1371,6 +1483,10 @@ function findMapPath(
 
 function isFile(filePath: string): boolean {
   try { return Boolean(filePath) && fs.statSync(filePath).isFile(); } catch { return false; }
+}
+
+function sameFilePath(left: string, right: string): boolean {
+  return path.resolve(left).toLowerCase() === path.resolve(right).toLowerCase();
 }
 
 function readOptionalText(filePath: string): string | undefined {

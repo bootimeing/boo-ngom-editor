@@ -5,11 +5,15 @@ const path = require('node:path');
 
 function main() {
   const {
+    classifyPakPasswordError,
     findPasswordInPakConfig,
     findPasswordInPakTxt,
+    isConfirmedPakPasswordError,
+    isPakPasswordError,
     readPakPasswordRecords,
     rebaseConfiguredPakPath,
     resolvePakPasswordFromRecords,
+    selectPakPassword,
   } = require('../out/utils/pak-password');
 
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-pak-password-'));
@@ -62,6 +66,40 @@ function main() {
     const parsedRecords = readPakPasswordRecords(configPath);
     assert.equal(parsedRecords[0].password, 'dialog-password');
     assert.equal(parsedRecords[0].option, '0');
+
+    const utf8ConfigPath = path.join(tempRoot, 'Pak-utf8.txt');
+    fs.writeFileSync(
+      utf8ConfigPath,
+      Buffer.concat([
+        Buffer.from([0xef, 0xbb, 0xbf]),
+        Buffer.from('D:\\client\\data\\Chinese.pak|中文密码|0\r\nD:\\client\\data\\Pipe.pak|pass|word|1\r\n', 'utf8'),
+      ])
+    );
+    const utf8Records = readPakPasswordRecords(utf8ConfigPath);
+    assert.equal(utf8Records[0].password, '中文密码', 'UTF-8 BOM password files must preserve Chinese passwords');
+    assert.equal(utf8Records[1].password, 'pass|word', 'the optional final field must not truncate passwords containing pipes');
+    assert.equal(utf8Records[1].option, '1');
+
+    const utf16ConfigPath = path.join(tempRoot, 'Pak-utf16.txt');
+    fs.writeFileSync(
+      utf16ConfigPath,
+      Buffer.concat([
+        Buffer.from([0xff, 0xfe]),
+        Buffer.from('D:\\client\\data\\Utf16.jpk|宽字符密码\r\n', 'utf16le'),
+      ])
+    );
+    assert.equal(readPakPasswordRecords(utf16ConfigPath)[0].password, '宽字符密码');
+
+    assert.equal(selectPakPassword('manual', 'configured', 'saved'), 'manual');
+    assert.equal(selectPakPassword(undefined, 'configured', 'saved'), 'configured');
+    assert.equal(selectPakPassword(undefined, undefined, 'saved'), 'saved');
+    assert.equal(classifyPakPasswordError(new Error('password is incorrect')), 'confirmed');
+    assert.equal(classifyPakPasswordError(new Error('密码错误，或 Items.pak 索引损坏')), 'ambiguous');
+    assert.equal(classifyPakPasswordError(Object.assign(new Error('JPK 密码错误，或文件格式不支持'), { name: 'JpkPasswordError' })), 'ambiguous');
+    assert.equal(classifyPakPasswordError(new Error('GAMEOFMIR 索引越界')), 'none');
+    assert.equal(isConfirmedPakPasswordError(new Error('密码错误')), true);
+    assert.equal(isConfirmedPakPasswordError(new Error('密码错误，或文件格式不支持')), false);
+    assert.equal(isPakPasswordError(new Error('密码错误，或文件格式不支持')), true);
 
     const ambiguousPath = path.join(dataDirectory, 'SameName.pak');
     const ambiguousRecords = [

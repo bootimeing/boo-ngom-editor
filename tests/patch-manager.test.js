@@ -31,7 +31,12 @@ function main() {
   assert.match(provider, /readEffectImageArchiveNames[\s\S]*item\.extension \? `\$\{item\.name\}\.\$\{item\.extension\}`/);
   assert.match(provider, /readPasswordRecords\(\)[\s\S]*if \(!isFile\(this\.passwordFile\)\) return \[\]/);
   assert.match(provider, /isPairedArchiveExtension[\s\S]*passwordRequired/);
-  assert.match(provider, /pairedArchive[\s\S]*\? ''[\s\S]*resolvePakPasswordFromRecords/);
+  assert.match(provider, /configuredPassword[\s\S]*resolvePakPasswordFromRecords/);
+  assert.match(
+    provider,
+    /selectPakPassword\(suppliedPassword, configuredPassword, savedPassword\)/,
+    'the selected password file must override stale secure-storage passwords'
+  );
   assert.match(provider, /storageModeForPath[\s\S]*\? 'direct'/, 'WIL/WZL must always use direct indexed reading');
   assert.match(
     provider,
@@ -41,6 +46,8 @@ function main() {
   assert.match(provider, /forceRefresh[\s\S]*decodePakFully/, 'single-row reload must force a fresh cache');
   assert.match(provider, /patchPasswordSecretKey/, 'manual passwords must use VS Code secure storage');
   assert.match(provider, /status = 'password-error'/, 'password failures must have a dedicated row state');
+  assert.match(provider, /isConfirmedPakPasswordError\(error\)/, 'ambiguous format failures must still try the compatibility reader');
+  assert.match(provider, /密码或资源格式不匹配/, 'ambiguous failures must not be reported as a definite wrong password');
   assert.match(patchDiscovery, /findNearbyPakPasswordFile/);
   assert.match(provider, /findWorkspacePatchPasswordFile/);
   assert.doesNotMatch(provider, /findWorkspacePatchDataDirectory/, 'a workspace must not silently select a client');
