@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1e1e1e;color:#d4d4d4;font-family:'Microsoft YaHei',sans-serif;padding:16px;font-size:13px}
+h2{color:#ff8c00;font-size:16px;margin-bottom:4px}
+h3{color:#00d4ff;font-size:13px;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid #333}
+.row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin:4px 0;background:#2a2a2a;border-radius:6px}
+.label{color:#e0e0e0;font-size:13px}
+input[type=color]{width:36px;height:28px;border:1px solid #555;border-radius:4px;cursor:pointer;background:transparent;padding:1px}
+input[type=text]{width:80px;padding:4px 6px;background:#333;color:#fff;border:1px solid #555;border-radius:4px;font-size:12px;text-align:center;font-family:Consolas,monospace}
+.preview{display:inline-block;width:20px;height:20px;border-radius:3px;margin-left:8px;border:1px solid #555;vertical-align:middle}
+.btns{margin-top:16px;display:flex;gap:8px}
+button{padding:8px 16px;background:#0e639c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px}
+button:hover{background:#1177bb}
+button.secondary{background:#444}
+button.secondary:hover{background:#555}
+.status{color:#4ec9b0;font-size:12px;margin-top:8px;min-height:18px}
+.desc{color:#888;font-size:11px;margin:4px 0}
+code{color:#ffcc00;font-size:11px;background:#333;padding:1px 4px;border-radius:2px}
+</style></head><body>
+<h2>语法颜色设置</h2>
+<p class="desc">修改后点<code>应用</code>实时生效</p>
+<div id="items"></div>
+<div class="btns">
+  <button onclick="apply()">应用</button>
+  <button class="secondary" onclick="resetTo('default')">默认</button>
+  <button class="secondary" onclick="resetTo('neon')">霓虹</button>
+  <button class="secondary" onclick="resetTo('forest')">森林</button>
+</div>
+<div class="status" id="status"></div>
+<script>
+var v = acquireVsCodeApi();
+var colors = [
+  {key:'keyword',name:'命令通用',def:'#569CD6'},
+  {key:'keyword.cmd',name:'检测命令',def:'#4EC9B0'},
+  {key:'keyword.action',name:'执行命令',def:'#DCDCAA'},
+  {key:'keyword.say',name:'界面指令',def:'#4FC1FF'},
+  {key:'keyword.flow',name:'流程控制',def:'#C586C0'},
+  {key:'keyword.label',name:'标签',def:'#FF6B6B'},
+  {key:'keyword.path',name:'路径',def:'#CE9178'},
+  {key:'variable',name:'变量',def:'#9CDCFE'}
+];
+
+var presets = {
+  default: {keyword:'#569CD6','keyword.cmd':'#4EC9B0','keyword.action':'#DCDCAA','keyword.say':'#4FC1FF','keyword.flow':'#C586C0','keyword.label':'#FF6B6B','keyword.path':'#CE9178',variable:'#9CDCFE'},
+  forest:  {keyword:'#228B22','keyword.cmd':'#2E8B57','keyword.action':'#9CCC65','keyword.say':'#FFD54F','keyword.flow':'#006400','keyword.label':'#FF4500','keyword.path':'#8B4513',variable:'#98FB98'},
+  neon:    {keyword:'#FF00FF','keyword.cmd':'#00FFFF','keyword.action':'#FFFF00','keyword.say':'#7FFF00','keyword.flow':'#BF00FF','keyword.label':'#FF1493','keyword.path':'#FF6600',variable:'#7FFF00'},
+  ocean:   {keyword:'#0077B6','keyword.cmd':'#00B4D8','keyword.action':'#90E0EF','keyword.say':'#FFD166','keyword.flow':'#03045E','keyword.label':'#FF6B6B','keyword.path':'#CA6702',variable:'#ADE8F4'},
+  sunset:  {keyword:'#E85D04','keyword.cmd':'#F48C06','keyword.action':'#FFD166','keyword.say':'#00B4D8','keyword.flow':'#9D0208','keyword.label':'#DC2F02','keyword.path':'#7F4F24',variable:'#FFD60A'},
+  amber:   {keyword:'#FF8F00','keyword.cmd':'#FFA000','keyword.action':'#FFD54F','keyword.say':'#4FC3F7','keyword.flow':'#E65100','keyword.label':'#DD2C00','keyword.path':'#8D6E63',variable:'#FFECB3'},
+  crimson: {keyword:'#E53935','keyword.cmd':'#EF5350','keyword.action':'#FFB74D','keyword.say':'#4FC3F7','keyword.flow':'#880E4F','keyword.label':'#FF1744','keyword.path':'#BCAAA4',variable:'#FFCDD2'}
+};
+
+var current = {};
+// load saved
+v.postMessage({type:'load'});
+
+function render(d){
+  if(!d) d={};
+  current = Object.assign({},presets.default,d);
+  var h='';
+  for(var i=0;i<colors.length;i++){
+    var c=colors[i],val=current[c.key]||c.def;
+    h+='<div class="row"><div><span class="label">'+c.name+'</span><span class="preview" data-k="'+c.key+'" style="background:'+val+'"></span></div><div style="display:flex;align-items:center;gap:6px"><input type="text" id="t_'+c.key+'" value="'+val+'" onchange="onTxt(\''+c.key+'\')"><input type="color" id="c_'+c.key+'" value="'+val+'" onchange="onClr(\''+c.key+'\')"></div></div>';
+  }
+  document.getElementById('items').innerHTML=h;
+}
+
+function onTxt(k){
+  var v=document.getElementById('t_'+k).value;
+  if(/^#[0-9a-fA-F]{6}$/.test(v)){
+    document.getElementById('c_'+k).value=v;
+    current[k]=v;
+    var p=document.querySelector('[data-k="'+k+'"]');
+    if(p) p.style.background=v;
+  }
+}
+function onClr(k){
+  var v=document.getElementById('c_'+k).value;
+  document.getElementById('t_'+k).value=v;
+  current[k]=v;
+  var p=document.querySelector('[data-k="'+k+'"]');
+  if(p) p.style.background=v;
+}
+
+function apply(){
+  v.postMessage({type:'save',rules:current});
+  document.getElementById('status').textContent='已应用';
+}
+
+function resetTo(name){
+  var p=presets[name];
+  if(p){ render(p); apply(); }
+}
+
+window.addEventListener('message',function(e){
+  if(e.data.type==='load'){ render(e.data.rules); }
+});
+</script></body></html>

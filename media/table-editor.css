@@ -1,0 +1,330 @@
+:root {
+  color-scheme: light dark;
+  --table-bg: var(--vscode-editor-background, #1e1e1e);
+  --table-fg: var(--vscode-editor-foreground, #d4d4d4);
+  --toolbar-bg: var(--vscode-sideBar-background, #252526);
+  --header-bg: var(--vscode-editorGroupHeader-tabsBackground, #2d2d2d);
+  --header-fg: var(--vscode-foreground, #cccccc);
+  --border: var(--vscode-panel-border, #454545);
+  --cell-border: var(--vscode-editorWidget-border, #3a3a3a);
+  --button-bg: var(--vscode-button-secondaryBackground, #3a3d41);
+  --button-hover: var(--vscode-button-secondaryHoverBackground, #50545a);
+  --button-fg: var(--vscode-button-secondaryForeground, #ffffff);
+  --input-bg: var(--vscode-input-background, #3c3c3c);
+  --input-fg: var(--vscode-input-foreground, #cccccc);
+  --input-border: var(--vscode-input-border, #5a5a5a);
+  --accent: var(--vscode-focusBorder, #007fd4);
+  --selection: var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.72));
+  --selection-strong: var(--vscode-list-activeSelectionBackground, #094771);
+  --row-alt: var(--vscode-list-inactiveSelectionBackground, #252525);
+  --muted: var(--vscode-descriptionForeground, #9d9d9d);
+  --success: var(--vscode-testing-iconPassed, #73c991);
+  --error: var(--vscode-errorForeground, #f48771);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--table-bg);
+  color: var(--table-fg);
+  font-family: var(--vscode-font-family, "Segoe UI", "Microsoft YaHei UI", sans-serif);
+  font-size: 13px;
+}
+
+button,
+input {
+  font: inherit;
+  letter-spacing: 0;
+}
+
+button {
+  min-height: 26px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--button-hover);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.toolbar {
+  display: flex;
+  flex: 0 0 39px;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--toolbar-bg);
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 20px;
+  margin: 0 2px;
+  background: var(--border);
+}
+
+.toolbar-spacer,
+.status-spacer {
+  flex: 1;
+}
+
+.file-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value-bar {
+  display: grid;
+  grid-template-columns: 76px 24px minmax(120px, 1fr);
+  flex: 0 0 33px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--header-bg);
+}
+
+.cell-address,
+.cell-value {
+  width: 100%;
+  height: 27px;
+  border: 0;
+  background: var(--input-bg);
+  color: var(--input-fg);
+}
+
+.cell-address {
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+
+.cell-value {
+  padding: 3px 8px;
+}
+
+.value-separator {
+  color: var(--muted);
+  text-align: center;
+  user-select: none;
+}
+
+.grid-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#grid {
+  width: 100%;
+  height: 100%;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--table-bg);
+  color: var(--muted);
+}
+
+.loading.hidden {
+  display: none;
+}
+
+.fill-handle {
+  position: absolute;
+  z-index: 25;
+  display: none;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--table-bg);
+  background: var(--accent);
+  cursor: crosshair;
+}
+
+.status-bar {
+  display: flex;
+  flex: 0 0 24px;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 3px 9px;
+  border-top: 1px solid var(--border);
+  background: var(--toolbar-bg);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#selectionInfo,
+#status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#status[data-tone="success"] {
+  color: var(--success);
+}
+
+#status[data-tone="error"] {
+  color: var(--error);
+}
+
+.tabulator {
+  border: 0;
+  background: var(--table-bg);
+  color: var(--table-fg);
+  font-family: "SimSun", "宋体", var(--vscode-editor-font-family, monospace);
+  font-size: 13px;
+}
+
+.tabulator .tabulator-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--header-bg);
+  color: var(--header-fg);
+}
+
+.tabulator .tabulator-header .tabulator-col,
+.tabulator .tabulator-row-header {
+  border-right: 1px solid var(--border);
+  background: var(--header-bg);
+}
+
+.tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover {
+  background: var(--button-hover);
+}
+
+.tabulator .tabulator-tableholder,
+.tabulator .tabulator-tableholder .tabulator-table {
+  background: var(--table-bg);
+  color: var(--table-fg);
+}
+
+.tabulator-row,
+.tabulator-row.tabulator-row-even {
+  min-height: 25px;
+  background: var(--table-bg);
+  color: var(--table-fg);
+}
+
+.tabulator-row.tabulator-row-even {
+  background: var(--row-alt);
+}
+
+.tabulator-row .tabulator-cell {
+  min-height: 25px;
+  padding: 4px 7px;
+  border-right: 1px solid var(--cell-border);
+  border-bottom: 1px solid var(--cell-border);
+  background: transparent;
+  color: inherit;
+  line-height: 16px;
+}
+
+.tabulator-row .tabulator-cell.tabulator-editing {
+  padding: 0;
+  border: 1px solid var(--accent);
+}
+
+.tabulator-row .tabulator-cell.tabulator-editing input {
+  width: 100%;
+  height: 100%;
+  padding: 3px 6px;
+  border: 0;
+  outline: 0;
+  background: var(--input-bg);
+  color: var(--input-fg);
+}
+
+.tabulator .tabulator-range {
+  border: 1px solid var(--accent);
+  /* The range overlay sits above cell contents and must remain transparent. */
+  background: transparent;
+}
+
+.tabulator .tabulator-range-cell-active {
+  border: 2px solid var(--accent);
+}
+
+.tabulator-row .tabulator-cell.tabulator-range-selected:not(.tabulator-range-only-cell-selected):not(.tabulator-range-row-header) {
+  background-color: var(--selection);
+  color: var(--table-fg);
+}
+
+.tabulator .tabulator-header .tabulator-col.tabulator-range-highlight,
+.tabulator-row.tabulator-range-highlight .tabulator-cell.tabulator-range-row-header {
+  background-color: var(--selection);
+  color: var(--header-fg);
+}
+
+.tabulator .tabulator-header .tabulator-col.tabulator-range-selected,
+.tabulator-row.tabulator-range-highlight.tabulator-range-selected .tabulator-cell.tabulator-range-row-header,
+.tabulator-row.tabulator-range-selected .tabulator-cell.tabulator-range-row-header {
+  background-color: var(--selection-strong);
+  color: var(--header-fg);
+}
+
+.tabulator-menu {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--vscode-menu-background, #252526);
+  color: var(--vscode-menu-foreground, #f0f0f0);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.tabulator-menu .tabulator-menu-item {
+  padding: 6px 24px 6px 10px;
+}
+
+.tabulator-menu .tabulator-menu-item:hover {
+  background: var(--vscode-menu-selectionBackground, #094771);
+  color: var(--vscode-menu-selectionForeground, #ffffff);
+}
+
+.tabulator-menu .tabulator-menu-separator {
+  border-top-color: var(--border);
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    overflow-x: auto;
+  }
+
+  .file-label {
+    display: none;
+  }
+
+  .toolbar-spacer {
+    min-width: 8px;
+  }
+}

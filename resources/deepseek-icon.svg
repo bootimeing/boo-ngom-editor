@@ -1,0 +1,14 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- 鲸鱼身体 -->
+  <path d="M4 13.5 C4 9 6.5 6.5 10 6.5 L13.5 6.5 C17 6.5 19.5 9 19.5 12.5 C19.5 16 17 18.5 13.5 18.5 L10 18.5 C6.5 18.5 4 16.5 4 13.5 Z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <!-- 尾鳍上 -->
+  <path d="M18.6 11.8 C20.3 10.6 21.8 10 22.1 11.3 C22.4 12.4 21.2 13.2 19.9 13.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- 尾鳍下 -->
+  <path d="M19.2 14.2 C20.6 15 22 15.6 22.2 16.8 C22.4 17.9 21.2 18.1 20 17.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- 眼睛 -->
+  <circle cx="7.6" cy="12.4" r="0.9" fill="currentColor"/>
+  <!-- 喷水 -->
+  <path d="M10 6.2 C10.4 4.9 11.6 4.2 13.2 4.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- 腹部纹 -->
+  <path d="M7 15.6 C9.5 16.6 12.5 16.6 15 15.4" fill="none" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.7"/>
+</svg>

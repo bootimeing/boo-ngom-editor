@@ -1,0 +1,29 @@
+* text=auto
+
+*.c text eol=lf
+*.cpp text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf whitespace=-trailing-space
+*.mjs text eol=lf
+*.ps1 text eol=crlf
+*.py text eol=lf
+*.ts text eol=lf
+*.yml text eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.dll binary
+*.docx binary
+*.exe binary
+*.pak binary
+*.pyd binary
+*.pyc binary
+*.rtf binary
+*.vsix binary
+*.webp binary
+*.wzl binary
+*.zip binary

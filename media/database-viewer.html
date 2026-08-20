@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="{{TABULATOR_CSS_URI}}">
+<style>
+:root{color-scheme:dark;--bg:#181a1f;--panel:#202329;--line:#353a43;--muted:#9299a5;--text:#d9dde5;--accent:#32b7d8;--warm:#f0a84a;--ok:#45b879;--danger:#df6b72}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--text);font-family:"Microsoft YaHei",sans-serif;font-size:13px}
+button,input,select{font:inherit}
+button{color:var(--text)}
+.topbar{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 12px;border-bottom:1px solid var(--line);background:#1d2025}
+.title{font-size:15px;font-weight:600;color:var(--warm);white-space:nowrap}
+.info{min-width:0;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{display:flex;flex:0 0 auto;gap:2px;min-height:37px;padding:5px 8px 0;overflow-x:auto;border-bottom:1px solid var(--line);background:#1b1e23}
+.tab{height:31px;padding:0 12px;border:1px solid transparent;border-bottom:0;background:transparent;color:#aeb5c0;cursor:pointer;white-space:nowrap}
+.tab:hover{background:#272b32;color:#fff}
+.tab.active{border-color:var(--line);background:var(--panel);color:var(--accent)}
+.actions{display:flex;align-items:center;gap:6px;min-height:43px;padding:5px 10px;border-bottom:1px solid var(--line);background:#1d2025}
+.command-button{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:31px;padding:0 10px;border:1px solid #454b56;border-radius:4px;background:#272b32;cursor:pointer;white-space:nowrap}
+.command-button:hover:not(:disabled){border-color:#647080;background:#323740}
+.command-button.primary{border-color:#237e94;background:#176b82;color:#fff}
+.command-button.danger{color:#f3a0a5}
+.command-button:disabled{opacity:.35;cursor:default}
+.command-icon{width:16px;text-align:center;font-size:16px;line-height:1}
+.readonly-note{min-width:0;margin-left:auto;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.equipment-filters{display:flex;flex:0 0 auto;gap:4px;min-height:40px;padding:5px 10px;overflow-x:auto;border-bottom:1px solid var(--line);background:#1b1e23}
+.filter-chip{height:29px;padding:0 10px;border:1px solid #414751;border-radius:4px;background:#24282e;color:#b9c0ca;cursor:pointer;white-space:nowrap}
+.filter-chip:hover{border-color:#5b6672;background:#2e333b;color:#fff}
+.filter-chip.active{border-color:#25839a;background:#176b82;color:#fff}
+.controls{display:grid;grid-template-columns:minmax(180px,1fr) minmax(120px,180px) auto auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+.search,.select,.text-input{height:32px;border:1px solid #454b56;border-radius:4px;background:#17191d;color:#f2f4f7;outline:none}
+.search,.text-input{width:100%;padding:0 10px}
+.select{padding:0 8px}
+.search:focus,.select:focus,.text-input:focus{border-color:var(--accent)}
+.segments{display:flex;height:32px;border:1px solid #454b56;border-radius:4px;overflow:hidden}
+.segments button{min-width:52px;border:0;border-right:1px solid #454b56;background:#242830;cursor:pointer}
+.segments button:last-child{border-right:0}
+.segments button.active{background:#176b82;color:#fff}
+.page-size{display:flex;align-items:center;gap:6px;color:var(--muted);white-space:nowrap}
+.main{position:relative;min-width:0;min-height:0;flex:1}
+.empty{display:grid;place-items:center;height:100%;min-height:120px;color:#69717e;text-align:center}
+.grid-pane{position:absolute;inset:0;min-width:0;min-height:0;background:var(--bg)}
+.table-wrap{position:absolute;inset:0;overflow:hidden}
+.fill-handle{position:absolute;z-index:25;display:none;width:9px;height:9px;border:1px solid var(--bg);background:var(--accent);cursor:crosshair}
+.field-name{display:block;color:#f1b762;font-weight:600}
+.field-label{display:block;margin-top:2px;color:#9ca4af;font-family:"Microsoft YaHei",sans-serif;font-size:10px;font-weight:400}
+.name-text{font-weight:600;text-shadow:0 1px 1px #000}
+.row-context{position:fixed;z-index:45;display:grid;min-width:150px;padding:4px;border:1px solid #4c535e;border-radius:5px;background:#24272d;box-shadow:0 10px 28px rgba(0,0,0,.42)}
+.menu-button{height:30px;padding:0 10px;border:0;border-radius:3px;background:transparent;color:#d9dde5;text-align:left;cursor:pointer}
+.menu-button:hover:not(:disabled){background:#343a43}
+.menu-button.danger{color:#f2a1a6}
+.menu-button:disabled{opacity:.35;cursor:default}
+.menu-separator{height:1px;margin:4px 2px;background:#414650}
+.loading{position:absolute;inset:0;display:none;place-items:center;background:rgba(24,26,31,.78);z-index:10;color:#b8c0ca}
+.loading.visible{display:grid}
+.footer{display:flex;align-items:center;gap:5px;min-height:42px;padding:6px 10px;border-top:1px solid var(--line);background:#1d2025}
+.pager{display:flex;align-items:center;gap:4px}
+.icon-button{display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid #454b56;border-radius:4px;background:#272b32;cursor:pointer;font-size:16px}
+.icon-button:hover:not(:disabled){border-color:#5d6674;background:#323740}
+.icon-button:disabled{opacity:.35;cursor:default}
+.page-number{width:58px;height:30px;padding:0 6px;border:1px solid #454b56;border-radius:4px;background:#17191d;color:#fff;text-align:center}
+.page-text,.status{color:var(--muted);font-size:12px;white-space:nowrap}
+.status{min-width:0;margin-left:auto;overflow:hidden;text-overflow:ellipsis}
+.error{color:var(--danger)}
+.modal-layer{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(8,10,13,.76)}
+.modal{display:flex;flex-direction:column;width:min(940px,96vw);max-height:88vh;border:1px solid #4b525e;border-radius:6px;background:#202329;box-shadow:0 18px 55px rgba(0,0,0,.48)}
+.modal.narrow{width:min(780px,96vw)}
+.modal.confirm-modal{width:min(430px,94vw)}
+.modal-header{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.modal-title{font-size:14px;font-weight:600;color:var(--warm)}
+.modal-subtitle{min-width:0;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.close-button{margin-left:auto}
+.modal>form{display:flex;flex:1;min-height:0;flex-direction:column}
+.modal-body{flex:1;min-height:0;overflow:auto;padding:12px}
+.modal-footer{display:flex;justify-content:flex-end;gap:7px;padding:9px 12px;border-top:1px solid var(--line)}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:9px 10px}
+.form-field{display:block;min-width:0}
+.form-label{display:flex;align-items:baseline;gap:6px;min-width:0;margin-bottom:4px}
+.form-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e5e8ed;font-family:Consolas,monospace;font-size:11px}
+.form-translation{color:var(--muted);font-size:10px;white-space:nowrap}
+.form-type{margin-left:auto;color:#68717e;font-size:9px;white-space:nowrap}
+.text-input:disabled{opacity:.45}
+.schema-list{display:grid;gap:5px}
+.schema-row{display:grid;grid-template-columns:64px minmax(180px,1fr) 130px 34px;gap:6px;align-items:center}
+.schema-order{display:flex;gap:3px}
+.schema-order .icon-button{width:29px;height:29px}
+.schema-type{height:32px;padding:7px 8px;border:1px solid #3c424c;border-radius:4px;background:#191c20;color:#9fa7b3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.schema-add{margin-top:10px}
+.confirm-message{padding:18px 16px;color:#d8dce3;line-height:1.7;white-space:pre-wrap}
+.increment-body{display:grid;gap:8px;padding:16px}
+.increment-label{color:#c7ccd4;font-size:12px}
+.increment-summary{color:var(--muted);font-size:11px}
+#table{width:100%;height:100%;min-width:0;outline:none}
+#table.empty{display:grid;place-items:center;color:#69717e;text-align:center}
+.tabulator{height:100%;border:0;background:var(--bg);color:var(--text);font-family:Consolas,"Microsoft YaHei",monospace;font-size:12px}
+.tabulator .tabulator-header{border-bottom:1px solid #49515d;background:#292d34;color:var(--warm)}
+.tabulator .tabulator-header .tabulator-col,.tabulator .tabulator-row-header{min-height:43px;border-right:1px solid #3b414a;background:#292d34}
+.tabulator .tabulator-header .tabulator-col.tabulator-row-header,.tabulator-row .tabulator-cell.tabulator-row-header{width:1px!important;min-width:1px!important;max-width:1px!important;padding:0!important;border:0!important;color:transparent!important;overflow:hidden}
+.tabulator .tabulator-header .tabulator-col:hover{background:#343942}
+.tabulator .tabulator-header .tabulator-col .tabulator-col-content{padding:4px 9px}
+.tabulator .tabulator-header .tabulator-col .tabulator-col-title{white-space:nowrap}
+.tabulator .tabulator-tableholder{overflow:auto!important;scrollbar-width:auto;scrollbar-color:#687280 #17191d;background:var(--bg)}
+.tabulator .tabulator-tableholder::-webkit-scrollbar{width:12px;height:12px}
+.tabulator .tabulator-tableholder::-webkit-scrollbar-track{background:#17191d}
+.tabulator .tabulator-tableholder::-webkit-scrollbar-thumb{border:2px solid #17191d;border-radius:5px;background:#687280}
+.tabulator .tabulator-tableholder::-webkit-scrollbar-thumb:hover{background:#818c9b}
+.tabulator .tabulator-tableholder::-webkit-scrollbar-corner{background:#17191d}
+.tabulator .tabulator-tableholder .tabulator-table{background:var(--bg)}
+.tabulator-row,.tabulator-row.tabulator-row-even{min-height:29px;border-bottom:1px solid #2b2f35;background:#181a1f;color:var(--text)}
+.tabulator-row.tabulator-row-even{background:#1b1d22}
+.tabulator-row:hover,.tabulator-row.tabulator-row-even:hover{background:#242a31}
+.tabulator-row .tabulator-cell{height:29px;padding:5px 9px;border-right:1px solid #30343b;background:transparent;color:var(--text);white-space:nowrap}
+.tabulator-row .tabulator-cell.tabulator-frozen{background:#1d2025}
+.tabulator-row.boo-selected-row,.tabulator-row.boo-selected-row.tabulator-row-even{background:#193946}
+.tabulator-row.boo-selected-row .tabulator-cell.tabulator-frozen{background:#1a3d49}
+.tabulator .tabulator-header .tabulator-col.tabulator-frozen{background:#252930}
+.tabulator .tabulator-header .tabulator-col.database-frozen-end,.tabulator-row .tabulator-cell.database-frozen-end{box-shadow:2px 0 0 #49515d,5px 0 8px rgba(0,0,0,.22)}
+.tabulator-row .tabulator-cell.database-name-column{font-weight:600}
+.tabulator-row .tabulator-cell.tabulator-editing{padding:0;background:#102d38!important}
+.tabulator-row .tabulator-cell.tabulator-editing input{height:28px;padding:3px 8px;border:1px solid var(--accent);border-radius:0;background:#101b20;color:#fff;font:inherit;outline:none}
+.tabulator .tabulator-range{border:1px solid #35badb;background:transparent!important}
+.tabulator .tabulator-tableholder .tabulator-range-overlay .tabulator-range.tabulator-range-active:after{display:none}
+.tabulator .tabulator-range-cell-active{outline:1px solid #74d9ef;outline-offset:-1px}
+.tabulator-row .tabulator-cell.tabulator-range-selected:not(.tabulator-range-only-cell-selected):not(.tabulator-range-row-header){background:#214b59!important;color:#fff!important}
+.tabulator .tabulator-header .tabulator-col.tabulator-range-highlight,.tabulator-row.tabulator-range-highlight .tabulator-cell.tabulator-range-row-header{background:#31525d!important;color:#fff}
+.tabulator-row .tabulator-cell.tabulator-range-row-header{padding:0;text-align:center;color:#8f98a5}
+.tabulator-placeholder{color:#69717e}
+@media(max-width:760px){
+  .actions{overflow-x:auto}.readonly-note{display:none}
+  .controls{grid-template-columns:1fr 130px}.segments,.page-size{justify-self:stretch}.status{display:none}
+  .form-grid{grid-template-columns:1fr}
+  .schema-row{grid-template-columns:64px minmax(130px,1fr) 90px 34px}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="title">BOO 数据库编辑器</div>
+  <div class="info" id="info">正在读取数据库目录...</div>
+</header>
+<nav class="tabs" id="tabs" aria-label="数据库表"></nav>
+<section class="actions" aria-label="数据库操作">
+  <button class="command-button" id="manageFields" type="button" title="管理字段"><span class="command-icon">☷</span>字段管理</button>
+  <button class="icon-button" id="refreshPage" type="button" title="重新读取当前表">↻</button>
+  <div class="readonly-note" id="readonlyNote"></div>
+</section>
+<section class="equipment-filters" id="equipmentFilters" aria-label="装备分类" hidden></section>
+<section class="controls">
+  <input class="search" id="search" type="search" placeholder="搜索" autocomplete="off">
+  <select class="select" id="searchColumn" title="搜索字段"><option value="">全部字段</option></select>
+  <div class="segments" aria-label="匹配方式">
+    <button type="button" class="active" data-mode="contains">模糊</button>
+    <button type="button" data-mode="exact">精确</button>
+  </div>
+  <label class="page-size">每页
+    <select class="select" id="pageSize"><option>50</option><option selected>100</option><option>200</option></select>
+  </label>
+</section>
+<main class="main">
+  <section class="grid-pane">
+    <div class="table-wrap" id="tableWrap">
+      <div class="empty" id="table" tabindex="0">等待数据库</div>
+      <div class="fill-handle" id="fillHandle" title="拖动递增填充" aria-hidden="true"></div>
+    </div>
+    <div class="loading" id="loading">正在读取...</div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="pager">
+    <button class="icon-button" id="firstPage" type="button" title="第一页">«</button>
+    <button class="icon-button" id="prevPage" type="button" title="上一页">‹</button>
+    <input class="page-number" id="pageNumber" type="number" min="1" value="1" title="页码">
+    <span class="page-text" id="pageText">/ 1</span>
+    <button class="icon-button" id="nextPage" type="button" title="下一页">›</button>
+    <button class="icon-button" id="lastPage" type="button" title="最后一页">»</button>
+  </div>
+  <div class="status" id="status">0 条记录</div>
+</footer>
+
+<div class="modal-layer" id="schemaModal" hidden>
+  <section class="modal narrow" role="dialog" aria-modal="true" aria-labelledby="schemaModalTitle">
+    <header class="modal-header">
+      <div class="modal-title" id="schemaModalTitle">字段管理</div>
+      <div class="modal-subtitle" id="schemaModalSubtitle"></div>
+      <button class="icon-button close-button" type="button" data-close-modal title="关闭">×</button>
+    </header>
+    <div class="modal-body">
+      <div class="schema-list" id="schemaList"></div>
+      <button class="command-button schema-add" id="addField" type="button"><span class="command-icon">＋</span>添加字段</button>
+    </div>
+    <footer class="modal-footer">
+      <button class="command-button" type="button" data-close-modal>取消</button>
+      <button class="command-button primary" id="applySchema" type="button">应用字段变更</button>
+    </footer>
+  </section>
+</div>
+
+<div class="modal-layer" id="confirmModal" hidden>
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <header class="modal-header">
+      <div class="modal-title" id="confirmTitle">确认操作</div>
+    </header>
+    <div class="confirm-message" id="confirmMessage"></div>
+    <footer class="modal-footer">
+      <button class="command-button" id="confirmCancel" type="button">取消</button>
+      <button class="command-button danger" id="confirmAccept" type="button">确认</button>
+    </footer>
+  </section>
+</div>
+
+<div class="modal-layer" id="incrementModal" hidden>
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="incrementTitle">
+    <header class="modal-header">
+      <div class="modal-title" id="incrementTitle">选区递增</div>
+    </header>
+    <div class="increment-body">
+      <label class="increment-label" for="incrementValue">递增值</label>
+      <input class="text-input" id="incrementValue" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="1">
+      <div class="increment-summary" id="incrementSummary"></div>
+    </div>
+    <footer class="modal-footer">
+      <button class="command-button" id="incrementCancel" type="button">取消</button>
+      <button class="command-button primary" id="incrementAccept" type="button">确认递增</button>
+    </footer>
+  </section>
+</div>
+
+<div class="row-context" id="rowContextMenu" hidden>
+  <button class="menu-button" id="contextIncrementCells" type="button">递增</button>
+  <div class="menu-separator"></div>
+  <button class="menu-button" id="contextAddRow" type="button">新增空行</button>
+  <button class="menu-button" id="contextCopyRow" type="button">复制此行</button>
+  <button class="menu-button" id="contextPasteRow" type="button">粘贴到此行</button>
+  <div class="menu-separator"></div>
+  <button class="menu-button danger" id="contextDeleteRow" type="button">删除此行</button>
+</div>
+
+<script src="{{TABLE_EDITOR_CORE_URI}}"></script>
+<script src="{{TABULATOR_JS_URI}}"></script>
+<script>
+var vscode=acquireVsCodeApi();
+var tableCore=window.BooTableCore;
+var TabulatorConstructor=window.Tabulator;
+var tables=[];
+var currentTable=null;
+var currentRows=[];
+var currentColumns=[];
+var selectedRow=-1;
+var pageSize=100;
+var pageIndex=0;
+var totalRows=0;
+var requestId=0;
+var activeRequestId=0;
+var mutationRequestId=0;
+var activeMutationRequestId=0;
+var mutationPending=false;
+var searchTimer=0;
+var matchMode='contains';
+var sortColumn='';
+var sortDirection='asc';
+var databaseType='';
+var databaseTotal=0;
+var schemaDraft=[];
+var pendingNotice='';
+var equipmentFilter=null;
+var activeCellEdit=null;
+var copiedRowData=null;
+var confirmAction=null;
+var pendingSelectRowId=null;
+var restoreTableViewport=null;
+var restoreRangeBounds=null;
+var databaseGrid=null;
+var suppressGridEvents=false;
+var renderedTableId='';
+var renderedColumns=[];
+var fillState=null;
+var incrementBounds=null;
+var pendingGridRollback=[];
+
+var EQUIPMENT_FILTERS=[
+  {label:'全部',rules:[]},
+  {label:'武器',rules:[{field:'stdmode',values:[5,6]}]},
+  {label:'衣服',rules:[{field:'stdmode',values:[10,11]}]},
+  {label:'头盔',rules:[{field:'stdmode',values:[15]}]},
+  {label:'项链',rules:[{field:'stdmode',values:[19,20,21]}]},
+  {label:'手镯',rules:[{field:'stdmode',values:[24,26]}]},
+  {label:'戒指',rules:[{field:'stdmode',values:[22,23]}]},
+  {label:'勋章',rules:[{field:'stdmode',values:[30]}]},
+  {label:'称号',rules:[{field:'stdmode',values:[70]}]},
+  {label:'双击物品',rules:[{field:'stdmode',values:[31]}]},
+  {label:'材料',rules:[{field:'stdmode',values:[42]}]},
+  {label:'腰带',rules:[{field:'stdmode',values:[54,64]}]},
+  {label:'靴子',rules:[{field:'stdmode',values:[52,62]}]},
+  {label:'宝石',rules:[{field:'stdmode',values:[53,55,56,57,58,59,63]}]},
+  {label:'盾牌',rules:[{field:'stdmode',values:[48]}]},
+  {label:'斗笠',rules:[{field:'stdmode',values:[16]}]},
+  {label:'军鼓',rules:[{field:'stdmode',values:[65]}]},
+  {label:'时装衣服',rules:[{field:'stdmode',values:[66,67]}]},
+  {label:'时装武器',rules:[{field:'stdmode',values:[68,69]}]},
+  {label:'时装项链',rules:[{field:'stdmode',values:[75,76,77]}]},
+  {label:'时装头盔',rules:[{field:'stdmode',values:[78]}]},
+  {label:'时装手镯',rules:[{field:'stdmode',values:[79,80]}]},
+  {label:'时装戒指',rules:[{field:'stdmode',values:[81,82]}]},
+  {label:'时装勋章',rules:[{field:'stdmode',values:[83]}]},
+  {label:'时装腰带',rules:[{field:'stdmode',values:[84,85]}]},
+  {label:'时装鞋子',rules:[{field:'stdmode',values:[86,87]}]},
+  {label:'时装宝石',rules:[{field:'stdmode',values:[88,89]}]},
+  {label:'首饰盒',rules:[
+    {field:'stdmode',values:[15,19,20,21,22,23,24,26]},
+    {field:'overlap',values:[2,3,6,7]},
+    {field:'expand1',values:[1,2,3,4,5,6,13]}
+  ]},
+  {label:'神佑盒',rules:[
+    {field:'stdmode',values:[15,19,20,21,22,23,24,26]},
+    {field:'overlap',values:[4,5,6,7]},
+    {field:'expand1',values:[1,2,3,4,5,6,7,8,9,10,11,12,13]}
+  ]}
+];
+
+var EQUIPMENT_FILTERS_996PC=[
+  {label:'全部',rules:[]},
+  {label:'武器',rules:[{field:'stdmode',values:[5,6]}]},
+  {label:'衣服',rules:[{field:'stdmode',values:[10,11]}]},
+  {label:'头盔',rules:[{field:'stdmode',values:[15]}]},
+  {label:'项链',rules:[{field:'stdmode',values:[19,20,21]}]},
+  {label:'手镯',rules:[{field:'stdmode',values:[24,26]}]},
+  {label:'戒指',rules:[{field:'stdmode',values:[22,23]}]},
+  {label:'斗笠',rules:[{field:'stdmode',values:[16]}]},
+  {label:'马牌',rules:[{field:'stdmode',values:[28]}]},
+  {label:'勋章',rules:[{field:'stdmode',values:[30]}]},
+  {label:'双击物品',rules:[{field:'stdmode',values:[31]}]},
+  {label:'材料',rules:[{field:'stdmode',values:[42]}]},
+  {label:'称号',rules:[{field:'stdmode',values:[70]}]},
+  {label:'盾牌',rules:[{field:'stdmode',values:[48]}]},
+  {label:'聚灵珠',rules:[{field:'stdmode',values:[49]}]},
+  {label:'符/毒药',rules:[{field:'stdmode',values:[25,51]}]},
+  {label:'面巾',rules:[{field:'stdmode',values:[16,50]}]},
+  {label:'鞋子',rules:[{field:'stdmode',values:[52,62]}]},
+  {label:'宝石/血石',rules:[{field:'stdmode',values:[7,53,63]}]},
+  {label:'腰带',rules:[{field:'stdmode',values:[54,64]}]},
+  {label:'军鼓',rules:[{field:'stdmode',values:[65]}]},
+  {label:'时装衣服',rules:[{field:'stdmode',values:[66,67]}]},
+  {label:'时装武器',rules:[{field:'stdmode',values:[68,69]}]},
+  {label:'时装斗笠',rules:[{field:'stdmode',values:[71]}]},
+  {label:'时装项链',rules:[{field:'stdmode',values:[75,76,77]}]},
+  {label:'时装头盔',rules:[{field:'stdmode',values:[78]}]},
+  {label:'时装手镯',rules:[{field:'stdmode',values:[79,80]}]},
+  {label:'时装戒指',rules:[{field:'stdmode',values:[81,82]}]},
+  {label:'时装勋章',rules:[{field:'stdmode',values:[83]}]},
+  {label:'时装腰带',rules:[{field:'stdmode',values:[84,85]}]},
+  {label:'时装鞋子',rules:[{field:'stdmode',values:[86,87]}]},
+  {label:'时装宝石',rules:[{field:'stdmode',values:[88,89]}]},
+  {label:'时装马牌',rules:[{field:'stdmode',values:[90]}]},
+  {label:'时装符印',rules:[{field:'stdmode',values:[91]}]},
+  {label:'时装军鼓',rules:[{field:'stdmode',values:[92]}]},
+  {label:'时装盾牌',rules:[{field:'stdmode',values:[93]}]},
+  {label:'时装面巾',rules:[{field:'stdmode',values:[94]}]},
+  {label:'首饰盒',rules:[
+    {field:'stdmode',values:[15,19,20,21,22,23,24,26]},
+    {field:'overlap',values:[2,3,6,7]},
+    {field:'expand1',values:[1,2,3,4,5,6,13]}
+  ]},
+  {label:'神佑盒',rules:[
+    {field:'stdmode',values:[15,19,20,21,22,23,24,26]},
+    {field:'overlap',values:[4,5,6,7]},
+    {field:'expand1',values:[1,2,3,4,5,6,7,8,9,10,11,12,13]}
+  ]},
+  {label:'生肖装备',rules:[{field:'stdmode',values:[100,101,102,103,104,105,106,107,108,109,110,111]}]}
+];
+
+var FIELD_LABELS={
+  idx:'编号',name:'名称',displayname:'显示名称',stdname:'物品名称',magid:'技能编号',magname:'技能名称',
+  stdmode:'物品类型',shape:'外观',weight:'重量',anicount:'触发编号',source:'来源',reserved:'保留字段',looks:'显示外观',
+  duramax:'最大持久',ac:'防御下限',ac2:'防御上限',mac:'魔防下限',mac2:'魔防上限',dc:'攻击下限',dc2:'攻击上限',
+  dcmax:'攻击上限',mc:'魔法下限',mc2:'魔法上限',sc:'道术下限',sc2:'道术上限',need:'佩戴条件',
+  needlevel:'需求等级',price:'价格',stock:'库存',color:'名称颜色',overlap:'叠加/装备范围',expand1:'盒子装备位置',hp:'生命值',mp:'魔法值',
+  light:'发光范围',job:'职业',level:'等级',lvl:'等级',exp:'经验',race:'种族',raceimg:'种族图片',
+  appr:'外观',undead:'不死系',cooleye:'主动范围',speed:'移动速度',hit:'命中',walk_spd:'行走速度',
+  walkstep:'行走步数',walkwait:'行走等待',attack_spd:'攻击速度',effecttype:'特效类型',effect:'技能特效',
+  spell:'魔法消耗',power:'基础威力',maxpower:'最大威力',defspell:'防御消耗',defpower:'防御威力',
+  defmaxpower:'最大防御威力',delay:'延迟',descr:'描述',maxtrainlv:'最高修炼等级',critrate:'暴击几率'
+};
+var VALUE_LABELS=[
+  '暴击几率','攻击伤害','物理减伤','魔法减伤','忽视防御','伤害反弹','打怪爆率','生命增加','魔法增加','怒气恢复',
+  '合击伤害','防暴几率','防止麻痹','防止复活','防止全毒','防止冰冻','防止蛛网','暴击伤害','生命加成','魔法加成',
+  '致命几率','会心几率','卓越几率','无视几率','致命防御','会心防御','卓越防御','无视防御','爆率抗性','扩展属性30'
+];
+
+function gomColor(value){
+  var index=Number.parseInt(String(value),10);
+  if(!Number.isFinite(index))return '';
+  return GOM_PALETTE[Math.max(0,Math.min(255,index))]||'';
+}
+var GOM_PALETTE=[
+  '#000000','#800000','#008000','#808000','#000080','#800080','#008080','#c0c0c0','#558097','#9db9c8','#7b7373','#2d2929','#5a5252','#635a5a','#423939','#1d1818',
+  '#181010','#291818','#100808','#f27971','#e1675f','#ff5a5a','#ff3131','#d65a52','#941000','#942918','#390800','#731000','#b51800','#bd6352','#421810','#ffaa99',
+  '#000000','#733929','#a54a31','#947b73','#bd5231','#522110','#7b3118','#2d1810','#8c4a31','#942900','#bd3100','#c67352','#6b3118','#c66b42','#ce4a00','#a56339',
+  '#5a3118','#2a1000','#150800','#3a1800','#080000','#290000','#4a0000','#9d0000','#dc0000','#de0000','#fb0000','#9c7352','#946b4a','#734a29','#523118','#8c4a18',
+  '#884411','#4a2100','#211810','#d6945a','#c66b21','#ef6b00','#ff7700','#a59484','#423121','#181008','#291808','#211000','#392918','#8c6339','#422910','#6b4218',
+  '#7b4a18','#944a00','#8c847b','#6b635a','#4a4239','#292118','#463929','#b5a594','#7b6b5a','#ceb194','#a58c73','#8c735a','#b59473','#d6a573','#efa54a','#efc68c',
+  '#7b6342','#6b5639','#bd945a','#633900','#d6c6ad','#524229','#946318','#efd6ad','#a58c63','#635a4a','#bda57b','#5a4218','#bd8c31','#353129','#948463','#7b6b4a',
+  '#a58c5a','#5a4a29','#9c7b39','#423110','#efad21','#181000','#292100','#9c6b00','#94845a','#524218','#6b5a29','#7b6321','#9c7b21','#dea500','#5a5239','#312910',
+  '#cebd7b','#635a39','#94844a','#c6a529','#109c18','#428c4a','#318c42','#109429','#081810','#081818','#082910','#184229','#a5b5ad','#6b7373','#182929','#18424a',
+  '#31424a','#63c6de','#44ddff','#8cd6ef','#736b39','#f7de39','#f7ef8c','#f7e700','#6b6b5a','#5a8ca5','#39b5ef','#4a9cce','#3184b5','#31526b','#deded6','#bdbdb5',
+  '#8c8c84','#f7f7de','#000818','#081839','#081029','#081800','#082900','#0052a5','#007bde','#10294a','#10396b','#10528c','#215aa5','#10315a','#104284','#315284',
+  '#182131','#4a5a7b','#526ba5','#293963','#104ade','#292921','#4a4a39','#292918','#4a4a29','#7b7b42','#9c9c4a','#5a5a29','#424214','#393900','#595900','#ca352c',
+  '#6b7321','#293100','#313910','#313918','#424a00','#526318','#5a7329','#314a18','#182100','#183100','#183910','#63844a','#6bbd4a','#63b54a','#63bd4a','#5a9c4a',
+  '#4a8c39','#63c64a','#63d64a','#52844a','#317329','#63c65a','#52bd4a','#10ff00','#182918','#4a884a','#4ae74a','#005a00','#008800','#009400','#00de00','#00ee00',
+  '#00fb00','#4a5a94','#6373b5','#7b8cd6','#6b7bd6','#7788ff','#c6c6ce','#94949c','#9c94c6','#313139','#291884','#180084','#4a4252','#52427b','#635a73','#ceb5f7',
+  '#8c7b9c','#7722cc','#ddaaff','#f0b42a','#df009f','#e317b3','#fffbf0','#a0a0a4','#808080','#ff0000','#00ff00','#ffff00','#0000ff','#ff00ff','#00ffff','#ffffff'
+];
+
+function escapeHtml(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function fieldLabel(key){
+  var text=String(key||''),lower=text.toLowerCase(),match;
+  var protocolLabel=currentTable&&currentTable.columnLabels&&currentTable.columnLabels[text];
+  if(protocolLabel)return String(protocolLabel);
+  match=lower.match(/^value(\d{1,2})$/);if(match)return VALUE_LABELS[Number(match[1])-1]||('扩展属性'+match[1]);
+  match=lower.match(/^element(\d{0,2})$/);if(match)return VALUE_LABELS[Number(match[1]||1)-1]||'元素属性';
+  match=lower.match(/^needl(\d{1,2})$/);if(match)return '修炼等级'+match[1];
+  match=lower.match(/^l(\d{1,2})train$/);if(match)return '修炼经验'+match[1];
+  match=lower.match(/^expand(\d{1,2})$/);if(match)return '扩展字段'+match[1];
+  if(FIELD_LABELS[lower])return FIELD_LABELS[lower];
+  return /[\u4e00-\u9fff]/.test(text)?'中文字段':'自定义字段';
+}
+function fieldDescription(key){
+  var text=String(key||'');
+  return currentTable&&currentTable.columnDescriptions&&currentTable.columnDescriptions[text]
+    ?String(currentTable.columnDescriptions[text])
+    :fieldLabel(text);
+}
+function formatValue(value){
+  if(value===null||value===undefined)return '';
+  if(typeof value==='object'){try{return JSON.stringify(value)}catch(e){return String(value)}}
+  return String(value);
+}
+function findColumn(columns,candidates){
+  for(var i=0;i<candidates.length;i++)for(var j=0;j<columns.length;j++)if(String(columns[j]).toLowerCase()===candidates[i])return columns[j];
+  return '';
+}
+function getNameColumn(columns){return findColumn(columns,['name','magname','stdname','displayname','物品名称','怪物名称','技能名称'])}
+function getColorColumn(columns){return findColumn(columns,['color','颜色','名称颜色'])}
+function getStdModeColumn(columns){return findColumn(columns,['stdmode'])}
+function activeEquipmentFilters(){
+  return String(databaseType||'').indexOf('996PC')>=0?EQUIPMENT_FILTERS_996PC:EQUIPMENT_FILTERS;
+}
+function buildEquipmentFilters(filter,columns){
+  if(!filter)return[];
+  var filters=[];
+  (filter.rules||[]).forEach(function(rule){
+    var column=findColumn(columns,[rule.field]);
+    if(column&&rule.values&&rule.values.length)filters.push({column:column,values:rule.values});
+  });
+  return filters;
+}
+function canUseEquipmentFilter(filter,columns){
+  return (filter.rules||[]).every(function(rule){return !!findColumn(columns,[rule.field])});
+}
+function getFrozenColumns(columns){
+  if(!columns.length)return[];
+  var nameColumn=getNameColumn(columns),nameIndex=nameColumn?columns.indexOf(nameColumn):-1;
+  return columns.slice(0,nameIndex>=0?nameIndex+1:1);
+}
+function syncFrozenColumnOffsets(){
+  if(databaseGrid&&typeof databaseGrid.redraw==='function')databaseGrid.redraw(true);
+}
+function getGridViewport(){
+  return document.querySelector('#table .tabulator-tableholder')||document.getElementById('tableWrap');
+}
+function resetTableViewport(){
+  var viewport=getGridViewport();
+  viewport.scrollLeft=0;viewport.scrollTop=0;
+}
+function updateInfo(){
+  document.getElementById('info').textContent=(databaseType||'')+' | '+Number(databaseTotal||0).toLocaleString()+' 条记录';
+}
+function renderEquipmentFilters(){
+  var root=document.getElementById('equipmentFilters'),columns=currentTable?(currentTable.columns||[]):[],stdModeColumn=getStdModeColumn(columns);
+  root.innerHTML='';root.hidden=!stdModeColumn;
+  if(!stdModeColumn){equipmentFilter=null;return}
+  var available=activeEquipmentFilters().filter(function(filter){return canUseEquipmentFilter(filter,columns)});
+  if(!equipmentFilter||available.indexOf(equipmentFilter)<0)equipmentFilter=available[0]||null;
+  available.forEach(function(filter){
+    var button=document.createElement('button');button.type='button';
+    button.className='filter-chip'+(equipmentFilter.label===filter.label?' active':'');
+    button.textContent=filter.label;
+    button.title=filter.rules.length?filter.rules.map(function(rule){return rule.field+': '+rule.values.join(', ')}).join(' | '):'显示全部';
+    button.addEventListener('click',function(){
+      if(mutationPending)return;
+      equipmentFilter=filter;pageIndex=0;selectedRow=-1;renderEquipmentFilters();requestPage();
+    });
+    root.appendChild(button);
+  });
+}
+
+function loadCatalog(message){
+  tables=message.tables||[];
+  databaseType=message.dbType||'';
+  databaseTotal=Number(message.totalCount||0);
+  updateInfo();
+  renderTabs();
+  if(!tables.length){
+    currentTable=null;
+    document.getElementById('table').innerHTML='<div class="empty">未找到可读取的数据表</div>';
+    setLoading(false);updateActionState();
+    return;
+  }
+  selectTable(tables[0].id);
+}
+function renderTabs(){
+  var root=document.getElementById('tabs');root.innerHTML='';
+  tables.forEach(function(table){
+    var button=document.createElement('button');
+    button.type='button';button.className='tab'+(currentTable&&currentTable.id===table.id?' active':'');
+    button.textContent=table.label+' ('+Number(table.rowCount||0).toLocaleString()+')';
+    button.title=table.fileName+' / '+table.name;
+    button.addEventListener('click',function(){selectTable(table.id)});
+    root.appendChild(button);
+  });
+}
+function selectTable(tableId){
+  cancelCellEdit();
+  currentTable=tables.find(function(table){return table.id===tableId})||null;
+  if(!currentTable)return;
+  vscode.postMessage({type:'clearDatabaseDetail',tableName:currentTable.name||'',tableLabel:currentTable.label||''});
+  pageIndex=0;totalRows=Number(currentTable.rowCount||0);sortColumn='';sortDirection='asc';selectedRow=-1;equipmentFilter=null;restoreRangeBounds=null;
+  document.getElementById('search').value='';
+  populateSearchColumns(currentTable.columns||[]);
+  renderTabs();renderEquipmentFilters();resetTableViewport();updateActionState();requestPage();
+}
+function populateSearchColumns(columns){
+  var select=document.getElementById('searchColumn');select.innerHTML='<option value="">全部字段</option>';
+  columns.forEach(function(column){var option=document.createElement('option');option.value=column;option.textContent=fieldLabel(column)+' ('+column+')';select.appendChild(option)});
+}
+function setLoading(visible,text){
+  var loading=document.getElementById('loading');loading.textContent=text||'正在读取...';loading.classList.toggle('visible',!!visible);
+}
+function requestPage(options){
+  if(!currentTable||mutationPending)return;
+  var quiet=options===true;
+  activeRequestId=++requestId;document.getElementById('table').dataset.ready='false';
+  if(!quiet)setLoading(true);
+  vscode.postMessage({
+    type:'loadDatabasePage',requestId:activeRequestId,tableId:currentTable.id,
+    offset:pageIndex*pageSize,limit:pageSize,query:document.getElementById('search').value,
+    searchColumn:document.getElementById('searchColumn').value,matchMode:matchMode,
+    filters:buildEquipmentFilters(equipmentFilter,currentTable.columns||[]),
+    sortColumn:sortColumn,sortDirection:sortDirection
+  });
+}
+function columnsMatch(left,right){
+  if(!Array.isArray(left)||!Array.isArray(right)||left.length!==right.length)return false;
+  for(var i=0;i<left.length;i++)if(String(left[i])!==String(right[i]))return false;
+  return true;
+}
+function loadPage(message){
+  if(Number(message.requestId)!==activeRequestId)return;
+  var nextColumns=message.columns||[];
+  var reuseGrid=!!(databaseGrid&&currentTable&&renderedTableId===currentTable.id&&columnsMatch(renderedColumns,nextColumns));
+  currentColumns=nextColumns;currentRows=message.rows||[];totalRows=Number(message.total||0);
+  pageIndex=Math.floor(Number(message.offset||0)/Number(message.limit||pageSize));selectedRow=-1;
+  var finish=function(){
+    document.getElementById('table').dataset.ready='true';
+    if(restoreTableViewport){
+      var viewport=getGridViewport();viewport.scrollLeft=restoreTableViewport.left;viewport.scrollTop=restoreTableViewport.top;restoreTableViewport=null;
+    }else resetTableViewport();
+    updatePager();setLoading(false);updateActionState();
+    if(pendingSelectRowId!==null){
+      var selectedIndex=currentRows.findIndex(function(row){return Number(row.__booRowId)===Number(pendingSelectRowId)});
+      if(selectedIndex>=0){selectRow(selectedIndex);requestVisualDetail(currentRows[selectedIndex]);var selectedComponent=getGridRow(selectedIndex);if(selectedComponent)void selectedComponent.scrollTo('nearest',false)}
+      pendingSelectRowId=null;
+    }
+    if(restoreRangeBounds){selectGridBounds(restoreRangeBounds,false);restoreRangeBounds=null}
+    if(pendingNotice){document.getElementById('status').textContent=pendingNotice;pendingNotice=''}
+    setTimeout(updateFillHandle,0);
+  };
+  if(!reuseGrid){renderTable(finish);return}
+  suppressGridEvents=true;
+  try{
+    Promise.resolve(databaseGrid.replaceData(currentRows)).then(function(){suppressGridEvents=false;finish()}).catch(function(){
+      suppressGridEvents=false;renderTable(finish);
+    });
+  }catch(_error){suppressGridEvents=false;renderTable(finish)}
+}
+function databaseHeaderFormatter(cell){
+  var column=cell.getColumn().getField(),wrapper=document.createElement('div');
+  var name=document.createElement('span');name.className='field-name';name.textContent=column+(sortColumn===column?(sortDirection==='asc'?' ▲':' ▼'):'');
+  var label=document.createElement('span');label.className='field-label';label.textContent=fieldLabel(column);
+  wrapper.appendChild(name);wrapper.appendChild(label);return wrapper;
+}
+function databaseNameFormatter(cell){
+  var span=document.createElement('span');span.className='name-text';span.textContent=formatValue(cell.getValue());
+  var colorColumn=getColorColumn(currentColumns),color=colorColumn?gomColor(cell.getRow().getData()[colorColumn]):'';
+  if(color)span.style.color=color;return span;
+}
+function gridColumnWidth(column){
+  var longest=Math.max(String(column).length,String(fieldLabel(column)).length);
+  return Math.max(column===getNameColumn(currentColumns)?140:82,Math.min(210,longest*10+28));
+}
+function rowIndexForComponent(component){
+  if(!component)return-1;
+  return currentRows.indexOf(component.getData());
+}
+function getGridRow(index){
+  if(!databaseGrid||index<0)return null;
+  var rows=databaseGrid.getRows('active');return rows[index]||null;
+}
+function recordGridCellEdit(cell){
+  activeCellEdit=null;if(suppressGridEvents||mutationPending||!currentTable)return;
+  var row=cell.getRow().getData(),rowIndex=currentRows.indexOf(row),column=cell.getField();
+  if(rowIndex<0||!column)return;
+  var value=cell.getValue(),original=cell.getOldValue();
+  if(formatValue(value)===formatValue(original))return;
+  selectRow(rowIndex);var values={};values[column]=value;
+  sendUpdateDatabaseRow(row,values,[{rowId:row.__booRowId,column:column,value:original}]);
+}
+function renderTable(onReady){
+  var root=document.getElementById('table');
+  fillState=null;document.getElementById('fillHandle').style.display='none';
+  if(databaseGrid){databaseGrid.destroy();databaseGrid=null}
+  root.innerHTML='';root.className='';root.dataset.ready='false';
+  if(!TabulatorConstructor||!tableCore){root.className='empty';root.textContent='表格运行资源加载失败';showError('Tabulator 表格运行资源加载失败');if(onReady)onReady();return}
+  var frozenColumns=getFrozenColumns(currentColumns),nameColumn=getNameColumn(currentColumns);
+  var definitions=currentColumns.map(function(column){
+    var declaredType=String((currentTable.columnTypes&&currentTable.columnTypes[column])||'').toUpperCase();
+    var frozenIndex=frozenColumns.indexOf(column),classes=[];
+    if(column===nameColumn)classes.push('database-name-column');
+    if(frozenIndex===frozenColumns.length-1)classes.push('database-frozen-end');
+    return{
+      title:column,field:column,width:gridColumnWidth(column),minWidth:72,resizable:true,
+      frozen:frozenIndex>=0,cssClass:classes.join(' '),headerSort:false,
+      titleFormatter:databaseHeaderFormatter,headerTooltip:fieldDescription(column),
+      formatter:column===nameColumn?databaseNameFormatter:'plaintext',
+      editor:currentTable.editable&&declaredType.indexOf('BLOB')<0?'input':false,
+      headerClick:function(){sortBy(column)}
+    };
+  });
+  databaseGrid=new TabulatorConstructor(root,{
+    height:'100%',layout:'fitDataTable',renderVertical:'virtual',renderHorizontal:'virtual',rowHeight:29,
+    data:currentRows,columns:definitions,index:'__booRowId',placeholder:'暂无匹配记录',
+    columnHeaderVertAlign:'middle',selectableRows:false,selectableRange:1,selectableRangeRows:true,
+    selectableRangeColumns:true,selectableRangeClearCells:false,selectableRangeBlurEditOnNavigate:false,
+    editTriggerEvent:'dblclick',clipboard:false,history:false,
+    keybindings:{copyToClipboard:false,undo:false,redo:false},
+    rowHeader:{formatter:function(){return''},headerSort:false,frozen:true,width:1,minWidth:1,maxWidth:1,resizable:false}
+  });
+  databaseGrid.on('tableBuilt',function(){renderedTableId=currentTable?currentTable.id:'';renderedColumns=currentColumns.slice();root.dataset.ready='true';root.dataset.virtualized='true';if(onReady)onReady()});
+  databaseGrid.on('rowClick',function(_event,row){var index=rowIndexForComponent(row);if(index>=0){selectRow(index);requestVisualDetail(currentRows[index])}});
+  databaseGrid.on('rowContext',function(event,row){showRowContextMenu(event,row)});
+  databaseGrid.on('cellEditing',function(cell){activeCellEdit={cell:cell};var index=rowIndexForComponent(cell.getRow());if(index>=0)selectRow(index);protectCellEditorSelection(cell)});
+  databaseGrid.on('cellEdited',recordGridCellEdit);
+  databaseGrid.on('cellEditCancelled',function(){activeCellEdit=null;setTimeout(updateFillHandle,0)});
+  databaseGrid.on('cellMouseOver',function(_event,cell){updateFillTarget(cell)});
+  databaseGrid.on('rangeAdded',function(range){restoreRangeBounds=rangeBounds(range);setTimeout(updateFillHandle,0)});
+  databaseGrid.on('rangeChanged',function(range){restoreRangeBounds=rangeBounds(range);setTimeout(updateFillHandle,0)});
+  databaseGrid.on('rangeRemoved',updateFillHandle);
+  databaseGrid.on('renderComplete',updateFillHandle);
+  databaseGrid.on('scrollVertical',updateFillHandle);
+  databaseGrid.on('scrollHorizontal',updateFillHandle);
+}
+function requestVisualDetail(row){
+  var nameColumn=getNameColumn(currentColumns);if(!nameColumn)return;
+  var fields={};currentColumns.forEach(function(column){fields[column]=row[column]});
+  vscode.postMessage({
+    type:'showDatabaseDetail',
+    name:formatValue(row[nameColumn]),
+    fields:fields,
+    tableName:currentTable?currentTable.name:'',
+    tableLabel:currentTable?currentTable.label:'',
+    columnLabels:currentTable&&currentTable.columnLabels?currentTable.columnLabels:{},
+    columnDescriptions:currentTable&&currentTable.columnDescriptions?currentTable.columnDescriptions:{}
+  });
+}
+function selectRow(index){
+  selectedRow=index;
+  if(databaseGrid){var rows=databaseGrid.getRows('active');for(var i=0;i<rows.length;i++)rows[i].getElement().classList.toggle('boo-selected-row',i===index)}
+  updateActionState();
+}
+function activeRange(){
+  if(!databaseGrid||typeof databaseGrid.getRanges!=='function')return null;
+  var ranges=databaseGrid.getRanges();return ranges.length?ranges[ranges.length-1]:null;
+}
+function rangeBounds(range){
+  if(!range)return null;
+  var top=Number(range.getTopEdge()),bottom=Number(range.getBottomEdge()),left=Number(range.getLeftEdge())-1,right=Number(range.getRightEdge())-1;
+  if(![top,bottom,left,right].every(Number.isFinite))return null;
+  return{top:Math.max(0,Math.min(top,bottom)),bottom:Math.min(currentRows.length-1,Math.max(top,bottom)),left:Math.max(0,Math.min(left,right)),right:Math.min(currentColumns.length-1,Math.max(left,right))};
+}
+function selectedGridBounds(){
+  var bounds=rangeBounds(activeRange());
+  if(bounds)return bounds;
+  return{top:Math.max(0,selectedRow),bottom:Math.max(0,selectedRow),left:0,right:0};
+}
+function getGridCell(rowIndex,columnIndex){
+  var row=getGridRow(rowIndex),column=currentColumns[columnIndex];return row&&column?row.getCell(column):null;
+}
+function clearGridRanges(){
+  if(!databaseGrid)return;databaseGrid.getRanges().forEach(function(range){range.remove()});
+}
+function selectGridBounds(bounds,scroll){
+  if(!databaseGrid||!bounds)return;
+  var start=getGridCell(bounds.top,bounds.left),end=getGridCell(bounds.bottom,bounds.right);if(!start||!end)return;
+  clearGridRanges();databaseGrid.addRange(start,end);
+  if(scroll){void start.getRow().scrollTo('center',false);void start.getColumn().scrollTo('left',false)}
+}
+function updateFillHandle(){
+  var handle=document.getElementById('fillHandle');
+  if(!databaseGrid||fillState||mutationPending||activeCellEdit){handle.style.display='none';return}
+  var range=activeRange(),rangeCells=range&&range.getBounds(),endCell=rangeCells&&rangeCells.end;
+  if(!endCell||typeof endCell.getElement!=='function'){handle.style.display='none';return}
+  var cellRect=endCell.getElement().getBoundingClientRect(),wrapRect=document.getElementById('tableWrap').getBoundingClientRect();
+  if(!cellRect.width||!cellRect.height||cellRect.right<wrapRect.left||cellRect.left>wrapRect.right||cellRect.bottom<wrapRect.top||cellRect.top>wrapRect.bottom){handle.style.display='none';return}
+  handle.style.left=Math.max(0,Math.min(wrapRect.width-9,cellRect.right-wrapRect.left-5))+'px';
+  handle.style.top=Math.max(0,Math.min(wrapRect.height-21,cellRect.bottom-wrapRect.top-5))+'px';
+  handle.style.display='block';
+}
+function beginGridFill(event){
+  if(mutationPending||activeCellEdit)return;
+  var source=selectedGridBounds();
+  fillState={source:source,pointerRow:source.bottom,pointerColumn:source.right};
+  document.getElementById('fillHandle').style.display='none';event.preventDefault();event.stopPropagation();
+}
+function updateFillTarget(cell){
+  if(!fillState||!cell)return;
+  var row=rowIndexForComponent(cell.getRow()),column=currentColumns.indexOf(cell.getField());
+  if(row<0||column<0)return;
+  fillState.pointerRow=row;fillState.pointerColumn=column;
+  var preview=tableCore.calculateFillChanges(databaseRowsAsMatrix(),fillState.source,row,column);
+  var range=activeRange(),start=getGridCell(preview.bounds.top,preview.bounds.left),end=getGridCell(preview.bounds.bottom,preview.bounds.right);
+  if(range&&start&&end)range.setBounds(start,end);
+}
+function finishGridFill(){
+  if(!fillState)return;
+  var completed=tableCore.calculateFillChanges(databaseRowsAsMatrix(),fillState.source,fillState.pointerRow,fillState.pointerColumn);
+  fillState=null;
+  if(completed.changes.length)applyDatabaseGridChanges(completed.changes,'拖拽递增填充',completed.bounds);
+  else document.getElementById('status').textContent='未扩展填充选区';
+  setTimeout(updateFillHandle,0);
+}
+function sortBy(column){
+  if(sortColumn===column)sortDirection=sortDirection==='asc'?'desc':'asc';else{sortColumn=column;sortDirection='asc'}
+  pageIndex=0;requestPage();
+}
+function updatePager(){
+  var pages=Math.max(1,Math.ceil(totalRows/pageSize));if(pageIndex>=pages)pageIndex=pages-1;
+  document.getElementById('pageNumber').value=String(pageIndex+1);document.getElementById('pageNumber').max=String(pages);
+  document.getElementById('pageText').textContent='/ '+pages.toLocaleString();
+  document.getElementById('firstPage').disabled=pageIndex<=0;document.getElementById('prevPage').disabled=pageIndex<=0;
+  document.getElementById('nextPage').disabled=pageIndex>=pages-1;document.getElementById('lastPage').disabled=pageIndex>=pages-1;
+  var start=totalRows?pageIndex*pageSize+1:0,end=Math.min(totalRows,(pageIndex+1)*pageSize);
+  document.getElementById('status').textContent=start.toLocaleString()+'-'+end.toLocaleString()+' / '+totalRows.toLocaleString()+' 条';
+}
+function goToPage(index){var pages=Math.max(1,Math.ceil(totalRows/pageSize));var next=Math.max(0,Math.min(pages-1,index));if(next===pageIndex)return;pageIndex=next;requestPage()}
+function setMatchMode(mode){
+  matchMode=mode==='exact'?'exact':'contains';
+  var buttons=document.querySelectorAll('[data-mode]');for(var i=0;i<buttons.length;i++)buttons[i].classList.toggle('active',buttons[i].getAttribute('data-mode')===matchMode);
+  pageIndex=0;requestPage();
+}
+function queueSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(function(){pageIndex=0;requestPage()},320)}
+function updateActionState(){
+  document.getElementById('manageFields').disabled=!(currentTable&&currentTable.schemaEditable&&!mutationPending);
+  document.getElementById('refreshPage').disabled=!currentTable||mutationPending;
+  var note='';
+  if(currentTable&&!currentTable.editable)note=currentTable.kind==='access'?'MDB 只读':(currentTable.schemaEditReason||'当前表只读');
+  else if(currentTable&&!currentTable.schemaEditable)note=currentTable.schemaEditReason||'字段结构受保护';
+  document.getElementById('readonlyNote').textContent=note;
+}
+
+function closeModals(){
+  if(mutationPending)return;
+  document.getElementById('schemaModal').hidden=true;
+  document.getElementById('confirmModal').hidden=true;
+  document.getElementById('incrementModal').hidden=true;incrementBounds=null;
+  confirmAction=null;
+}
+function showConfirmDialog(title,message,confirmLabel,action){
+  confirmAction=action;
+  document.getElementById('confirmTitle').textContent=title||'确认操作';
+  document.getElementById('confirmMessage').textContent=message||'';
+  document.getElementById('confirmAccept').textContent=confirmLabel||'确认';
+  document.getElementById('confirmModal').hidden=false;
+  setTimeout(function(){document.getElementById('confirmAccept').focus()},0);
+}
+function finishConfirmDialog(accepted){
+  if(mutationPending)return;
+  var action=confirmAction;confirmAction=null;document.getElementById('confirmModal').hidden=true;
+  if(accepted&&action)action();
+}
+function protectCellEditorSelection(cell){
+  setTimeout(function(){
+    var input=cell&&cell.getElement().querySelector('input,textarea');
+    if(input)input.addEventListener('mousedown',function(event){event.stopPropagation()});
+  },0);
+}
+function openIncrementModal(){
+  if(!currentTable||!currentTable.editable||mutationPending)return;
+  var bounds=selectedGridBounds(),count=(bounds.bottom-bounds.top+1)*(bounds.right-bounds.left+1);
+  if(count<2){document.getElementById('status').textContent='请先选择多个数值单元格';return}
+  incrementBounds=bounds;
+  var input=document.getElementById('incrementValue'),summary=document.getElementById('incrementSummary');
+  input.value='1';summary.textContent=(bounds.bottom-bounds.top+1)+' 行 × '+(bounds.right-bounds.left+1)+' 列';summary.classList.remove('error');
+  document.getElementById('incrementModal').hidden=false;
+  setTimeout(function(){input.focus();input.select()},0);
+}
+function applySelectionIncrement(){
+  if(!incrementBounds||mutationPending)return;
+  var input=document.getElementById('incrementValue'),summary=document.getElementById('incrementSummary'),text=String(input.value||'').trim();
+  if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text)||!Number.isFinite(Number(text))||Number(text)===0){summary.textContent='请输入非 0 的有效数值';summary.classList.add('error');input.focus();input.select();return}
+  var bounds=incrementBounds,result=tableCore.calculateIncrementChanges(databaseRowsAsMatrix(),bounds,text);
+  if(!result.changes.length){summary.textContent='选区中没有可递增的数值';summary.classList.add('error');return}
+  incrementBounds=null;document.getElementById('incrementModal').hidden=true;
+  if(result.skipped)pendingNotice='已跳过 '+result.skipped+' 个非数值单元格';
+  applyDatabaseGridChanges(result.changes,'递增选区',bounds);
+}
+function startCellEdit(initialValue,cell){
+  if(!currentTable||!currentTable.editable||mutationPending||!databaseGrid)return;
+  var target=cell&&typeof cell.getField==='function'?cell:null;
+  if(!target){var bounds=selectedGridBounds();target=getGridCell(bounds.top,bounds.left)}
+  if(!target)return;
+  var column=target.getField(),declaredType=String((currentTable.columnTypes&&currentTable.columnTypes[column])||'').toUpperCase();
+  if(declaredType.indexOf('BLOB')>=0){document.getElementById('status').textContent='二进制字段不可直接编辑';return}
+  target.edit(true);
+  setTimeout(function(){
+    var input=target.getElement().querySelector('input,textarea');if(!input)return;
+    if(initialValue!==undefined){input.value=String(initialValue);input.setSelectionRange(input.value.length,input.value.length)}
+  },0);
+}
+function commitCellEdit(){
+  if(!activeCellEdit||mutationPending)return;
+  var input=activeCellEdit.cell.getElement().querySelector('input,textarea');
+  if(input)input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+}
+function cancelCellEdit(){
+  if(!activeCellEdit)return;
+  var input=activeCellEdit.cell.getElement().querySelector('input,textarea');
+  if(input)input.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  activeCellEdit=null;
+}
+function applyOptimisticUpdates(updates,knownRollback){
+  var known=new Map();
+  (knownRollback||[]).forEach(function(entry){known.set(String(entry.rowId)+'\u0000'+entry.column,entry.value)});
+  var rollback=[];suppressGridEvents=true;
+  try{
+    (updates||[]).forEach(function(update){
+      var row=currentRows.find(function(candidate){return Number(candidate.__booRowId)===Number(update.rowId)});if(!row)return;
+      var rowComponent=databaseGrid&&databaseGrid.getRow(update.rowId);
+      Object.keys(update.values||{}).forEach(function(column){
+        var key=String(update.rowId)+'\u0000'+column;
+        rollback.push({rowId:update.rowId,column:column,value:known.has(key)?known.get(key):row[column]});
+        row[column]=update.values[column];
+        var cell=rowComponent&&rowComponent.getCell(column);if(cell)cell.setValue(update.values[column],false);
+      });
+    });
+  }finally{suppressGridEvents=false}
+  pendingGridRollback=rollback;
+}
+function restoreOptimisticGrid(){
+  if(!pendingGridRollback.length)return;
+  suppressGridEvents=true;
+  try{
+    pendingGridRollback.forEach(function(entry){
+      var row=currentRows.find(function(candidate){return Number(candidate.__booRowId)===Number(entry.rowId)});if(!row)return;
+      row[entry.column]=entry.value;
+      var rowComponent=databaseGrid&&databaseGrid.getRow(entry.rowId),cell=rowComponent&&rowComponent.getCell(entry.column);if(cell)cell.setValue(entry.value,false);
+    });
+  }finally{suppressGridEvents=false;pendingGridRollback=[]}
+}
+function beginMutation(text,quiet){
+  hideRowContextMenu();mutationPending=true;activeMutationRequestId=++mutationRequestId;
+  if(quiet===true)document.getElementById('status').textContent=text;else setLoading(true,text);
+  updateActionState();updateFillHandle();
+}
+function sendCreateDatabaseRow(values){
+  restoreTableViewport=null;
+  beginMutation('正在备份并新增记录...');
+  vscode.postMessage({type:'createDatabaseRow',requestId:activeMutationRequestId,tableId:currentTable.id,values:values});
+}
+function sendUpdateDatabaseRow(row,values,knownRollback){
+  var viewport=getGridViewport();restoreTableViewport={left:viewport.scrollLeft,top:viewport.scrollTop};pendingSelectRowId=row.__booRowId;
+  applyOptimisticUpdates([{rowId:row.__booRowId,values:values}],knownRollback);
+  beginMutation('正在保存修改...',true);
+  vscode.postMessage({type:'updateDatabaseRow',requestId:activeMutationRequestId,tableId:currentTable.id,rowId:row.__booRowId,values:values});
+}
+function sendUpdateDatabaseRows(updates,label,bounds){
+  var viewport=getGridViewport();restoreTableViewport={left:viewport.scrollLeft,top:viewport.scrollTop};restoreRangeBounds=bounds||selectedGridBounds();
+  pendingSelectRowId=updates.length?updates[0].rowId:null;
+  applyOptimisticUpdates(updates);
+  beginMutation('正在保存选区...',true);
+  vscode.postMessage({type:'updateDatabaseRows',requestId:activeMutationRequestId,tableId:currentTable.id,updates:updates,label:label||'批量修改'});
+}
+function sendDeleteDatabaseRow(row){
+  restoreTableViewport=null;pendingSelectRowId=null;
+  beginMutation('正在备份并删除记录...');
+  vscode.postMessage({type:'deleteDatabaseRow',requestId:activeMutationRequestId,tableId:currentTable.id,rowId:row.__booRowId});
+}
+function sendUpdateDatabaseSchema(columns){
+  restoreTableViewport=null;pendingSelectRowId=null;
+  beginMutation('正在备份并更新字段...');
+  vscode.postMessage({type:'updateDatabaseSchema',requestId:activeMutationRequestId,tableId:currentTable.id,columns:columns});
+}
+function requestDatabaseUndo(){
+  if(!currentTable||mutationPending||activeCellEdit)return;
+  if(!document.getElementById('schemaModal').hidden||!document.getElementById('confirmModal').hidden)return;
+  var viewport=getGridViewport();
+  restoreTableViewport={left:viewport.scrollLeft,top:viewport.scrollTop};
+  pendingSelectRowId=selectedRow>=0&&currentRows[selectedRow]?currentRows[selectedRow].__booRowId:null;
+  beginMutation('正在校验并撤回上一步数据库修改...');
+  vscode.postMessage({type:'undoDatabaseMutation',requestId:activeMutationRequestId});
+}
+function addEmptyRow(){
+  if(!currentTable||!currentTable.editable||mutationPending)return;
+  sendCreateDatabaseRow({});
+}
+function databaseRowsAsMatrix(){
+  return currentRows.map(function(row){return currentColumns.map(function(column){return formatValue(row[column])})});
+}
+function selectionMatrix(){
+  var bounds=selectedGridBounds(),matrix=[];
+  for(var row=bounds.top;row<=bounds.bottom;row++){
+    var values=[];for(var column=bounds.left;column<=bounds.right;column++)values.push(formatValue(currentRows[row]&&currentRows[row][currentColumns[column]]));
+    matrix.push(values);
+  }
+  return matrix.length?matrix:[['']];
+}
+function clipboardHtml(matrix){
+  return '<table>'+matrix.map(function(row){return'<tr>'+row.map(function(value){return'<td>'+tableCore.escapeHtml(value)+'</td>'}).join('')+'</tr>'}).join('')+'</table>';
+}
+function isGridCellEditor(target){return !!(target&&target.closest&&target.closest('.tabulator-editing,input,textarea,select,[contenteditable="true"]'))}
+function shouldHandleGridClipboard(target){
+  var root=document.getElementById('table');
+  return !!(databaseGrid&&!isGridCellEditor(target)&&(root.contains(target)||root.contains(document.activeElement)));
+}
+function writeGridSelectionToEvent(event){
+  if(!event.clipboardData||!databaseGrid)return false;
+  var matrix=selectionMatrix();event.clipboardData.setData('text/plain',tableCore.formatClipboardText(matrix));event.clipboardData.setData('text/html',clipboardHtml(matrix));
+  event.preventDefault();event.stopImmediatePropagation();document.getElementById('status').textContent='已复制所选单元格';return true;
+}
+function applyDatabaseGridChanges(changes,label,bounds){
+  if(!currentTable||!currentTable.editable||mutationPending)return;
+  var grouped=new Map(),skipped=0;
+  (changes||[]).forEach(function(change){
+    var rowIndex=Number(change.row),columnIndex=Number(change.column),row=currentRows[rowIndex],column=currentColumns[columnIndex];
+    if(!row||!column)return;
+    var declaredType=String((currentTable.columnTypes&&currentTable.columnTypes[column])||'').toUpperCase();
+    if(declaredType.indexOf('BLOB')>=0){skipped++;return}
+    var value=change.value==null?'':String(change.value);if(formatValue(row[column])===value)return;
+    var key=String(row.__booRowId),entry=grouped.get(key);if(!entry){entry={rowId:row.__booRowId,values:{}};grouped.set(key,entry)}
+    entry.values[column]=value;
+  });
+  var updates=Array.from(grouped.values());
+  if(!updates.length){document.getElementById('status').textContent=skipped?'二进制字段不可直接编辑':'选区内容没有变化';return}
+  if(skipped)pendingNotice='已跳过 '+skipped+' 个二进制单元格';
+  sendUpdateDatabaseRows(updates,label,bounds);
+}
+function pasteGridMatrix(matrix){
+  if(!Array.isArray(matrix)||!matrix.length||!currentTable||!currentTable.editable)return;
+  var bounds=selectedGridBounds(),single=bounds.top===bounds.bottom&&bounds.left===bounds.right;
+  var sourceRows=matrix.length,sourceColumns=matrix.reduce(function(maximum,row){return Math.max(maximum,Array.isArray(row)?row.length:0)},1);
+  var targetRows=single?sourceRows:bounds.bottom-bounds.top+1,targetColumns=single?sourceColumns:bounds.right-bounds.left+1,changes=[];
+  targetRows=Math.min(targetRows,currentRows.length-bounds.top);targetColumns=Math.min(targetColumns,currentColumns.length-bounds.left);
+  for(var row=0;row<targetRows;row++){
+    var sourceRow=Array.isArray(matrix[row%sourceRows])?matrix[row%sourceRows]:[];
+    for(var column=0;column<targetColumns;column++)changes.push({row:bounds.top+row,column:bounds.left+column,value:sourceRow[column%Math.max(1,sourceRow.length)]||''});
+  }
+  var finalBounds={top:bounds.top,bottom:bounds.top+targetRows-1,left:bounds.left,right:bounds.left+targetColumns-1};
+  applyDatabaseGridChanges(changes,'粘贴单元格',finalBounds);
+}
+function fillSelectedGridRange(){
+  var bounds=selectedGridBounds(),changes=tableCore.calculateSelectionFillChanges(databaseRowsAsMatrix(),bounds);
+  if(!changes.length){document.getElementById('status').textContent='请至少选择两个单元格';return}
+  applyDatabaseGridChanges(changes,'Ctrl+D 填充选区',bounds);
+}
+function clearSelectedGridCells(){
+  var bounds=selectedGridBounds(),changes=[];
+  for(var row=bounds.top;row<=bounds.bottom;row++)for(var column=bounds.left;column<=bounds.right;column++)changes.push({row:row,column:column,value:''});
+  applyDatabaseGridChanges(changes,'清空单元格',bounds);
+}
+function copySelectedRow(){
+  var row=currentRows[selectedRow];if(!row||!currentTable)return;
+  var values={};
+  currentColumns.forEach(function(column){
+    var declaredType=String((currentTable.columnTypes&&currentTable.columnTypes[column])||'').toUpperCase();
+    if(declaredType.indexOf('BLOB')<0)values[column]=row[column];
+  });
+  copiedRowData={tableId:currentTable.id,values:values};
+  document.getElementById('status').textContent='已复制选中行';
+  hideRowContextMenu();
+}
+function pasteCopiedRow(){
+  var row=currentRows[selectedRow];
+  if(!row||!currentTable||!copiedRowData||copiedRowData.tableId!==currentTable.id||mutationPending)return;
+  sendUpdateDatabaseRow(row,Object.assign({},copiedRowData.values));
+}
+function deleteSelectedRow(){
+  var row=currentRows[selectedRow];if(!row||mutationPending)return;
+  var nameColumn=getNameColumn(currentColumns),name=nameColumn?formatValue(row[nameColumn]):('#'+formatValue(row.__booRowId));
+  showConfirmDialog('删除数据行','确认删除“'+name+'”？','删除',function(){sendDeleteDatabaseRow(row)});
+}
+function showRowContextMenu(event,rowComponent){
+  event.preventDefault();if(mutationPending)return;
+  if(activeCellEdit)return;
+  var rowIndex=rowIndexForComponent(rowComponent);if(rowIndex>=0){selectRow(rowIndex);requestVisualDetail(currentRows[rowIndex]||{})}
+  var cellElement=event.target&&event.target.closest?event.target.closest('.tabulator-cell[tabulator-field]'):null;
+  if(cellElement&&rowIndex>=0){
+    var columnIndex=currentColumns.indexOf(cellElement.getAttribute('tabulator-field')),selected=selectedGridBounds();
+    if(columnIndex>=0&&(rowIndex<selected.top||rowIndex>selected.bottom||columnIndex<selected.left||columnIndex>selected.right))selectGridBounds({top:rowIndex,bottom:rowIndex,left:columnIndex,right:columnIndex},false);
+  }
+  var hasRow=rowIndex>=0&&selectedRow>=0&&!!currentRows[selectedRow],editable=!!(currentTable&&currentTable.editable);
+  var canPaste=hasRow&&editable&&copiedRowData&&currentTable&&copiedRowData.tableId===currentTable.id;
+  var selection=selectedGridBounds(),selectionCount=(selection.bottom-selection.top+1)*(selection.right-selection.left+1);
+  document.getElementById('contextIncrementCells').disabled=!editable||selectionCount<2;
+  document.getElementById('contextCopyRow').disabled=!hasRow;
+  document.getElementById('contextPasteRow').disabled=!canPaste;
+  document.getElementById('contextDeleteRow').disabled=!hasRow||!editable;
+  document.getElementById('contextAddRow').disabled=!editable;
+  var menu=document.getElementById('rowContextMenu');menu.hidden=false;
+  var bounds=menu.getBoundingClientRect();
+  menu.style.left=Math.max(4,Math.min(event.clientX,window.innerWidth-bounds.width-4))+'px';
+  menu.style.top=Math.max(4,Math.min(event.clientY,window.innerHeight-bounds.height-4))+'px';
+}
+function hideRowContextMenu(){document.getElementById('rowContextMenu').hidden=true}
+function isTextInputTarget(target){return !!(target&&target.closest&&target.closest('input,textarea,select,[contenteditable="true"]'))}
+
+function openSchemaModal(){
+  if(!currentTable||!currentTable.schemaEditable)return;
+  schemaDraft=(currentTable.columns||[]).map(function(column){return{sourceName:column,name:column,type:(currentTable.columnTypes&&currentTable.columnTypes[column])||'TEXT'}});
+  document.getElementById('schemaModalSubtitle').textContent=currentTable.label+' / '+currentTable.name;
+  renderSchemaDraft();document.getElementById('schemaModal').hidden=false;
+}
+function syncSchemaInputs(){
+  var inputs=document.querySelectorAll('#schemaList [data-schema-name]');
+  for(var i=0;i<inputs.length;i++){var index=Number(inputs[i].dataset.schemaName);if(schemaDraft[index])schemaDraft[index].name=inputs[i].value}
+}
+function renderSchemaDraft(){
+  var root=document.getElementById('schemaList');root.innerHTML='';
+  schemaDraft.forEach(function(column,index){
+    var row=document.createElement('div');row.className='schema-row';
+    var order=document.createElement('div');order.className='schema-order';
+    var up=document.createElement('button');up.type='button';up.className='icon-button';up.textContent='↑';up.title='字段上移';up.disabled=index===0;
+    up.addEventListener('click',function(){moveSchemaField(index,-1)});
+    var down=document.createElement('button');down.type='button';down.className='icon-button';down.textContent='↓';down.title='字段下移';down.disabled=index===schemaDraft.length-1;
+    down.addEventListener('click',function(){moveSchemaField(index,1)});
+    order.appendChild(up);order.appendChild(down);
+    var name=document.createElement('input');name.type='text';name.className='text-input';name.value=column.name;name.dataset.schemaName=String(index);name.title='字段名';
+    var type;
+    if(column.sourceName){type=document.createElement('div');type.className='schema-type';type.textContent=column.type||'TEXT';type.title='原字段类型保持不变'}
+    else{
+      type=document.createElement('select');type.className='select';type.dataset.schemaType=String(index);
+      ['INTEGER','TEXT','REAL','NUMERIC','BLOB'].forEach(function(value){var option=document.createElement('option');option.value=value;option.textContent=value;if(value===column.type)option.selected=true;type.appendChild(option)});
+      type.addEventListener('change',function(){schemaDraft[index].type=this.value});
+    }
+    var remove=document.createElement('button');remove.type='button';remove.className='icon-button';remove.textContent='×';remove.title='删除字段';remove.disabled=schemaDraft.length<=1;
+    remove.addEventListener('click',function(){removeSchemaField(index)});
+    row.appendChild(order);row.appendChild(name);row.appendChild(type);row.appendChild(remove);root.appendChild(row);
+  });
+}
+function moveSchemaField(index,direction){
+  syncSchemaInputs();var target=index+direction;if(target<0||target>=schemaDraft.length)return;
+  var value=schemaDraft[index];schemaDraft[index]=schemaDraft[target];schemaDraft[target]=value;renderSchemaDraft();
+}
+function removeSchemaField(index){
+  syncSchemaInputs();if(schemaDraft.length<=1)return;schemaDraft.splice(index,1);renderSchemaDraft();
+}
+function addSchemaField(){
+  syncSchemaInputs();var number=1,name='NewField',names=schemaDraft.map(function(column){return String(column.name).toLowerCase()});
+  while(names.indexOf(name.toLowerCase())>=0)name='NewField'+(++number);
+  schemaDraft.push({sourceName:'',name:name,type:'TEXT'});renderSchemaDraft();
+  var inputs=document.querySelectorAll('#schemaList [data-schema-name]'),last=inputs[inputs.length-1];if(last){last.focus();last.select()}
+}
+function applySchemaChanges(){
+  if(mutationPending)return;syncSchemaInputs();
+  var names={},columns=[];
+  for(var i=0;i<schemaDraft.length;i++){
+    var column=schemaDraft[i],name=String(column.name||'').trim(),key=name.toLowerCase();
+    if(!name){showError('字段名不能为空');return}
+    if(names[key]){showError('字段名“'+name+'”重复');return}
+    names[key]=true;columns.push({sourceName:column.sourceName,name:name,type:column.type||'TEXT'});
+  }
+  showConfirmDialog(
+    '应用字段变更',
+    '确认应用字段新增、改名、删除或排序？',
+    '应用',
+    function(){sendUpdateDatabaseSchema(columns)}
+  );
+}
+
+function loadMutationResult(message){
+  if(Number(message.requestId)!==activeMutationRequestId)return;
+  mutationPending=false;pendingGridRollback=[];setLoading(false);
+  if(message.table){
+    var index=tables.findIndex(function(table){return table.id===message.table.id});
+    if(index>=0)tables[index]=message.table;
+    if(currentTable&&currentTable.id===message.table.id)currentTable=message.table;
+  }
+  databaseTotal=Number(message.totalCount||databaseTotal);updateInfo();renderTabs();
+  var operation=message.result&&message.result.operation;
+  var labels={create:'新增完成',update:'修改完成',delete:'删除完成',schema:'字段更新完成'};
+  var backup=message.result&&message.result.backupPath?String(message.result.backupPath).split(/[\\/]/).pop():'';
+  var detailNotice=pendingNotice;
+  pendingNotice=(labels[operation]||'数据库更新完成')+(backup?' | 备份: '+backup:'')+(detailNotice?' | '+detailNotice:'');
+  if(operation==='schema'){
+    document.getElementById('schemaModal').hidden=true;equipmentFilter=null;sortColumn='';restoreRangeBounds=null;document.getElementById('search').value='';populateSearchColumns(currentTable.columns||[]);renderEquipmentFilters();
+  }
+  if(operation==='create'){
+    pendingSelectRowId=message.result.rowId;equipmentFilter=activeEquipmentFilters()[0];sortColumn='';sortDirection='asc';restoreRangeBounds=null;
+    document.getElementById('search').value='';document.getElementById('searchColumn').value='';renderEquipmentFilters();
+    pageIndex=Math.max(0,Math.ceil(Number(currentTable.rowCount||0)/pageSize)-1);
+  }else{
+    var pages=Math.max(1,Math.ceil(Number(currentTable.rowCount||0)/pageSize));pageIndex=Math.min(pageIndex,pages-1);
+  }
+  if(operation==='delete'){selectedRow=-1;restoreRangeBounds=null}
+  updateActionState();requestPage(operation==='update');
+}
+function loadUndoResult(message){
+  if(Number(message.requestId)!==activeMutationRequestId)return;
+  mutationPending=false;pendingGridRollback=[];setLoading(false);
+  var catalog=message.catalog||{},result=message.result||{},previousTableId=currentTable&&currentTable.id;
+  var previousSearchColumn=document.getElementById('searchColumn').value;
+  tables=catalog.tables||[];databaseType=catalog.dbType||databaseType;databaseTotal=Number(catalog.totalCount||0);
+  currentTable=tables.find(function(table){return table.id===result.tableId})||tables[0]||null;
+  currentRows=[];currentColumns=currentTable?(currentTable.columns||[]):[];selectedRow=-1;
+  if(!currentTable){updateInfo();renderTabs();updateActionState();showError('撤回后未找到可读取的数据表');return}
+  if(previousTableId!==currentTable.id||result.revertedOperation==='schema'){
+    pageIndex=0;equipmentFilter=null;sortColumn='';sortDirection='asc';restoreTableViewport=null;restoreRangeBounds=null;
+    document.getElementById('search').value='';previousSearchColumn='';
+  }else{
+    var pages=Math.max(1,Math.ceil(Number(currentTable.rowCount||0)/pageSize));pageIndex=Math.min(pageIndex,pages-1);
+    if((currentTable.columns||[]).indexOf(sortColumn)<0)sortColumn='';
+  }
+  populateSearchColumns(currentTable.columns||[]);
+  if((currentTable.columns||[]).indexOf(previousSearchColumn)>=0)document.getElementById('searchColumn').value=previousSearchColumn;
+  renderTabs();renderEquipmentFilters();updateInfo();
+  pendingSelectRowId=result.revertedOperation==='create'?null:(result.rowId==null?pendingSelectRowId:result.rowId);
+  var labels={create:'新增记录',update:'修改记录',delete:'删除记录',schema:'字段变更'};
+  var backup=result.backupPath?String(result.backupPath).split(/[\\/]/).pop():'';
+  pendingNotice='已撤回上一步'+(labels[result.revertedOperation]||'数据库修改')+(backup?' | 撤回前备份: '+backup:'');
+  updateActionState();requestPage();
+}
+function showMutationError(message){
+  if(Number(message.requestId)!==activeMutationRequestId)return;
+  mutationPending=false;restoreOptimisticGrid();restoreTableViewport=null;restoreRangeBounds=null;pendingSelectRowId=null;setLoading(false);updateActionState();updateFillHandle();showError(message.error||'数据库写入失败');
+}
+function showError(message){setLoading(false);document.getElementById('status').innerHTML='<span class="error">'+escapeHtml(message||'数据库读取失败')+'</span>'}
+
+window.addEventListener('resize',syncFrozenColumnOffsets);
+document.addEventListener('copy',function(event){if(shouldHandleGridClipboard(event.target))writeGridSelectionToEvent(event)},true);
+document.addEventListener('cut',function(event){if(shouldHandleGridClipboard(event.target)&&writeGridSelectionToEvent(event))clearSelectedGridCells()},true);
+document.addEventListener('paste',function(event){
+  if(!shouldHandleGridClipboard(event.target)||!event.clipboardData)return;
+  event.preventDefault();event.stopImmediatePropagation();pasteGridMatrix(tableCore.parseClipboardText(event.clipboardData.getData('text/plain')));
+},true);
+document.getElementById('search').addEventListener('input',queueSearch);
+document.getElementById('searchColumn').addEventListener('change',function(){pageIndex=0;requestPage()});
+document.getElementById('pageSize').addEventListener('change',function(){pageSize=Number(this.value)||100;pageIndex=0;requestPage()});
+document.querySelector('.segments').addEventListener('click',function(event){var button=event.target.closest('[data-mode]');if(button)setMatchMode(button.getAttribute('data-mode'))});
+document.getElementById('firstPage').addEventListener('click',function(){goToPage(0)});
+document.getElementById('prevPage').addEventListener('click',function(){goToPage(pageIndex-1)});
+document.getElementById('nextPage').addEventListener('click',function(){goToPage(pageIndex+1)});
+document.getElementById('lastPage').addEventListener('click',function(){goToPage(Math.ceil(totalRows/pageSize)-1)});
+document.getElementById('pageNumber').addEventListener('change',function(){goToPage((Number(this.value)||1)-1)});
+document.getElementById('manageFields').addEventListener('click',openSchemaModal);
+document.getElementById('refreshPage').addEventListener('click',requestPage);
+document.getElementById('addField').addEventListener('click',addSchemaField);
+document.getElementById('applySchema').addEventListener('click',applySchemaChanges);
+document.getElementById('confirmCancel').addEventListener('click',function(){finishConfirmDialog(false)});
+document.getElementById('confirmAccept').addEventListener('click',function(){finishConfirmDialog(true)});
+document.getElementById('incrementCancel').addEventListener('click',function(){document.getElementById('incrementModal').hidden=true;incrementBounds=null});
+document.getElementById('incrementAccept').addEventListener('click',applySelectionIncrement);
+document.getElementById('incrementValue').addEventListener('keydown',function(event){
+  if(event.key==='Enter'){event.preventDefault();applySelectionIncrement()}
+  else if(event.key==='Escape'){event.preventDefault();document.getElementById('incrementModal').hidden=true;incrementBounds=null}
+});
+document.getElementById('contextIncrementCells').addEventListener('click',function(){hideRowContextMenu();openIncrementModal()});
+document.getElementById('contextAddRow').addEventListener('click',function(){hideRowContextMenu();addEmptyRow()});
+document.getElementById('contextCopyRow').addEventListener('click',copySelectedRow);
+document.getElementById('contextPasteRow').addEventListener('click',function(){hideRowContextMenu();pasteCopiedRow()});
+document.getElementById('contextDeleteRow').addEventListener('click',function(){hideRowContextMenu();deleteSelectedRow()});
+document.querySelectorAll('[data-close-modal]').forEach(function(button){button.addEventListener('click',closeModals)});
+document.addEventListener('mousedown',function(event){
+  if(!event.target.closest('#rowContextMenu'))hideRowContextMenu();
+});
+document.getElementById('fillHandle').addEventListener('mousedown',beginGridFill);
+document.addEventListener('mouseup',finishGridFill);
+document.addEventListener('keydown',function(event){
+  var key=String(event.key).toLowerCase();
+  if(event.ctrlKey&&!event.shiftKey&&key==='z'&&!isTextInputTarget(event.target)){
+    event.preventDefault();requestDatabaseUndo();return;
+  }
+  if(event.key==='Escape'){if(isGridCellEditor(event.target))return;if(activeCellEdit)cancelCellEdit();else closeModals();return}
+  if(event.ctrlKey&&key==='f'){event.preventDefault();document.getElementById('search').focus();document.getElementById('search').select()}
+  if(!databaseGrid||isGridCellEditor(event.target))return;
+  var root=document.getElementById('table'),gridFocused=root.contains(event.target)||root.contains(document.activeElement);if(!gridFocused)return;
+  var command=event.ctrlKey||event.metaKey;
+  if(command&&key==='d'&&!event.shiftKey&&!event.altKey){event.preventDefault();event.stopImmediatePropagation();fillSelectedGridRange()}
+  else if(command&&key==='a'){event.preventDefault();event.stopImmediatePropagation();selectGridBounds({top:0,bottom:currentRows.length-1,left:0,right:currentColumns.length-1},false)}
+  else if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();event.stopImmediatePropagation();clearSelectedGridCells()}
+  else if(event.key==='F2'){event.preventDefault();event.stopImmediatePropagation();startCellEdit()}
+  else if(event.key.length===1&&!command&&!event.altKey){event.preventDefault();event.stopImmediatePropagation();startCellEdit(event.key)}
+},true);
+window.addEventListener('message',function(event){
+  var message=event.data||{};
+  if(message.type==='databaseCatalog')loadCatalog(message);
+  else if(message.type==='databasePage')loadPage(message);
+  else if(message.type==='databaseMutationResult')loadMutationResult(message);
+  else if(message.type==='databaseUndoResult')loadUndoResult(message);
+  else if(message.type==='databaseMutationError'||message.type==='databaseUndoError')showMutationError(message);
+  else if(message.type==='databaseError')showError(message.error);
+});
+updateActionState();
+vscode.postMessage({type:'ready'});
+</script>
+</body>
+</html>

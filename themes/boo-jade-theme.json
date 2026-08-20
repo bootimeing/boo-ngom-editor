@@ -1,0 +1,8 @@
+{
+  "name": "BOO Jade",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#00897B", "keyword.cmd": "#26A69A", "keyword.action": "#00897B", "keyword.say": "#FFD54F", "keyword.flow": "#004D40", "keyword.label": "#E91E63", "keyword.path": "#BCAAA4", "variable": "#B2DFDB"
+  }
+}

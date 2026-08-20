@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "revision": "2026-07-26",
+  "method": "cross-engine-name-discovery-with-target-help-confirmation",
+  "summary": {
+    "GOM": {
+      "commands": 823,
+      "commandCompletions": 430,
+      "variables": 415,
+      "engineFunctions": 98,
+      "constants": 325,
+      "reconciled": 0
+    },
+    "GEE": {
+      "commands": 988,
+      "commandCompletions": 716,
+      "variables": 256,
+      "engineFunctions": 68,
+      "constants": 416,
+      "reconciled": 0
+    },
+    "996PC": {
+      "commands": 649,
+      "commandCompletions": 582,
+      "variables": 344,
+      "engineFunctions": 93,
+      "constants": 606,
+      "reconciled": 0
+    }
+  },
+  "additions": [],
+  "explicitExclusions": [
+    "GEE:CHECKITEMBIND",
+    "GEE:HOUR",
+    "GEE:MIN",
+    "GEE:SETITEMBIND"
+  ]
+}

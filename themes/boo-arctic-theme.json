@@ -1,0 +1,8 @@
+{
+  "name": "BOO Arctic",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#4FC3F7", "keyword.cmd": "#81D4FA", "keyword.action": "#4FC3F7", "keyword.say": "#BA68C8", "keyword.flow": "#01579B", "keyword.label": "#FF5252", "keyword.path": "#90A4AE", "variable": "#E1F5FE"
+  }
+}

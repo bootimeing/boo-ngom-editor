@@ -1,0 +1,6200 @@
+{
+  "schemaVersion": 1,
+  "engine": "GOM",
+  "generated": "2026-07-26",
+  "constants": [
+    {
+      "name": "AC",
+      "full": "<$AC>",
+      "description": "防御力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ACCOUNTUSERNAME",
+      "full": "<$ACCOUNTUSERNAME>",
+      "description": "注册账号时用户输入的用户名",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ADDMAXBW",
+      "full": "<$ADDMAXBW>",
+      "description": "额外增加的背包负重",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/脚本扩展最大负重.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "ANSWER1",
+      "full": "<$ANSWER1>",
+      "description": "注册账号时用户输入的答案1",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ANSWER2",
+      "full": "<$ANSWER2>",
+      "description": "注册账号时用户输入的答案2",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ANTIMAGIC",
+      "full": "<$ANTIMAGIC>",
+      "description": "魔法躲避",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "ANTIPOISON",
+      "full": "<$ANTIPOISON>",
+      "description": "毒躲避",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "ARCHERFEE",
+      "full": "<$ARCHERFEE>",
+      "description": "弓箭手的雇用费",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\部分脚本实例\\沙城主公告.htm",
+        "title": "沙城主公告脚本"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "ARMRING_L",
+      "full": "<$ARMRING_L>",
+      "description": "左手镯",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ARMRING_R",
+      "full": "<$ARMRING_R>",
+      "description": "右手镯",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ATTACKMONSTER_HPEX",
+      "full": "<$ATTACKMONSTER_HPEX>",
+      "description": "当前攻击(主目标)目标剩余血量",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ATTACKMONSTER_MAXHPEX",
+      "full": "<$ATTACKMONSTER_MAXHPEX>",
+      "description": "当前攻击(主目标)目标总血量",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ATTACKMONSTER_NAMEEX",
+      "full": "<$ATTACKMONSTER_NAMEEX>",
+      "description": "当前锁定攻击(主目标)目标的名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ATTACKMONSTER_X",
+      "full": "<$ATTACKMONSTER_X>",
+      "description": "当前攻击目标X坐标",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ATTACKMONSTER_XEX",
+      "full": "<$ATTACKMONSTER_XEX>",
+      "description": "当前攻击(主目标)目标X坐标",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ATTACKMONSTER_Y",
+      "full": "<$ATTACKMONSTER_Y>",
+      "description": "当前攻击目标Y坐标",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ATTACKMONSTER_YEX",
+      "full": "<$ATTACKMONSTER_YEX>",
+      "description": "当前攻击(主目标)目标Y坐标",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "AUCTIONITEMBIDHUMANNAME",
+      "full": "<$AUCTIONITEMBIDHUMANNAME>",
+      "description": "物品买入人/最后出价人",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMFINAPRICE",
+      "full": "<$AUCTIONITEMFINAPRICE>",
+      "description": "成交价",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMHUMANNAME",
+      "full": "<$AUCTIONITEMHUMANNAME>",
+      "description": "物品拍卖人",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMINVALIDPRICE",
+      "full": "<$AUCTIONITEMINVALIDPRICE>",
+      "description": "拍卖出价",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMMONEYTYPE",
+      "full": "<$AUCTIONITEMMONEYTYPE>",
+      "description": "拍卖货币类型",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMMONEYTYPEVALUE",
+      "full": "<$AUCTIONITEMMONEYTYPEVALUE>",
+      "description": "拍卖货币类型-整数(0:元宝1:游戏点2:金币3:金刚石4:灵符)",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMNAME",
+      "full": "<$AUCTIONITEMNAME>",
+      "description": "拍卖物品名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMSELLED",
+      "full": "<$AUCTIONITEMSELLED>",
+      "description": "物品是否被卖出",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMSELLPRICE",
+      "full": "<$AUCTIONITEMSELLPRICE>",
+      "description": "一口价",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "AUCTIONITEMSTARTPRICE",
+      "full": "<$AUCTIONITEMSTARTPRICE>",
+      "description": "底价",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BACKRECOVERYNAME",
+      "full": "<$BACKRECOVERYNAME>",
+      "description": "装备回收系统",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/高效率装备回收.htm",
+        "title": "高效率装备回收"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "BACKRECOVERYNUM",
+      "full": "<$BACKRECOVERYNUM>",
+      "description": "装备回收系统",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/高效率装备回收.htm",
+        "title": "高效率装备回收"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "BAGMAXCOUNT",
+      "full": "<$BAGMAXCOUNT>",
+      "description": "大包裹 大背包",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/大包裹 大背包.htm",
+        "title": "大包裹 大背包"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "BANKACCOUNT0",
+      "full": "<$BANKACCOUNT0>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT1",
+      "full": "<$BANKACCOUNT1>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT2",
+      "full": "<$BANKACCOUNT2>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT3",
+      "full": "<$BANKACCOUNT3>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT4",
+      "full": "<$BANKACCOUNT4>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT5",
+      "full": "<$BANKACCOUNT5>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT6",
+      "full": "<$BANKACCOUNT6>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT7",
+      "full": "<$BANKACCOUNT7>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT8",
+      "full": "<$BANKACCOUNT8>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BANKACCOUNT9",
+      "full": "<$BANKACCOUNT9>",
+      "description": "银行帐号信息",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BBSSITE",
+      "full": "<$BBSSITE>",
+      "description": "论坛网址",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "BELT",
+      "full": "<$BELT>",
+      "description": "腰带",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BIRTHDAT",
+      "full": "<$BIRTHDAT>",
+      "description": "注册账号时用户输入的生日",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BOOTS",
+      "full": "<$BOOTS>",
+      "description": "鞋子",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BOXITEM[占位1].COLOR",
+      "full": "<$BOXITEM[占位1].COLOR>",
+      "description": "自定义OK框中的物品Color字段值",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].DURA",
+      "full": "<$BOXITEM[占位1].DURA>",
+      "description": "自定义OK框中的物品持久",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].DURAMAX",
+      "full": "<$BOXITEM[占位1].DURAMAX>",
+      "description": "自定义OK框中的物品最大持久",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].HAC",
+      "full": "<$BOXITEM[占位1].HAC>",
+      "description": "自定义OK框中的物品的防御上限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].HDC",
+      "full": "<$BOXITEM[占位1].HDC>",
+      "description": "自定义OK框中的物品的攻击上限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].HMAC",
+      "full": "<$BOXITEM[占位1].HMAC>",
+      "description": "自定义OK框中的物品的魔防上限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].HMC",
+      "full": "<$BOXITEM[占位1].HMC>",
+      "description": "自定义OK框中的物品的魔法上限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].HP",
+      "full": "<$BOXITEM[占位1].HP>",
+      "description": "自定义OK框中的物品HP字段值",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].HSC",
+      "full": "<$BOXITEM[占位1].HSC>",
+      "description": "自定义OK框中的物品的道术上限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].INSURANCECOUNT",
+      "full": "<$BOXITEM[占位1].INSURANCECOUNT>",
+      "description": "自定义OK框中的物品的投保次数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].INSURANCECURRENCY",
+      "full": "<$BOXITEM[占位1].INSURANCECURRENCY>",
+      "description": "自定义OK框中的物品的保金类型",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].INSURANCEGOLD",
+      "full": "<$BOXITEM[占位1].INSURANCEGOLD>",
+      "description": "自定义OK框中的物品的投保金额",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].LAC",
+      "full": "<$BOXITEM[占位1].LAC>",
+      "description": "自定义OK框中的物品的防御下限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].LDC",
+      "full": "<$BOXITEM[占位1].LDC>",
+      "description": "自定义OK框中的物品的攻击下限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].LMAC",
+      "full": "<$BOXITEM[占位1].LMAC>",
+      "description": "自定义OK框中的物品的魔防下限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].LMC",
+      "full": "<$BOXITEM[占位1].LMC>",
+      "description": "自定义OK框中的物品的魔法下限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].LOOKS",
+      "full": "<$BOXITEM[占位1].LOOKS>",
+      "description": "自定义OK框中的物品Looks字段值",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].LSC",
+      "full": "<$BOXITEM[占位1].LSC>",
+      "description": "自定义OK框中的物品道术下限",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].MAKEINDEX",
+      "full": "<$BOXITEM[占位1].MAKEINDEX>",
+      "description": "自定义OK框中的物品序列号",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].MP",
+      "full": "<$BOXITEM[占位1].MP>",
+      "description": "自定义OK框中的物品MP字段值",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].NAME",
+      "full": "<$BOXITEM[占位1].NAME>",
+      "description": "自定义OK框中的物品名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].NAME_G",
+      "full": "<$BOXITEM[占位1].NAME_G>",
+      "description": "自定义OK框中的物品改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].SHAPE",
+      "full": "<$BOXITEM[占位1].SHAPE>",
+      "description": "自定义OK框中的物品Shape字段值",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].STDMODE",
+      "full": "<$BOXITEM[占位1].STDMODE>",
+      "description": "自定义OK框中的物品stdmode字段值",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BOXITEM[占位1].UPGRADECOUNT",
+      "full": "<$BOXITEM[占位1].UPGRADECOUNT>",
+      "description": "自定义OK框中的物品星星数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BUILDGUILDFEE",
+      "full": "<$BUILDGUILDFEE>",
+      "description": "创建行会费用",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "BUJUK",
+      "full": "<$BUJUK>",
+      "description": "护身符",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "BUYITEMMONEYTYPE",
+      "full": "<$BUYITEMMONEYTYPE>",
+      "description": "个人商店购买物品触发",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/个人商店和人物摆摊[!].htm",
+        "title": "个人商店和人物摆摊"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "BUYITEMMONEYTYPENAME",
+      "full": "<$BUYITEMMONEYTYPENAME>",
+      "description": "个人商店当前交易使用的货币类型名称",
+      "scope": "个人商店触发",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/个人商店购买物品触发.htm",
+        "title": "个人商店、摆摊购买物品触发"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "BUYITEPRICE",
+      "full": "<$BUYITEPRICE>",
+      "description": "个人商店当前交易物品的价格",
+      "scope": "个人商店触发",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/个人商店购买物品触发.htm",
+        "title": "个人商店、摆摊购买物品触发"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "BW",
+      "full": "<$BW>",
+      "description": "背包重量",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CASTLEDOORSTATE",
+      "full": "<$CASTLEDOORSTATE>",
+      "description": "城门当前状态",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\部分脚本实例\\沙城主公告.htm",
+        "title": "沙城主公告脚本"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CASTLEGETDAYS",
+      "full": "<$CASTLEGETDAYS>",
+      "description": "守城天数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CASTLEGOLD",
+      "full": "<$CASTLEGOLD>",
+      "description": "沙城金币数量",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\部分脚本实例\\沙城主公告.htm",
+        "title": "沙城主公告脚本"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CASTLENAME",
+      "full": "<$CASTLENAME>",
+      "description": "沙城名称",
+      "scope": "城堡",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CASTLEWARDATE",
+      "full": "<$CASTLEWARDATE>",
+      "description": "获取攻城时间",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CASTLEWARLASTDATE",
+      "full": "<$CASTLEWARLASTDATE>",
+      "description": "上次攻城时间",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CHARM",
+      "full": "<$CHARM>",
+      "description": "宝石",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "CLIENTDOWNLOAD",
+      "full": "<$CLIENTDOWNLOAD>",
+      "description": "客户端程序下载地址",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "CLIENTHEIGHT",
+      "full": "<$CLIENTHEIGHT>",
+      "description": "游戏窗口高度",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CLIENTWIDTH",
+      "full": "<$CLIENTWIDTH>",
+      "description": "游戏窗口宽度",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "COMBATPOWER",
+      "full": "<$COMBATPOWER>",
+      "description": "人物战斗力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CREDITPOINT",
+      "full": "<$CREDITPOINT>",
+      "description": "声望点数",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "CRYSTALEXP",
+      "full": "<$CRYSTALEXP>",
+      "description": "天地结晶当前的经验",
+      "scope": "天地结晶",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "CRYSTALLEVEL",
+      "full": "<$CRYSTALLEVEL>",
+      "description": "天地结晶等级",
+      "scope": "天地结晶",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CRYSTALNGEXP",
+      "full": "<$CRYSTALNGEXP>",
+      "description": "天地结晶当前的内功经验",
+      "scope": "天地结晶",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "CURREATEITEM",
+      "full": "<$CURREATEITEM>",
+      "description": "本次批量使用的叠加消耗物品 IDX",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/批量使用叠加消耗类型物品.htm",
+        "title": "批量使用叠加消耗类型物品"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-manual"
+    },
+    {
+      "name": "CURREATEITEMCOUNT",
+      "full": "<$CURREATEITEMCOUNT>",
+      "description": "200类物品规则(装备掉落组设置)",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/批量使用叠加消耗类型物品.htm",
+        "title": "批量使用叠加消耗类型物品"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "CURRITEMCOUNT",
+      "full": "<$CURRITEMCOUNT>",
+      "description": "增加常量<$CURRITEMCOUNT>当前叠加物品的数量，如果不是叠加物品，显示为1",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-26",
+        "page": "UpDate2021.htm",
+        "title": "2019-2021年更新记录",
+        "evidenceLine": 299
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "CURRRSLAVENAME",
+      "full": "<$CURRRSLAVENAME>",
+      "description": "当前宝宝名称，在宝宝攻击或死亡触发里有效",
+      "scope": "宝宝触发",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "CURRRTARGETFULLNAME",
+      "full": "<$CURRRTARGETFULLNAME>",
+      "description": "角色和怪物完整名字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CURRRTARGETNAME",
+      "full": "<$CURRRTARGETNAME>",
+      "description": "当前攻击目标",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/攻击触发.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CURRRUSEMAGICID",
+      "full": "<$CURRRUSEMAGICID>",
+      "description": "当前使用魔法ID",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/攻击触发.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CURRTAKETEMPOS",
+      "full": "<$CURRTAKETEMPOS>",
+      "description": "当前穿戴或脱下物品的装备位置",
+      "scope": "装备触发",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/人物穿戴装备前触发.htm",
+        "title": "人物穿戴装备前触发"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "CURSLAVEFULLNAME",
+      "full": "<$CURSLAVEFULLNAME>",
+      "description": "完整宝宝名称不去数字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CURSLAVENAME",
+      "full": "<$CURSLAVENAME>",
+      "description": "宝宝名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "CUSTOMBUTTONID",
+      "full": "<$CUSTOMBUTTONID>",
+      "description": "自定义UI按钮编号",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "DATETIME",
+      "full": "<$DATETIME>",
+      "description": "当前日期时间",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "DAY",
+      "full": "<$DAY>",
+      "description": "当前日期 1",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "DC",
+      "full": "<$DC>",
+      "description": "物理攻击力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "DEALGOLDPLAY",
+      "full": "<$DEALGOLDPLAY>",
+      "description": "元宝转账目标名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\部分脚本实例\\元宝转帐.htm",
+        "title": "元宝转帐脚本"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "DEARNAME",
+      "full": "<$DEARNAME>",
+      "description": "配偶的名字，未结婚时为空；当前对象可用<$C.DEARNAME>",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "DIESLAVENAME",
+      "full": "<$DIESLAVENAME>",
+      "description": "死的宝宝名字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "DLGITEM.DURA",
+      "full": "<$DLGITEM.DURA>",
+      "description": "OK框中物品的名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2012-2015.htm",
+        "title": "2010-2015年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "DLGITEM.DURAMAX",
+      "full": "<$DLGITEM.DURAMAX>",
+      "description": "OK框中物品的最大持久",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2012-2015.htm",
+        "title": "2010-2015年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "DRESS",
+      "full": "<$DRESS>",
+      "description": "衣服",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "DROPINSURANCEITEMCOUNT",
+      "full": "<$DROPINSURANCEITEMCOUNT>",
+      "description": "剩余投保数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "DROPINSURANCEITEMCURRENCY",
+      "full": "<$DROPINSURANCEITEMCURRENCY>",
+      "description": "投保货币类型",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "DROPINSURANCEITEMGOLD",
+      "full": "<$DROPINSURANCEITEMGOLD>",
+      "description": "单件投保单价",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "DROPINSURANCEITEMNAME",
+      "full": "<$DROPINSURANCEITEMNAME>",
+      "description": "投保物品名",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "DRUM",
+      "full": "<$DRUM>",
+      "description": "军鼓",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "DUMMYCOUNT",
+      "full": "<$DUMMYCOUNT>",
+      "description": "在线假人数",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "EMAIL",
+      "full": "<$EMAIL>",
+      "description": "注册账号时用户输入的邮箱",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "EXP",
+      "full": "<$EXP>",
+      "description": "当前经验值",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "EXPIREDITEMNAME",
+      "full": "<$ExpiredItemName>",
+      "description": "限时装备到期时的装备名称",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/2024年更新记录.htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "EXTBAGCLOSEITEMCOUNT",
+      "full": "<$EXTBAGCLOSEITEMCOUNT>",
+      "description": "扩展背包未开启格数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "EXTBAGOPENITEMCOUNT",
+      "full": "<$EXTBAGOPENITEMCOUNT>",
+      "description": "扩展背包已开启格数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "EXTBAGPAGECOUNT",
+      "full": "<$EXTBAGPAGECOUNT>",
+      "description": "背包扩展页数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONARMRINGL",
+      "full": "<$FASHIONARMRINGL>",
+      "description": "时装左手镯",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONARMRINGR",
+      "full": "<$FASHIONARMRINGR>",
+      "description": "时装右手镯",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONBELT",
+      "full": "<$FASHIONBELT>",
+      "description": "时装腰带",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONBOOTS",
+      "full": "<$FASHIONBOOTS>",
+      "description": "时装鞋子",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONCHARM",
+      "full": "<$FASHIONCHARM>",
+      "description": "时装宝石",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONDRESS",
+      "full": "<$FASHIONDRESS>",
+      "description": "时装衣服",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONHELMET",
+      "full": "<$FASHIONHELMET>",
+      "description": "时装头盔",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONNECKLACE",
+      "full": "<$FASHIONNECKLACE>",
+      "description": "时装项链",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONRIGHTHAND",
+      "full": "<$FASHIONRIGHTHAND>",
+      "description": "时装照明物",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONRINGL",
+      "full": "<$FASHIONRINGL>",
+      "description": "时装左戒指",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONRINGR",
+      "full": "<$FASHIONRINGR>",
+      "description": "时装右戒指",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FASHIONWEAPON",
+      "full": "<$FASHIONWEAPON>",
+      "description": "时装武器",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "FBMAP",
+      "full": "<$FBMAP>",
+      "description": "人物当前副本实例地图代码，副本外为空。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\游戏功能详解\\副本地图使用说明.htm",
+        "title": "副本地图使用说明"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "FBMAPNAME",
+      "full": "<$FBMAPNAME>",
+      "description": "人物当前副本名称，副本外为空。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\游戏功能详解\\副本地图使用说明.htm",
+        "title": "副本地图使用说明"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_ARMRING_L",
+      "full": "<$G_ARMRING_L>",
+      "description": "左手镯 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_ARMRING_R",
+      "full": "<$G_ARMRING_R>",
+      "description": "右手镯 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_BELT",
+      "full": "<$G_BELT>",
+      "description": "腰带 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_BOOTS",
+      "full": "<$G_BOOTS>",
+      "description": "鞋子 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_BUJUK",
+      "full": "<$G_BUJUK>",
+      "description": "护身符 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_CHARM",
+      "full": "<$G_CHARM>",
+      "description": "宝石 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_DRESS",
+      "full": "<$G_DRESS>",
+      "description": "衣服 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_DRUM",
+      "full": "<$G_DRUM>",
+      "description": "军鼓 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_FASHIONARMRINGL",
+      "full": "<$G_FASHIONARMRINGL>",
+      "description": "时装左手镯-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONARMRINGR",
+      "full": "<$G_FASHIONARMRINGR>",
+      "description": "时装右手镯-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONBELT",
+      "full": "<$G_FASHIONBELT>",
+      "description": "时装腰带-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONBOOTS",
+      "full": "<$G_FASHIONBOOTS>",
+      "description": "时装鞋子-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONCHARM",
+      "full": "<$G_FASHIONCHARM>",
+      "description": "时装宝石-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONDRESS",
+      "full": "<$G_FASHIONDRESS>",
+      "description": "时装衣服-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONHELMET",
+      "full": "<$G_FASHIONHELMET>",
+      "description": "时装头盔-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONNECKLACE",
+      "full": "<$G_FASHIONNECKLACE>",
+      "description": "时装项链-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONRIGHTHAND",
+      "full": "<$G_FASHIONRIGHTHAND>",
+      "description": "时装照明物品-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONRINGL",
+      "full": "<$G_FASHIONRINGL>",
+      "description": "时装左戒指-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONRINGR",
+      "full": "<$G_FASHIONRINGR>",
+      "description": "时装右戒指-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_FASHIONWEAPON",
+      "full": "<$G_FASHIONWEAPON>",
+      "description": "时装武器-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_GODBLESSITEM1",
+      "full": "<$G_GODBLESSITEM1>",
+      "description": "人物神佑装备位1到12的改名名称；没有改名时显示DB名称。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_GODBLESSITEM12",
+      "full": "<$G_GODBLESSITEM12>",
+      "description": "人物神佑装备位1到12的改名名称；没有改名时显示DB名称。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_HAT",
+      "full": "<$G_HAT>",
+      "description": "斗笠 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_HELMET",
+      "full": "<$G_HELMET>",
+      "description": "头盔 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_HORSE",
+      "full": "<$G_HORSE>",
+      "description": "马牌 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_JADE",
+      "full": "<$G_JADE>",
+      "description": "灵玉-改名名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "G_JEWELRYITEM1",
+      "full": "<$G_JEWELRYITEM1>",
+      "description": "人物首饰盒1到6的改名名称；没有改名时显示DB名称。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_JEWELRYITEM6",
+      "full": "<$G_JEWELRYITEM6>",
+      "description": "人物首饰盒1到6的改名名称；没有改名时显示DB名称。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_NECKLACE",
+      "full": "<$G_NECKLACE>",
+      "description": "项链 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_RIGHTHAND",
+      "full": "<$G_RIGHTHAND>",
+      "description": "蜡烛 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_RING_L",
+      "full": "<$G_RING_L>",
+      "description": "左戒指 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_RING_R",
+      "full": "<$G_RING_R>",
+      "description": "右戒指 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_SHIELD",
+      "full": "<$G_SHIELD>",
+      "description": "盾牌 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "G_WEAPON",
+      "full": "<$G_WEAPON>",
+      "description": "武器 改名名称",
+      "scope": "装备改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GAMEDIAMOND",
+      "full": "<$GAMEDIAMOND>",
+      "description": "金刚石",
+      "scope": "货币",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GAMEGIRD",
+      "full": "<$GAMEGIRD>",
+      "description": "灵符",
+      "scope": "货币",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GAMEGLORY",
+      "full": "<$GAMEGLORY>",
+      "description": "人物荣誉值",
+      "scope": "货币",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GAMEGOLD",
+      "full": "<$GAMEGOLD>",
+      "description": "游戏币数",
+      "scope": "货币",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GAMEGOLDEX",
+      "full": "<$GAMEGOLDEX>",
+      "description": "新游戏点数",
+      "scope": "货币",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GAMEGOLDNAME",
+      "full": "<$GAMEGOLDNAME>",
+      "description": "游戏币名称",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GAMEPETCOUNT",
+      "full": "<$GAMEPETCOUNT>",
+      "description": "宠物数量",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GAMEPETLEVEL",
+      "full": "<$GAMEPETLEVEL>",
+      "description": "宠物等级",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GAMEPETMAGICID",
+      "full": "<$GAMEPETMAGICID>",
+      "description": "宠物当前学习技能编号",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GAMEPETMAGICINDEX",
+      "full": "<$GAMEPETMAGICINDEX>",
+      "description": "宠物当前学习技能位置",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GAMEPETNAME",
+      "full": "<$GAMEPETNAME>",
+      "description": "宠物名字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GAMEPOINT",
+      "full": "<$GAMEPOINT>",
+      "description": "游戏点数",
+      "scope": "货币",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GETCRYSTALEXP",
+      "full": "<$GETCRYSTALEXP>",
+      "description": "天地结晶可提取的经验",
+      "scope": "天地结晶",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GETCRYSTALNGEXP",
+      "full": "<$GETCRYSTALNGEXP>",
+      "description": "天地结晶可提取的内功经验",
+      "scope": "天地结晶",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GETEXP",
+      "full": "<$GetExp>",
+      "description": "人物当前获得经验变量",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GETNGEXP",
+      "full": "<$GETNGEXP>",
+      "description": "当前得到的内功经验",
+      "scope": "内功",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM1",
+      "full": "<$GODBLESSITEM1>",
+      "description": "人物生肖盒",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2021.htm",
+        "title": "2019-2021年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM10",
+      "full": "<$GODBLESSITEM10>",
+      "description": "人物十二生肖/神佑装备位10物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM11",
+      "full": "<$GODBLESSITEM11>",
+      "description": "人物十二生肖/神佑装备位11物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM12",
+      "full": "<$GODBLESSITEM12>",
+      "description": "人物十二生肖/神佑装备位12物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM2",
+      "full": "<$GODBLESSITEM2>",
+      "description": "人物十二生肖/神佑装备位2物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM3",
+      "full": "<$GODBLESSITEM3>",
+      "description": "人物十二生肖/神佑装备位3物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM4",
+      "full": "<$GODBLESSITEM4>",
+      "description": "人物十二生肖/神佑装备位4物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM5",
+      "full": "<$GODBLESSITEM5>",
+      "description": "人物十二生肖/神佑装备位5物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM6",
+      "full": "<$GODBLESSITEM6>",
+      "description": "人物十二生肖/神佑装备位6物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM7",
+      "full": "<$GODBLESSITEM7>",
+      "description": "人物十二生肖/神佑装备位7物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM8",
+      "full": "<$GODBLESSITEM8>",
+      "description": "人物十二生肖/神佑装备位8物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GODBLESSITEM9",
+      "full": "<$GODBLESSITEM9>",
+      "description": "人物十二生肖/神佑装备位9物品名称",
+      "scope": "神佑装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GOLDCOUNT",
+      "full": "<$GOLDCOUNT>",
+      "description": "金币数量",
+      "scope": "货币",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "GROUPMEMBERCOUNT",
+      "full": "<$GROUPMEMBERCOUNT>",
+      "description": "当前组队人数",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2012-2015.htm",
+        "title": "2010-2015年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GUILDAURAEPOINT",
+      "full": "<$GUILDAURAEPOINT>",
+      "description": "行会人气度",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\功能操作命令\\行会建设相关.htm",
+        "title": "行会建设相关"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GUILDBUILDPOINT",
+      "full": "<$GUILDBUILDPOINT>",
+      "description": "行会建筑度",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\功能操作命令\\行会建设相关.htm",
+        "title": "行会建设相关"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GUILDFLOURISHPOINT",
+      "full": "<$GUILDFLOURISHPOINT>",
+      "description": "行会繁荣度",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\功能操作命令\\行会建设相关.htm",
+        "title": "行会建设相关"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GUILDMASTER1",
+      "full": "<$GUILDMASTER1>",
+      "description": "行会老大1",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GUILDMASTER2",
+      "full": "<$GUILDMASTER2>",
+      "description": "行会老大2",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GUILDMEMBERCOUNT",
+      "full": "<$GUILDMEMBERCOUNT>",
+      "description": "行会成员数量",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "GUILDMEMBERMAXLIMIT",
+      "full": "<$GUILDMEMBERMAXLIMIT>",
+      "description": "行会最高人数限制",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2012-2015.htm",
+        "title": "2010-2015年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GUILDNAME",
+      "full": "<$GUILDNAME>",
+      "description": "行会名称",
+      "scope": "行会",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GUILDSTABILITYPOINT",
+      "full": "<$GUILDSTABILITYPOINT>",
+      "description": "行会安定度",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\功能操作命令\\行会建设相关.htm",
+        "title": "行会建设相关"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GUILDWARFEE",
+      "full": "<$GUILDWARFEE>",
+      "description": "申请行会战争费用",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.ATTACKMONSTER_HP",
+      "full": "<$H.ATTACKMONSTER_HP>",
+      "description": "英雄当前击中目标剩余HP",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.ATTACKMONSTER_MAXHP",
+      "full": "<$H.ATTACKMONSTER_MAXHP>",
+      "description": "英雄当前击中目标最大HP",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.ATTACKMONSTER_NAME",
+      "full": "<$H.ATTACKMONSTER_NAME>",
+      "description": "英雄当前击中目标的名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.CURRRTARGETFULLNAME",
+      "full": "<$H.CURRRTARGETFULLNAME>",
+      "description": "英雄当前击中怪物完整名字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.CURRRTARGETNAME",
+      "full": "<$H.CURRRTARGETNAME>",
+      "description": "英雄当前目标名称，通常就是本次击杀者。也兼容 <$H.CURRTARGETNAME>。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\英雄功能操作\\英雄死亡触发.htm",
+        "title": "英雄死亡触发"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.CURRRUSEMAGICID",
+      "full": "<$H.CURRRUSEMAGICID>",
+      "description": "英雄当前攻击技能id",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.CURSLAVENAME",
+      "full": "<$H.CURSLAVENAME>",
+      "description": "英雄当前宝宝名",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.EXP",
+      "full": "<$H.EXP>",
+      "description": "当前经验值",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.EXPIREDITEMNAME",
+      "full": "<$H.EXPIREDITEMNAME>",
+      "description": "英雄到期的装备名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONARMRINGL",
+      "full": "<$H.FASHIONARMRINGL>",
+      "description": "英雄时装左手镯",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONARMRINGR",
+      "full": "<$H.FASHIONARMRINGR>",
+      "description": "英雄时装右手镯",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONBELT",
+      "full": "<$H.FASHIONBELT>",
+      "description": "英雄时装腰带",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONBOOTS",
+      "full": "<$H.FASHIONBOOTS>",
+      "description": "英雄时装鞋子",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONCHARM",
+      "full": "<$H.FASHIONCHARM>",
+      "description": "英雄时装宝石",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONDRESS",
+      "full": "<$H.FASHIONDRESS>",
+      "description": "英雄时装衣服",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONHELMET",
+      "full": "<$H.FASHIONHELMET>",
+      "description": "英雄时装头盔",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONNECKLACE",
+      "full": "<$H.FASHIONNECKLACE>",
+      "description": "英雄时装项链",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONRIGHTHAND",
+      "full": "<$H.FASHIONRIGHTHAND>",
+      "description": "英雄时装照明物品",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONRINGL",
+      "full": "<$H.FASHIONRINGL>",
+      "description": "英雄时装左戒指",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONRINGR",
+      "full": "<$H.FASHIONRINGR>",
+      "description": "英雄时装右戒指",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.FASHIONWEAPON",
+      "full": "<$H.FASHIONWEAPON>",
+      "description": "英雄时装武器",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.G_DRESS",
+      "full": "<$H.G_DRESS>",
+      "description": "衣服 改名名称 英雄",
+      "scope": "英雄改名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.GENDER",
+      "full": "<$H.GENDER>",
+      "description": "英雄性别",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.GETEXP",
+      "full": "<$H.GETEXP>",
+      "description": "英雄本次获取经验",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.GODBLESSITEM1",
+      "full": "<$H.GODBLESSITEM1>",
+      "description": "英雄生肖盒",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2021.htm",
+        "title": "2019-2021年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.JEWELRYITEM1",
+      "full": "<$H.JEWELRYITEM1>",
+      "description": "英雄首饰盒1到6的物品名称。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.JOB",
+      "full": "<$H.JOB>",
+      "description": "英雄职业编号。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\英雄功能操作\\英雄死亡触发.htm",
+        "title": "英雄死亡触发"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.KILLMONNAME",
+      "full": "<$H.KILLMONNAME>",
+      "description": "英雄杀死的怪物名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.LEARNMAGICID",
+      "full": "<$H.LEARNMAGICID>",
+      "description": "英雄学习技能ID",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.LEVEL",
+      "full": "<$H.LEVEL>",
+      "description": "等级",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.MAP",
+      "full": "<$H.MAP>",
+      "description": "英雄当前地图代码",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.MAXNH",
+      "full": "<$H.MAXNH>",
+      "description": "英雄内力上限",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.NGADDPOWER",
+      "full": "<$H.NGADDPOWER>",
+      "description": "英雄内功伤害增加",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.NGDECPOWE",
+      "full": "<$H.NGDECPOWE>",
+      "description": "英雄内功伤害减少",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.NGEXP",
+      "full": "<$H.NGEXP>",
+      "description": "英雄内功经验",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.NGLEVEL",
+      "full": "<$H.NGLEVEL>",
+      "description": "英雄内功等级",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.NGMAXEXP",
+      "full": "<$H.NGMAXEXP>",
+      "description": "英雄内功升级经验",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.NH",
+      "full": "<$H.NH>",
+      "description": "英雄内力",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.PKPOWER",
+      "full": "<$H.PKPOWER>",
+      "description": "英雄当前攻击威力",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.RELEVEL",
+      "full": "<$H.RELEVEL>",
+      "description": "英雄转生等级",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.REVIVALTIME",
+      "full": "<$H.REVIVALTIME>",
+      "description": "英雄复活剩余时间",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.STRUCKHP",
+      "full": "<$H.STRUCKHP>",
+      "description": "英雄被攻击减少的HP",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "H.UPGRADECOUNT",
+      "full": "<$H.UPGRADECOUNT>",
+      "description": "英雄身上所有装备加星总和",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "H.X",
+      "full": "<$H.X>",
+      "description": "英雄X坐标",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "H.Y",
+      "full": "<$H.Y>",
+      "description": "英雄Y坐标",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HAT",
+      "full": "<$HAT>",
+      "description": "斗笠",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HEALTHRECOVER",
+      "full": "<$HEALTHRECOVER>",
+      "description": "体力回复",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "HELMET",
+      "full": "<$HELMET>",
+      "description": "头盔",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HEROAUTOTIME",
+      "full": "<$HEROAUTOTIME>",
+      "description": "英雄自动练功时间",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HEROGETEXP",
+      "full": "<$HeroGetExp>",
+      "description": "英雄当前获得经验变量",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HEROGETNGEXP",
+      "full": "<$HEROGETNGEXP>",
+      "description": "英雄当前得到的内功经验",
+      "scope": "内功",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HEROKILLER",
+      "full": "<$HEROKILLER>",
+      "description": "本次英雄死亡的击杀者名称。用于对象前缀命令时，可写成 <$HeroKiller> .GAMEGIRD + 10。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-26",
+        "page": "游戏引擎反外挂系统/英雄功能操作/英雄死亡触发.htm",
+        "title": "英雄死亡触发",
+        "evidenceLine": 8
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HERONAME",
+      "full": "<$HERONAME>",
+      "description": "英雄名称。如果没有创建过英雄，该值为空",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HEROPKPOINT",
+      "full": "<$HEROPKPOINT>",
+      "description": "英雄pk点数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "HEROPULSEXP",
+      "full": "<$HEROPULSEXP>",
+      "description": "英雄经络经验",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HIGHDCINFO",
+      "full": "<$HIGHDCINFO>",
+      "description": "最高攻击力人物信息",
+      "scope": "排名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HIGHLEVELINFO",
+      "full": "<$HIGHLEVELINFO>",
+      "description": "最高等人物信息",
+      "scope": "排名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HIGHMCINFO",
+      "full": "<$HIGHMCINFO>",
+      "description": "最高魔法力人物信息",
+      "scope": "排名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HIGHPKINFO",
+      "full": "<$HIGHPKINFO>",
+      "description": "最高PK点数人物信息",
+      "scope": "排名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HIGHSCINFO",
+      "full": "<$HIGHSCINFO>",
+      "description": "最高道术人物信息",
+      "scope": "排名",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HIT",
+      "full": "<$HIT>",
+      "description": "准确",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HITSPD",
+      "full": "<$HITSPD>",
+      "description": "攻速",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HMAP",
+      "full": "<$HMAP>",
+      "description": "英雄地图编号",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HMAPTITLE",
+      "full": "<$HMapTitle>",
+      "description": "英雄地图名字",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HORSE",
+      "full": "<$HORSE>",
+      "description": "马牌",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HOUR",
+      "full": "<$HOUR>",
+      "description": "当前小时",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2021.htm",
+        "title": "2019-2021年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HP",
+      "full": "<$HP>",
+      "description": "生命值",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HUMKILLER",
+      "full": "<$HUMKILLER>",
+      "description": "杀人凶手",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "HUNGER",
+      "full": "<$HUNGER>",
+      "description": "饥饿程度",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "HW",
+      "full": "<$HW>",
+      "description": "腕力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HX",
+      "full": "<$HX>",
+      "description": "英雄前坐标X",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "HY",
+      "full": "<$HY>",
+      "description": "英雄前坐标Y",
+      "scope": "英雄",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "INSURANCECOUNT",
+      "full": "<$INSURANCECOUNT>",
+      "description": "扣减后的剩余投保次数",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/装备投保功能.html",
+        "title": "装备投保功能"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "INSURANCECURRENCY",
+      "full": "<$INSURANCECURRENCY>",
+      "description": "保金类型",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/装备投保功能.html",
+        "title": "装备投保功能"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "INSURANCEGOLD",
+      "full": "<$INSURANCEGOLD>",
+      "description": "投保金额",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/装备投保功能.html",
+        "title": "装备投保功能"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "INSURANCEITEMNAME",
+      "full": "<$INSURANCEITEMNAME>",
+      "description": "当前物品名称，包含自定义名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/装备投保功能.html",
+        "title": "装备投保功能"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "JADE",
+      "full": "<$JADE>",
+      "description": "灵玉",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "JEWELRYITEM1",
+      "full": "<$JEWELRYITEM1>",
+      "description": "人物首饰盒",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "JEWELRYITEM2",
+      "full": "<$JEWELRYITEM2>",
+      "description": "人物首饰盒装备位2物品名称",
+      "scope": "首饰盒",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "JEWELRYITEM3",
+      "full": "<$JEWELRYITEM3>",
+      "description": "人物首饰盒装备位3物品名称",
+      "scope": "首饰盒",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "JEWELRYITEM4",
+      "full": "<$JEWELRYITEM4>",
+      "description": "人物首饰盒装备位4物品名称",
+      "scope": "首饰盒",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "JEWELRYITEM5",
+      "full": "<$JEWELRYITEM5>",
+      "description": "人物首饰盒装备位5物品名称",
+      "scope": "首饰盒",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "JEWELRYITEM6",
+      "full": "<$JEWELRYITEM6>",
+      "description": "人物首饰盒装备位6物品名称",
+      "scope": "首饰盒",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "JOB",
+      "full": "<$JOB>",
+      "description": "IF(2)多条件判断逻辑支持",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/解析Json_Key到变量.htm",
+        "title": "解析Json Key到变量"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "KILLER",
+      "full": "<$KILLER>",
+      "description": "杀人者变量",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "KILLMONBURSTRATE",
+      "full": "<$KILLMONBURSTRATE>",
+      "description": "人物杀怪暴率倍数",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\功能操作命令\\人物杀怪暴率倍数.html",
+        "title": "人物杀怪暴率倍数"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "KILLMONBURSTRATETIME",
+      "full": "<$KILLMONBURSTRATETIME>",
+      "description": "人物杀怪暴率倍数时间(脚本命令调整)",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "KILLMONEXPRATE",
+      "full": "<$KILLMONEXPRATE>",
+      "description": "杀怪经验倍数",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "KILLMONEXPRATETIME",
+      "full": "<$KILLMONEXPRATETIME>",
+      "description": "杀怪经验倍数时长",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "KILLMONNAME",
+      "full": "<$KILLMONNAME>",
+      "description": "人物杀死的怪物名称 建议宝宝服使用新变量<$KILLMONNAMEEX>",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "KILLMONX",
+      "full": "<$KILLMONX>",
+      "description": "人物杀死怪物的坐标",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "KILLMONY",
+      "full": "<$KILLMONY>",
+      "description": "人物杀死怪物的坐标",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "LEVEL",
+      "full": "<$LEVEL>",
+      "description": "等级",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "LISTOFWAR",
+      "full": "<$LISTOFWAR>",
+      "description": "获取攻城列表",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "LIUSERCOUNT",
+      "full": "<$LIUSERCOUNT>",
+      "description": "离线人数()",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "LOGINLONG",
+      "full": "<$LOGINLONG>",
+      "description": "登录时长",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "LOGINTIME",
+      "full": "<$LOGINTIME>",
+      "description": "登录时间",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "LORD",
+      "full": "<$LORD>",
+      "description": "沙巴克管理员名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "LUCK",
+      "full": "<$LUCK>",
+      "description": "幸运值",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MAC",
+      "full": "<$MAC>",
+      "description": "魔法防御力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MACHINEID",
+      "full": "<$MACHINEID>",
+      "description": "本机机器码(与角色无关)",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/机器码使用说明[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MAP",
+      "full": "<$MAP>",
+      "description": "当前地图代码",
+      "scope": "位置",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAPTITLE",
+      "full": "<$MapTitle>",
+      "description": "取地图名称",
+      "scope": "地图",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MAXAC",
+      "full": "<$MAXAC>",
+      "description": "最高防御力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAXBW",
+      "full": "<$MAXBW>",
+      "description": "最高背包重量",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MAXDC",
+      "full": "<$MAXDC>",
+      "description": "最高物理攻击力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAXEXP",
+      "full": "<$MAXEXP>",
+      "description": "升级经验值",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MAXHP",
+      "full": "<$MAXHP>",
+      "description": "HP上限",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAXHW",
+      "full": "<$MAXHW>",
+      "description": "最高腕力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MAXMAC",
+      "full": "<$MAXMAC>",
+      "description": "最高魔法防御力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAXMC",
+      "full": "<$MAXMC>",
+      "description": "最高魔法力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAXMP",
+      "full": "<$MAXMP>",
+      "description": "MP上限",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAXNH",
+      "full": "<$MAXNH>",
+      "description": "内力上限",
+      "scope": "内功",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MAXSC",
+      "full": "<$MAXSC>",
+      "description": "最高道术",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MAXWW",
+      "full": "<$MAXWW>",
+      "description": "最高负重",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MC",
+      "full": "<$MC>",
+      "description": "魔法力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MINIBIGMAPTITLE",
+      "full": "<$MINIBIGMAPTITLE>",
+      "description": "增加<$MiniBigMapTitle>变量，表示客户端右键大地图要传送到的地图名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-26",
+        "page": "游戏引擎反外挂系统/2024年更新记录.htm",
+        "title": "2024年更新记录",
+        "evidenceLine": 217
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "MINUTE",
+      "full": "<$MINUTE>",
+      "description": "当前分钟",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2021.htm",
+        "title": "2019-2021年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MOBILEPHONE",
+      "full": "<$MOBILEPHONE>",
+      "description": "注册账号时用户输入的手机",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "MONKILLER",
+      "full": "<$MONKILLER>",
+      "description": "杀死自己的怪物",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\功能操作命令\\自定义颜色文字发送.htm",
+        "title": "发送聊天框自定义颜色文字"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "MONTH",
+      "full": "<$MONTH>",
+      "description": "当前月份 1",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "NATION",
+      "full": "<$NATION>",
+      "description": "国家编号",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "UpDate2022.htm",
+        "title": "2022年更新记录"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "NATIONARM",
+      "full": "<$NATIONARM>",
+      "description": "军事能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONARMX",
+      "full": "<$NATIONARMX>",
+      "description": "军事能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONBUILDING",
+      "full": "<$NATIONBUILDING>",
+      "description": "建筑能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONBUILDINGX",
+      "full": "<$NATIONBUILDINGX>",
+      "description": "建筑能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONCONTRIBUTION",
+      "full": "<$NATIONCONTRIBUTION>",
+      "description": "国家贡献",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONCONTRIBUTIONX",
+      "full": "<$NATIONCONTRIBUTIONX>",
+      "description": "国家贡献",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONECONOMY",
+      "full": "<$NATIONECONOMY>",
+      "description": "经济能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONECONOMYX",
+      "full": "<$NATIONECONOMYX>",
+      "description": "经济能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONGOLD",
+      "full": "<$NATIONGOLD>",
+      "description": "国家金币",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONGOLDX",
+      "full": "<$NATIONGOLDX>",
+      "description": "国家金币",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONKING",
+      "full": "<$NATIONKING>",
+      "description": "国王名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONKINGX",
+      "full": "<$NATIONKINGX>",
+      "description": "国王名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONMAPS",
+      "full": "<$NATIONMAPS>",
+      "description": "地图数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONMAPSX",
+      "full": "<$NATIONMAPSX>",
+      "description": "地图数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONNAME",
+      "full": "<$NATIONNAME>",
+      "description": "国家名称",
+      "scope": "国家",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "NATIONNAMEX",
+      "full": "<$NATIONNAMEX>",
+      "description": "国家名字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONPEOPLE",
+      "full": "<$NATIONPEOPLE>",
+      "description": "国家人数",
+      "scope": "国家",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "NATIONPEOPLEX",
+      "full": "<$NATIONPEOPLEX>",
+      "description": "国家人数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONPOLITICS",
+      "full": "<$NATIONPOLITICS>",
+      "description": "政治能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NATIONPOLITICSX",
+      "full": "<$NATIONPOLITICSX>",
+      "description": "政治能力",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NECKLACE",
+      "full": "<$NECKLACE>",
+      "description": "项链",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "NGDECPOWER",
+      "full": "<$NGDECPOWER>",
+      "description": "内功伤害减少",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NGEXP",
+      "full": "<$NGEXP>",
+      "description": "内功经验",
+      "scope": "内功",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "NGLEVEL",
+      "full": "<$NGLEVEL>",
+      "description": "内功等级",
+      "scope": "内功",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "NGMAXEXP",
+      "full": "<$NGMAXEXP>",
+      "description": "内功升级经验",
+      "scope": "内功",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "NH",
+      "full": "<$NH>",
+      "description": "内力",
+      "scope": "内功",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "NPCREBORNCOUNT",
+      "full": "<$NPCREBORNCOUNT>",
+      "description": "剩余复活次数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "NPCSETLEVEL",
+      "full": "<$NPCSETLEVEL>",
+      "description": "当前雕像最后一次设置人的等级。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\游戏功能详解\\NPC雕像功能.htm",
+        "title": "NPC雕像功能说明"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "NPCSETUSER",
+      "full": "<$NPCSETUSER>",
+      "description": "当前雕像最后一次设置人的角色名。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\游戏功能详解\\NPC雕像功能.htm",
+        "title": "NPC雕像功能说明"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "ONUSERCOUNT",
+      "full": "<$ONUSERCOUNT>",
+      "description": "真人在线数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "OPARAM1",
+      "full": "<$OPARAM1>",
+      "description": "增加客户端使用命令变量：<$OPARAM1> <$OPARAM2>",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-26",
+        "page": "游戏引擎反外挂系统/2024年更新记录.htm",
+        "title": "2024年更新记录",
+        "evidenceLine": 80
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "OWNERGUILD",
+      "full": "<$OWNERGUILD>",
+      "description": "沙巴克管理行会名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "PASSWORD",
+      "full": "<$PASSWORD>",
+      "description": "注册账号时用户输入的密码",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "PHONE",
+      "full": "<$PHONE>",
+      "description": "联系电话号码",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "PICKDROPITEM",
+      "full": "<$PICKDROPITEM>",
+      "description": "捡到或者丢弃的物品名字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "PICKDROPITEMMAKEINDEX",
+      "full": "<$PICKDROPITEMMAKEINDEX>",
+      "description": "捡到或者丢弃的物品ID",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "PICKDROPITEMNAME",
+      "full": "<$PICKDROPITEMNAME>",
+      "description": "捡到或者丢弃的物品名字",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "PKPOINT",
+      "full": "<$PKPOINT>",
+      "description": "PK点数",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "PKPOWER",
+      "full": "<$PKPOWER>",
+      "description": "人物当前攻击威力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "POISONRECOVER",
+      "full": "<$POISONRECOVER>",
+      "description": "中毒恢复",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "POWERRATE",
+      "full": "<$POWERRATE>",
+      "description": "复当前攻击力倍数",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "POWERRATETIME",
+      "full": "<$POWERRATETIME>",
+      "description": "当前攻击力倍数剩余时间",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "QQ",
+      "full": "<$QQ>",
+      "description": "联系QQ号",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "QUERYYBDEALLOG",
+      "full": "<$QUERYYBDEALLOG>",
+      "description": "交易记录",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "QUIZ1",
+      "full": "<$QUIZ1>",
+      "description": "注册账号时用户输入的问题1",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "QUIZ2",
+      "full": "<$QUIZ2>",
+      "description": "注册账号时用户输入的问题2",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "RANDOMNO",
+      "full": "<$RANDOMNO>",
+      "description": "随机值变量",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "RANKNAME",
+      "full": "<$RANKNAME>",
+      "description": "行会职位名称",
+      "scope": "行会",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "REALUSERNAME",
+      "full": "<$REALUSERNAME>",
+      "description": "脚本修改浑水摸鱼模式",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/脚本修改浑水摸鱼模式.htm",
+        "title": "脚本修改浑水摸鱼模式"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "RECALLREMAININGTIME",
+      "full": "<$RecallRemainingTime>",
+      "description": "显示延时TIMERECALL还剩多少秒",
+      "scope": "脚本",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "RELEVEL",
+      "full": "<$RELEVEL>",
+      "description": "显示转生等级",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "REPAIRDOORGOLD",
+      "full": "<$REPAIRDOORGOLD>",
+      "description": "修理城门所需费用",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\部分脚本实例\\沙城主公告.htm",
+        "title": "沙城主公告脚本"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "REPAIRWALLGOLD",
+      "full": "<$REPAIRWALLGOLD>",
+      "description": "修理城墙所需费用",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\部分脚本实例\\沙城主公告.htm",
+        "title": "沙城主公告脚本"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "REQUESTBUILDGUILDITEM",
+      "full": "<$REQUESTBUILDGUILDITEM>",
+      "description": "创建行会需要的道具",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "REQUESTCASTLEWARDAY",
+      "full": "<$REQUESTCASTLEWARDAY>",
+      "description": "申请攻城需要的道具",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "REVIVALTIME",
+      "full": "<$REVIVALTIME>",
+      "description": "复活间隔变量",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "RIGHTHAND",
+      "full": "<$RIGHTHAND>",
+      "description": "蜡烛",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "RING_L",
+      "full": "<$RING_L>",
+      "description": "左戒指",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "RING_R",
+      "full": "<$RING_R>",
+      "description": "右戒指",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "RUNDATETIME",
+      "full": "<$RUNDATETIME>",
+      "description": "开区间隔时间",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SARMRING_L",
+      "full": "<$SARMRING_L>",
+      "description": "客户端常量",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SARMRING_LID",
+      "full": "<$SARMRING_LID>",
+      "description": "人物时装左手镯装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SARMRING_R",
+      "full": "<$SARMRING_R>",
+      "description": "客户端常量",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SARMRING_RID",
+      "full": "<$SARMRING_RID>",
+      "description": "人物时装右手镯装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SBELT",
+      "full": "<$SBELT>",
+      "description": "人物时装腰带位物品名称",
+      "scope": "时装装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SBELTID",
+      "full": "<$SBELTID>",
+      "description": "人物时装腰带装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SBOOTS",
+      "full": "<$SBOOTS>",
+      "description": "人物时装鞋子位物品名称",
+      "scope": "时装装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SBOOTSID",
+      "full": "<$SBOOTSID>",
+      "description": "人物时装鞋子装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SBUJUK",
+      "full": "<$SBUJUK>",
+      "description": "装备位置",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SBUJUKID",
+      "full": "<$SBUJUKID>",
+      "description": "人物时装护身符装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SC",
+      "full": "<$SC>",
+      "description": "道术",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCATTERITEMNAME",
+      "full": "<$SCATTERITEMNAME>",
+      "description": "爆出物品的名称",
+      "scope": "物品",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/地图事件触发.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCATTERITEMX",
+      "full": "<$SCATTERITEMX>",
+      "description": "爆出物品的X坐标",
+      "scope": "物品",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/地图事件触发.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCATTERITEMY",
+      "full": "<$SCATTERITEMY>",
+      "description": "爆出物品的Y坐标",
+      "scope": "物品",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/特殊触发功能/地图事件触发.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCHARM",
+      "full": "<$SCHARM>",
+      "description": "人物时装宝石位物品名称",
+      "scope": "时装装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCHARMID",
+      "full": "<$SCHARMID>",
+      "description": "人物时装宝石装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SCREENHEIGHT",
+      "full": "<$SCREENHEIGHT>",
+      "description": "分辨率 高",
+      "scope": "界面",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SCREENWIDTH",
+      "full": "<$SCREENWIDTH>",
+      "description": "分辨率 宽",
+      "scope": "界面",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SCRIPTPARAM1",
+      "full": "<$SCRIPTPARAM1>",
+      "description": "NPC 点击标签传入的第1个参数",
+      "scope": "NPC脚本参数",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm",
+        "title": "NPC脚本点击触发带参数"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCRIPTPARAM2",
+      "full": "<$SCRIPTPARAM2>",
+      "description": "NPC 点击标签传入的第2个参数",
+      "scope": "NPC脚本参数",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm",
+        "title": "NPC脚本点击触发带参数"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCRIPTPARAM3",
+      "full": "<$SCRIPTPARAM3>",
+      "description": "NPC 点击标签传入的第3个参数",
+      "scope": "NPC脚本参数",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm",
+        "title": "NPC脚本点击触发带参数"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SDRUM",
+      "full": "<$SDRUM>",
+      "description": "装备位置",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SDRUMID",
+      "full": "<$SDRUMID>",
+      "description": "人物时装军鼓装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SECOND",
+      "full": "<$SECOND>",
+      "description": "当前秒 30",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SERVERHIGHLEVEL",
+      "full": "<$SERVERHIGHLEVEL>",
+      "description": "调整服务器最高可升级的等级",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-26",
+        "page": "游戏引擎反外挂系统/功能操作命令/调整服务器最高可升级的等级.htm",
+        "title": "调整服务器最高可升级的等级",
+        "evidenceLine": 2
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SERVERIP",
+      "full": "<$SERVERIP>",
+      "description": "服务器IP地址",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SERVERNAME",
+      "full": "<$SERVERNAME>",
+      "description": "服务器名字",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SHAT",
+      "full": "<$SHAT>",
+      "description": "装备位置",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SHATID",
+      "full": "<$SHATID>",
+      "description": "人物时装斗笠装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SHELMET",
+      "full": "<$SHELMET>",
+      "description": "人物时装头盔位物品名称",
+      "scope": "时装装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SHELMETID",
+      "full": "<$SHELMETID>",
+      "description": "人物时装头盔装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SHIELD",
+      "full": "<$SHIELD>",
+      "description": "盾牌",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SHORSE",
+      "full": "<$SHORSE>",
+      "description": "装备位置",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SHORSEID",
+      "full": "<$SHORSEID>",
+      "description": "人物时装马牌装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SHOWITEM",
+      "full": "<$SHOWITEM>",
+      "description": "物品合成系统",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/物品合成系统[!].htm",
+        "title": "物品合成系统"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SLAVECOUNT",
+      "full": "<$SLAVECOUNT>",
+      "description": "增加变量：<$SlaveCount> 人物宝宝数量 <$HumCloneCount>",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-26",
+        "page": "UpDate.htm",
+        "title": "GameOfMir2025-2026年更新记录",
+        "evidenceLine": 342
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SNECKLACE",
+      "full": "<$SNECKLACE>",
+      "description": "人物时装项链位物品名称",
+      "scope": "时装装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SNECKLACEID",
+      "full": "<$SNECKLACEID>",
+      "description": "人物时装项链装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SPD",
+      "full": "<$SPD>",
+      "description": "敏捷",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SPELLRECOVER",
+      "full": "<$SPELLRECOVER>",
+      "description": "魔法恢复",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "SRIGHTHAND",
+      "full": "<$SRIGHTHAND>",
+      "description": "人物时装勋章位物品名称",
+      "scope": "时装装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SRIGHTHANDID",
+      "full": "<$SRIGHTHANDID>",
+      "description": "人物时装右手装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SRING_L",
+      "full": "<$SRING_L>",
+      "description": "客户端常量",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SRING_LID",
+      "full": "<$SRING_LID>",
+      "description": "人物时装左戒指装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SRING_R",
+      "full": "<$SRING_R>",
+      "description": "客户端常量",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SRING_RID",
+      "full": "<$SRING_RID>",
+      "description": "人物时装右戒指装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "SSHIELD",
+      "full": "<$SSHIELD>",
+      "description": "装备位置",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品位置[!].htm",
+        "title": "物品位置、自定义装备"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "SSHIELDID",
+      "full": "<$SSHIELDID>",
+      "description": "人物时装盾牌装备位物品唯一ID。",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "STATSERVERTIME",
+      "full": "<$STATSERVERTIME>",
+      "description": "显示M2启动时间",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "STNAME",
+      "full": "<$STNAME>",
+      "description": "师徒名称变量",
+      "scope": "师徒",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "STONEUPGRADE.DURA",
+      "full": "<$STONEUPGRADE.DURA>",
+      "description": "宝石升级框中物品的持久",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "STONEUPGRADE.DURAMAX",
+      "full": "<$STONEUPGRADE.DURAMAX>",
+      "description": "宝石升级框中物品的最大持久",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "STONEUPGRADE.NAME",
+      "full": "<$STONEUPGRADE.NAME>",
+      "description": "宝石升级框中物品的名称",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "STONEUPGRADE.STDMODE",
+      "full": "<$STONEUPGRADE.STDMODE>",
+      "description": "宝石升级框中物品的StdMode",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "STONEUPGRADE.UPGCOUNT",
+      "full": "<$STONEUPGRADE.UPGCOUNT>",
+      "description": "宝石升级框中物品的升级次数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "STRUCKHP",
+      "full": "<$STRUCKHP>",
+      "description": "被攻击减少的HP变量",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "SUCKDAMAGE",
+      "full": "<$SUCKDAMAGE>",
+      "description": "伤害吸收值 脚本命令USEBONUSPOINT增加的，该值保存人物数据库里，下线不消失",
+      "scope": "战斗",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "TAGMAPNAME1",
+      "full": "<$TAGMAPNAME1>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGMAPNAME2",
+      "full": "<$TAGMAPNAME2>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGMAPNAME3",
+      "full": "<$TAGMAPNAME3>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGMAPNAME4",
+      "full": "<$TAGMAPNAME4>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGMAPNAME5",
+      "full": "<$TAGMAPNAME5>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGMAPNAME6",
+      "full": "<$TAGMAPNAME6>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGX1",
+      "full": "<$TAGX1>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGX2",
+      "full": "<$TAGX2>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGX3",
+      "full": "<$TAGX3>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGX4",
+      "full": "<$TAGX4>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGX5",
+      "full": "<$TAGX5>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGX6",
+      "full": "<$TAGX6>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGY1",
+      "full": "<$TAGY1>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGY2",
+      "full": "<$TAGY2>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGY3",
+      "full": "<$TAGY3>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGY4",
+      "full": "<$TAGY4>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGY5",
+      "full": "<$TAGY5>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TAGY6",
+      "full": "<$TAGY6>",
+      "description": "记忆石设置方法[!]",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+        "title": "记忆石设置方法"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true
+    },
+    {
+      "name": "TEAM0",
+      "full": "<$TEAM0>",
+      "description": "用于显示组队成员,<$TEAM0>代表队长,成员从<$TEAM1>开始",
+      "scope": "组队",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "TEAM1",
+      "full": "<$TEAM1>",
+      "description": "<$TEAM0>..<$TEAMX>",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "TEAMX",
+      "full": "<$TEAMX>",
+      "description": "用于显示组队成员,<$TEAM0>代表队长,成员从<$TEAM1>开始",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量大全[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "diagnosticSupported": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "TODAYINCOME",
+      "full": "<$TODAYINCOME>",
+      "description": "沙巴克今日收入",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\部分脚本实例\\沙城主公告.htm",
+        "title": "沙城主公告脚本"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "TRIGGERNPCREBORNCOUNT",
+      "full": "<$TRIGGERNPCREBORNCOUNT>",
+      "description": "setreborn剩余复活次数",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNCOBWEBWINDINGRATE",
+      "full": "<$UNCOBWEBWINDINGRATE>",
+      "description": "防蛛网",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNFIRECROSSRATE",
+      "full": "<$UNFIRECROSSRATE>",
+      "description": "防火墙",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNFROZENRATE",
+      "full": "<$UNFROZENRATE>",
+      "description": "防冰冻",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNMAGICSHIELDRATE",
+      "full": "<$UNMAGICSHIELDRATE>",
+      "description": "防护身",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNPARALYSISRATE",
+      "full": "<$UNPARALYSISRATE>",
+      "description": "防麻",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNPOSIONRATE",
+      "full": "<$UNPOSIONRATE>",
+      "description": "防毒",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNREVIVALRATE",
+      "full": "<$UNREVIVALRATE>",
+      "description": "防复活",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UNTAMMINGRATE",
+      "full": "<$UNTAMMINGRATE>",
+      "description": "防诱惑",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "UPGRADECOUNT",
+      "full": "<$UPGRADECOUNT>",
+      "description": "人物身上所有装备加星总和 星星总数",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "UPGRADEWEAPONFEE",
+      "full": "<$UPGRADEWEAPONFEE>",
+      "description": "升级武器价格",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USEITEMMAKEINDEX",
+      "full": "<$USEITEMMAKEINDEX>",
+      "description": "当前使用物品唯一ID。",
+      "scope": "物品触发",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+        "title": "脚本变量"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "USEITEMNAME",
+      "full": "<$USEITEMNAME>",
+      "description": "双击物品触发中的当前使用物品名称",
+      "scope": "物品触发",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/DB数据库资料/31类物品扩展设置.htm",
+        "title": "31类物品扩展设置"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "corpusEvidence": [
+        {
+          "kind": "server-script",
+          "path": "Mir200/Envir/QuestDiary/02游戏触发/双击触发.txt",
+          "line": 570,
+          "text": "EQUAL <$USEITEMNAME> 最强散人称号卷"
+        }
+      ]
+    },
+    {
+      "name": "USERALLNAME",
+      "full": "<$USERALLNAME>",
+      "description": "人物完整名称",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USERCOUNT",
+      "full": "<$USERCOUNT>",
+      "description": "在线人数",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USERID",
+      "full": "<$USERID>",
+      "description": "人物登录帐号",
+      "scope": "帐号",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USERMACHINEID",
+      "full": "<$USERMACHINEID>",
+      "description": "当前角色绑定的机器码",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/机器码使用说明[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USERNAME",
+      "full": "<$USERNAME>",
+      "description": "角色名称",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USERNEWNAME",
+      "full": "<$USERNEWNAME>",
+      "description": "在线改名后的新名称",
+      "scope": "角色",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/游戏功能详解/人物在线改名系统.html"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USERSTATENAME",
+      "full": "<$USERSTATENAME>",
+      "description": "自定义UI按钮他人名称",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\游戏功能详解\\自定义人物装备框按钮.html",
+        "title": "自定义人物装备框按钮"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USERWEAPON",
+      "full": "<$USERWEAPON>",
+      "description": "放在对话框里的武器名字",
+      "scope": "系统常量",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统\\其他相关资料\\传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USESTONEITEMINDEX",
+      "full": "<$USESTONEITEMINDEX>",
+      "description": "使用的宝石Idx",
+      "scope": "系统常量",
+      "aliases": [],
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    {
+      "name": "WEAPON",
+      "full": "<$WEAPON>",
+      "description": "武器",
+      "scope": "装备",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    },
+    {
+      "name": "WEBSITE",
+      "full": "<$WEBSITE>",
+      "description": "游戏网址",
+      "scope": "服务器",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "WW",
+      "full": "<$WW>",
+      "description": "负重力",
+      "scope": "属性",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "X",
+      "full": "<$X>",
+      "description": "当前X坐标",
+      "scope": "位置",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/范围伤害附加伤害.htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "Y",
+      "full": "<$Y>",
+      "description": "当前Y坐标",
+      "scope": "位置",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/功能操作命令/范围伤害附加伤害.htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "YEAR",
+      "full": "<$YEAR>",
+      "description": "当前年份 2025",
+      "scope": "系统",
+      "source": {
+        "revision": "2026-07-19",
+        "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm"
+      },
+      "aliases": [],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-table-exact"
+    }
+  ]
+}

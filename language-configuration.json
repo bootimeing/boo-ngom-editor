@@ -1,0 +1,24 @@
+{
+  "comments": {
+    "lineComment": ";"
+  },
+  "brackets": [
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""]
+  ],
+  "surroundingPairs": [
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "folding": {
+    "markers": {
+      "start": "^\\s*(\\[@|#IF|#OR)",
+      "end": "^\\s*(\\[@|#IF|#OR)"
+    }
+  }
+}

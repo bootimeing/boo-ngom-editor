@@ -1,0 +1,8 @@
+{
+  "name": "BOO Sunset",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#E85D04", "keyword.cmd": "#F48C06", "keyword.action": "#E85D04", "keyword.say": "#00B4D8", "keyword.flow": "#9D0208", "keyword.label": "#DC2F02", "keyword.path": "#7F4F24", "variable": "#FFD60A"
+  }
+}

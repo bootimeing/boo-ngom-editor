@@ -1,0 +1,7325 @@
+{
+  "actrepairall": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "ActRepairAll",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/特修装备[!].htm",
+      "title": "特修装备"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "ADD": {
+    "name": "ADD",
+    "syntax": "ADD 目标变量 值或变量",
+    "details": "将指定数值或变量累加到目标变量",
+    "params": "目标变量 值或变量",
+    "paramList": [
+      "目标变量",
+      "值或变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm",
+      "title": "脚本性能检测",
+      "evidenceLine": 319
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 2,
+    "maxArgs": 2
+  },
+  "ADDATTACKSABUKALL": {
+    "details": "设置所有行会在当晚同时攻城",
+    "params": "城堡编号",
+    "syntax": "ADDATTACKSABUKALL 城堡编号",
+    "paramList": [
+      "城堡编号"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/Robot_def/RobotManage.txt",
+        "line": 774,
+        "text": "ADDATTACKSABUKALL 0"
+      }
+    ]
+  },
+  "adddlgex": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "adddlgex",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内倒计时.htm",
+      "title": "NPC对话框内倒计时"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "ADDGUILDHUMVAR": {
+    "name": "ADDGUILDHUMVAR",
+    "syntax": "ADDGUILDHUMVAR 行会名称 数字变量 结果变量",
+    "details": "累加行会所有在线成员的个人变量",
+    "params": "行会名称 数字变量 结果变量",
+    "paramList": [
+      "行会名称",
+      "数字变量",
+      "结果变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/累加行会所有在线成员的个人变量.htm",
+      "title": "累加行会所有在线成员的个人变量",
+      "evidenceLine": 2
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "AddHumNewValue": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "临时叠加人物元素属性，支持0-16、20-28、40-43",
+    "params": "属性 操作符(+,-,=) 值 时间(1-21亿秒,时间留空则为在线一直有效)",
+    "paramList": [
+      "属性(0-16/20-28/40-43)",
+      "操作符(+/-/=)",
+      "值",
+      "[有效时间秒]"
+    ],
+    "minArgs": 3,
+    "maxArgs": 4,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物的元素属性.html"
+    },
+    "syntax": "AddHumNewValue 属性 操作符(+,-,=) 值 时间(1-21亿秒,时间留空则为在线一直有效)",
+    "completionVerified": true
+  },
+  "ADDITEM": {
+    "name": "ADDITEM",
+    "syntax": "ADDITEM",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm",
+      "title": "脚本性能检测",
+      "evidenceLine": 235
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "addmapgate": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "addmapgate",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "addmaxweight": {
+    "details": "调整背包负重",
+    "syntax": "ADDMAXWEIGHT 符号 值",
+    "params": "符号 值",
+    "paramList": [
+      "符号",
+      "值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本扩展最大负重.html",
+      "title": "扩展最大负重"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "ADDMIRRORMAP": {
+    "details": "动态创建临时镜像地图",
+    "params": "原地图编号 新地图编号 新地图显示名 有效时间秒 返回地图 小地图编号",
+    "syntax": "ADDMIRRORMAP 原地图 新地图 新地图名 有效时间 返回地图 小地图",
+    "paramList": [
+      "原地图编号",
+      "新地图编号",
+      "新地图显示名",
+      "有效时间秒",
+      "返回地图",
+      "小地图编号"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 6,
+    "maxArgs": 6,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "AddScreenMagicButton": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "把已学习且已设置快捷键的技能图标固定到屏幕坐标",
+    "params": "技能ID或技能名称 X Y",
+    "paramList": [
+      "技能ID或技能名称",
+      "X坐标",
+      "Y坐标"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/技能图标设置命令说明.htm"
+    },
+    "completionVerified": true,
+    "syntax": "AddScreenMagicButton 技能ID或技能名称 X Y"
+  },
+  "AddToMagicBar": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "把已设置快捷键的技能加入技能提示栏",
+    "params": "技能ID或技能名称",
+    "paramList": [
+      "技能ID或技能名称"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/技能图标设置命令说明.htm"
+    },
+    "completionVerified": true,
+    "syntax": "AddToMagicBar 技能ID或技能名称"
+  },
+  "AddWarNation": {
+    "name": "AddWarNation",
+    "syntax": "AddWarNation 国家名称",
+    "details": "将国家加入国战",
+    "params": "国家名称",
+    "paramList": [
+      "国家名称"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/其他相关资料/关于国战.htm",
+      "title": "关于国战",
+      "evidenceLine": 1
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "ALLOWGROUP": {
+    "name": "ALLOWGROUP",
+    "syntax": "ALLOWGROUP",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/开关人物功能状态.htm",
+      "title": "开关人物功能状态",
+      "evidenceLine": 103
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "ASSESSMENTHERO": {
+    "name": "ASSESSMENTHERO",
+    "syntax": "ASSESSMENTHERO",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本",
+      "evidenceLine": 52
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "AUTOSUBGAMEGOLD": {
+    "name": "AUTOSUBGAMEGOLD",
+    "syntax": "AUTOSUBGAMEGOLD",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整游戏币.htm",
+      "title": "游戏币控制",
+      "evidenceLine": 82
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "BACKPACKRECOVERY": {
+    "name": "BACKPACKRECOVERY",
+    "syntax": "BACKPACKRECOVERY",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/高效率装备回收.htm",
+      "title": "高效率装备回收",
+      "evidenceLine": 16
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "BAGITEMINTOBOX": {
+    "name": "BAGITEMINTOBOX",
+    "syntax": "BAGITEMINTOBOX 物品名称 OK框编号",
+    "details": "自定义OK框",
+    "params": "物品名称 OK框编号",
+    "paramList": [
+      "物品名称",
+      "OK框编号"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+      "title": "自定义OK框",
+      "evidenceLine": 348
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "CALC": {
+    "name": "CALC",
+    "syntax": "CALC",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/百分比.htm",
+      "title": "百分比计算",
+      "evidenceLine": 83
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CancelHeroForcePeaceMode": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "解除英雄强制和平模式限制",
+    "params": "命令有效时间",
+    "paramList": [
+      "有效时间秒:0一直有效"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/解除英雄强制和平模式限制.htm"
+    },
+    "syntax": "CancelHeroForcePeaceMode 命令有效时间",
+    "completionVerified": true
+  },
+  "canmoveectype": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "canmoveectype",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "challengmapmove": {
+    "details": "移动到挑战地图",
+    "syntax": "challengmapmove 地图名 X Y",
+    "params": "地图名 X Y",
+    "paramList": [
+      "地图名",
+      "X",
+      "Y"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/挑战功能.htm",
+      "title": "挑战功能"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "changeaccountinfo": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "changeaccountinfo",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/脚本命令修改账号密码信息.htm",
+      "title": "脚本命令修改账号密码信息"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "changeattatckmode": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "changeattatckmode",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/改变人物攻击模式.html",
+      "title": "改变人物攻击模式"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHANGECUSTOMITEMABIL": {
+    "name": "CHANGECUSTOMITEMABIL",
+    "syntax": "CHANGECUSTOMITEMABIL 装备位置 属性位置(0-19) 修改类型 参数值",
+    "details": "按修改类型调整指定装备的自定义属性",
+    "params": "装备位置 属性位置(0-19) 修改类型 参数值",
+    "paramList": [
+      "装备位置",
+      "属性位置(0-19)",
+      "修改类型",
+      "参数值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备属性 自定义装备文本.html",
+      "title": "自定义装备属性 自定义装备文本",
+      "evidenceLine": 99
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 4,
+    "maxArgs": 4
+  },
+  "CHANGECUSTOMITEMTEXT": {
+    "name": "CHANGECUSTOMITEMTEXT",
+    "syntax": "CHANGECUSTOMITEMTEXT 装备位置 文字内容",
+    "details": "修改指定装备的自定义文字内容",
+    "params": "装备位置 文字内容",
+    "paramList": [
+      "装备位置",
+      "文字内容"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备属性 自定义装备文本.html",
+      "title": "自定义装备属性 自定义装备文本",
+      "evidenceLine": 17
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 2,
+    "maxArgs": 2
+  },
+  "CHANGECUSTOMITEMTEXTCOLOR": {
+    "name": "CHANGECUSTOMITEMTEXTCOLOR",
+    "syntax": "CHANGECUSTOMITEMTEXTCOLOR 装备位置 文字颜色(0-255)",
+    "details": "修改指定装备自定义文字的显示颜色",
+    "params": "装备位置 文字颜色(0-255)",
+    "paramList": [
+      "装备位置",
+      "文字颜色(0-255)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备属性 自定义装备文本.html",
+      "title": "自定义装备属性 自定义装备文本",
+      "evidenceLine": 14
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 2,
+    "maxArgs": 2
+  },
+  "CHANGECUSTOMITEMVALUE": {
+    "name": "CHANGECUSTOMITEMVALUE",
+    "syntax": "CHANGECUSTOMITEMVALUE 装备位置 属性位置(0-19) 操作符(+/-/=) 值",
+    "details": "修改指定装备的自定义属性值",
+    "params": "装备位置 属性位置(0-19) 操作符(+/-/=) 值",
+    "paramList": [
+      "装备位置",
+      "属性位置(0-19)",
+      "操作符(+/-/=)",
+      "值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备属性 自定义装备文本.html",
+      "title": "自定义装备属性 自定义装备文本",
+      "evidenceLine": 93
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 4,
+    "maxArgs": 4
+  },
+  "CHANGEHIGHLEVEL": {
+    "name": "CHANGEHIGHLEVEL",
+    "syntax": "CHANGEHIGHLEVEL 等级",
+    "details": "调整服务器最高可升级的等级",
+    "params": "等级",
+    "paramList": [
+      "等级"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整服务器最高可升级的等级.htm",
+      "title": "调整服务器最高可升级的等级",
+      "evidenceLine": 1
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "ChangeHumAbilityEX": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "永久调整人物原始属性",
+    "params": "属性(1-23) 操作符(+,-,=) 效果值",
+    "paramList": [
+      "属性(1-23)",
+      "操作符(+/-/=)",
+      "效果值"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/永久调整人物属性.html"
+    },
+    "syntax": "ChangeHumAbilityEX 属性(1-23) 操作符(+,-,=) 效果值",
+    "completionVerified": true
+  },
+  "changehumabilitypercentage": {
+    "details": "调整人物属性百分比",
+    "syntax": "CHANGEHUMABILITYPERCENTAGE 属性(1-23) 操作符(+,-,=) 数值 时间秒",
+    "params": "属性(1-23) 操作符(+,-,=) 数值 时间秒",
+    "paramList": [
+      "属性(1-23)",
+      "操作符(+,-,=)",
+      "数值",
+      "时间秒"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 4,
+    "maxArgs": 4,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物属性.html",
+      "title": "调整人物属性"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "CHANGEHUMNEWVALUE": {
+    "name": "CHANGEHUMNEWVALUE",
+    "syntax": "CHANGEHUMNEWVALUE 属性(0-54) 属性值(-65535~65535) 有效时间(秒) 威力倍数(可空) 到期不恢复(0/1,可空)",
+    "details": "调整人物的元素属性",
+    "params": "属性(0-54) 属性值(-65535~65535) 有效时间(秒) 威力倍数(可空) 到期不恢复(0/1,可空)",
+    "paramList": [
+      "属性(0-54)",
+      "属性值(-65535~65535)",
+      "有效时间(秒)",
+      "威力倍数(可空)",
+      "到期不恢复(0/1,可空)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物的元素属性.html",
+      "title": "调整人物的元素属性",
+      "evidenceLine": 6
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "CHANGEINSURANCECOUNT": {
+    "name": "CHANGEINSURANCECOUNT",
+    "syntax": "CHANGEINSURANCECOUNT",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/装备投保功能.html",
+      "title": "装备投保功能",
+      "evidenceLine": 124
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "ChangeMapMonName": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "修改范围内怪物名称，并按新名称读取爆率",
+    "params": "地图 [X] [Y] [范围] 原怪物名 新怪物名",
+    "paramList": [
+      "地图",
+      "[X]",
+      "[Y]",
+      "[范围]",
+      "原怪物名",
+      "新怪物名"
+    ],
+    "minArgs": 3,
+    "maxArgs": 6,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/修改地图怪物名称.htm"
+    },
+    "syntax": "ChangeMapMonName 地图 [X] [Y] [范围] 原怪物名 新怪物名",
+    "completionVerified": true
+  },
+  "ChangeMapMonNameEx": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "修改范围内怪物显示名称，仍按原名称读取爆率",
+    "params": "地图 [X] [Y] [范围] 原怪物名 新怪物名",
+    "paramList": [
+      "地图",
+      "[X]",
+      "[Y]",
+      "[范围]",
+      "原怪物名",
+      "新怪物名"
+    ],
+    "minArgs": 3,
+    "maxArgs": 6,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/修改地图怪物名称.htm"
+    },
+    "syntax": "ChangeMapMonNameEx 地图 [X] [Y] [范围] 原怪物名 新怪物名",
+    "completionVerified": true
+  },
+  "changemonability": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "changemonability",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/修改地图内怪物属性.htm",
+      "title": "修改地图内怪物属性"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "changemoney": {
+    "details": "调整指定货币或其关联货币的数量",
+    "syntax": "ChangeMoney 货币名称 操作符(=/+/-) 值",
+    "params": "货币名称 操作符(=/+/-) 值",
+    "paramList": [
+      "货币名称",
+      "操作符(=/+/-)",
+      "值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义货币.html",
+      "title": "自定义货币说明"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "changenationcredit": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "changenationcredit",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物的荣誉值[!].htm",
+      "title": "调整人物的荣誉值[!]"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHANGEPULSELEVEL": {
+    "name": "CHANGEPULSELEVEL",
+    "syntax": "CHANGEPULSELEVEL",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 3421
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHANGESLAVEPOWERRATE": {
+    "name": "CHANGESLAVEPOWERRATE",
+    "syntax": "CHANGESLAVEPOWERRATE 宝宝名称 操作符(+/-/=) 威力倍数 有效时间(秒)",
+    "details": "调整宝宝的攻击威力",
+    "params": "宝宝名称 操作符(+/-/=) 威力倍数 有效时间(秒)",
+    "paramList": [
+      "宝宝名称",
+      "操作符(+/-/=)",
+      "威力倍数",
+      "有效时间(秒)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整宝宝的攻击威力.html",
+      "title": "调整宝宝的攻击威力",
+      "evidenceLine": 2
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "CheckAngryValue": {
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "details": "检测当前在线英雄的合击怒气点数或百分比",
+    "params": "操作符 值 值类型",
+    "paramList": [
+      "操作符(>,<,=)",
+      "值",
+      "值类型(0怒气点数/1百分比)"
+    ],
+    "aliases": [
+      "H.CheckAngryValue"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/检测英雄怒气值.htm"
+    },
+    "syntax": "CheckAngryValue 操作符 值 值类型",
+    "completionVerified": true
+  },
+  "checkautoplaygame": {
+    "details": "检测是否开启挂机",
+    "syntax": "checkautoplaygame",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 0,
+    "maxArgs": 0,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/内挂自动挂机[!].htm",
+      "title": "内挂自动挂机[!]"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg"
+  },
+  "CHECKBAITEMCOUNTEX": {
+    "name": "CHECKBAITEMCOUNTEX",
+    "syntax": "CHECKBAITEMCOUNTEX",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+      "title": "自定义OK框",
+      "evidenceLine": 345
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKBINDMONEY": {
+    "name": "CHECKBINDMONEY",
+    "syntax": "CHECKBINDMONEY",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义货币.html",
+      "title": "自定义货币说明",
+      "evidenceLine": 49
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CheckBoxItemCount": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckBoxItemCount",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+      "title": "自定义OK框"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkcallgamepet": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckCallGamePet",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkcastlegold": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkcastlegold",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/沙城主公告.htm",
+      "title": "沙城主公告脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKCUSTOMITEMPROGRESSBAR": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CHECKCUSTOMITEMPROGRESSBAR",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备进度条 类似刀魂功能.html",
+      "title": "自定义装备进度条 类似刀魂功能"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKCUSTOMITEMPROGRESSBARPERCENT": {
+    "name": "CHECKCUSTOMITEMPROGRESSBARPERCENT",
+    "syntax": "CHECKCUSTOMITEMPROGRESSBARPERCENT",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备进度条 类似刀魂功能.html",
+      "title": "自定义装备进度条 类似刀魂功能",
+      "evidenceLine": 89
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKCUSTOMITEMPROGRESSBARVALUE": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CHECKCUSTOMITEMPROGRESSBARVALUE",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备进度条 类似刀魂功能.html",
+      "title": "自定义装备进度条 类似刀魂功能"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKCUSTOMITEMVALUE": {
+    "details": "检测指定装备的自定义属性值",
+    "syntax": "CHECKCUSTOMITEMVALUE 装备位置 属性位置(0-19) 检测符(>/< /=) 值",
+    "params": "装备位置 属性位置(0-19) 检测符(>/< /=) 值",
+    "paramList": [
+      "装备位置",
+      "属性位置(0-19)",
+      "检测符(>/< /=)",
+      "值"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备属性 自定义装备文本.html",
+      "title": "自定义装备属性 自定义装备文本"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 4,
+    "maxArgs": 4
+  },
+  "CHECKCUSTOMITEMVALUETYPE": {
+    "name": "CHECKCUSTOMITEMVALUETYPE",
+    "syntax": "CHECKCUSTOMITEMVALUETYPE 装备位置 属性位置(0-19) 检测符(>/< /=) 绑定属性类型(0-17)",
+    "details": "检测指定装备自定义属性的绑定类型",
+    "params": "装备位置 属性位置(0-19) 检测符(>/< /=) 绑定属性类型(0-17)",
+    "paramList": [
+      "装备位置",
+      "属性位置(0-19)",
+      "检测符(>/< /=)",
+      "绑定属性类型(0-17)"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备属性 自定义装备文本.html",
+      "title": "自定义装备属性 自定义装备文本",
+      "evidenceLine": 86
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 4,
+    "maxArgs": 4
+  },
+  "checkdummycount": {
+    "details": "检查服务器假人数",
+    "syntax": "checkdummycount 检测符(>,<,=) 人数",
+    "params": "检测符(>,<,=) 人数",
+    "paramList": [
+      "检测符(>,<,=)",
+      "人数"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/假人配置.htm",
+      "title": "假人配置"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "checkduraeva": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkduraeva",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/其他相关资料/传奇基础脚本命令详解[!].htm",
+      "title": "传奇脚本命令详解[!]"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKFIRSTBLOOD": {
+    "name": "CHECKFIRSTBLOOD",
+    "syntax": "CHECKFIRSTBLOOD 秒数(默认5)",
+    "details": "检测时间段内是否对目标首次造成伤害",
+    "params": "秒数(默认5)",
+    "paramList": [
+      "秒数(默认5)"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/脚本检测命令/检测时间段内是否对目标首次造成伤害.htm",
+      "title": "检测时间段内是否对目标首次造成伤害",
+      "evidenceLine": 4
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "checkgamegoldex": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkgamegoldex",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/新游戏点[!].htm",
+      "title": "新游戏点[!]"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKGAMEPETAPTITUDE1": {
+    "name": "CHECKGAMEPETAPTITUDE1",
+    "syntax": "CHECKGAMEPETAPTITUDE1",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统",
+      "evidenceLine": 22
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKGAMEPETATTRLOCK": {
+    "name": "CHECKGAMEPETATTRLOCK",
+    "syntax": "CHECKGAMEPETATTRLOCK",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统",
+      "evidenceLine": 47
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKGAMEPETFUSION": {
+    "name": "CHECKGAMEPETFUSION",
+    "syntax": "CHECKGAMEPETFUSION",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统",
+      "evidenceLine": 41
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkgamepetlevel": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkgamepetlevel",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKGAMEPETPOWER": {
+    "name": "CHECKGAMEPETPOWER",
+    "syntax": "CHECKGAMEPETPOWER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统",
+      "evidenceLine": 35
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKGAMEPETQUALITY": {
+    "name": "CHECKGAMEPETQUALITY",
+    "syntax": "CHECKGAMEPETQUALITY",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统",
+      "evidenceLine": 29
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKGAMEPETREBIRTH": {
+    "name": "CHECKGAMEPETREBIRTH",
+    "syntax": "CHECKGAMEPETREBIRTH",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统",
+      "evidenceLine": 53
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkgamepetskillmagic": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkgamepetskillmagic",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/宠物系统.htm",
+      "title": "宠物系统"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkguildauraepoint": {
+    "details": "检测行会行会人气度",
+    "syntax": "checkguildauraepoint 控制符（<>=）数字",
+    "params": "控制符（<>=）数字",
+    "paramList": [
+      "控制符（<>=）数字"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会建设相关.htm",
+      "title": "行会建设相关"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "checkguildflourishpoint": {
+    "details": "检测行会繁荣度",
+    "syntax": "checkguildflourishpoint 控制符（<>=）数字",
+    "params": "控制符（<>=）数字",
+    "paramList": [
+      "控制符（<>=）数字"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会建设相关.htm",
+      "title": "行会建设相关"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "CHECKGUILDMEMBER": {
+    "name": "CHECKGUILDMEMBER",
+    "syntax": "CHECKGUILDMEMBER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 3634
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkguildstabilitypoint": {
+    "details": "检测行会安定度",
+    "syntax": "checkguildstabilitypoint 控制符（<>=）数字",
+    "params": "控制符（<>=）数字",
+    "paramList": [
+      "控制符（<>=）数字"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会建设相关.htm",
+      "title": "行会建设相关"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "checkhavehero": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckHaveHero",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/检查是否有英雄.htm",
+      "title": "检查是否有英雄"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKINSURANCECOUNT": {
+    "name": "CHECKINSURANCECOUNT",
+    "syntax": "CHECKINSURANCECOUNT",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/装备投保功能.html",
+      "title": "装备投保功能",
+      "evidenceLine": 122
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkismaster": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkismaster",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/收徒脚本.htm",
+      "title": "收徒脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkmarry": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckMarry",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/结婚脚本.htm",
+      "title": "结婚脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkmaster": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckMaster",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/收徒脚本.htm",
+      "title": "收徒脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKMIRRORMAP": {
+    "details": "检测指定镜像地图是否已经创建",
+    "params": "镜像地图编号",
+    "syntax": "CHECKMIRRORMAP 镜像地图编号",
+    "paramList": [
+      "镜像地图编号"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "CHECKMYSHOP": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "syntax": "CHECKMYSHOP",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/假人自动摆摊.htm",
+      "title": "假人自动摆摊"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKNAMELIST": {
+    "name": "CHECKNAMELIST",
+    "syntax": "CHECKNAMELIST 文件路径",
+    "details": "文本命令兼容老GOM模式",
+    "params": "文件路径",
+    "paramList": [
+      "文件路径"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/文本命令兼容老GOM模式.htm",
+      "title": "文本命令兼容老GOM模式",
+      "evidenceLine": 39
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "CHECKNEWCUSTOMITEMVALUE": {
+    "name": "CHECKNEWCUSTOMITEMVALUE",
+    "syntax": "CHECKNEWCUSTOMITEMVALUE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/新版自定义属性.htm",
+      "title": "新版自定义属性",
+      "evidenceLine": 107
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checknglevel": {
+    "details": "检查内功等级",
+    "syntax": "checknglevel 操作符 (<,>,=) 等级数(1-255)",
+    "params": "操作符 (<,>,=) 等级数(1-255)",
+    "paramList": [
+      "操作符 (<,>,=)",
+      "等级数(1-255)"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/内功系统[!].htm",
+      "title": "内功系统[!]"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "checkonhorse": {
+    "details": "检测是否骑马",
+    "syntax": "checkonhorse",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 0,
+    "maxArgs": 0,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/骑马-上马下马.htm",
+      "title": "骑马-上马下马"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg"
+  },
+  "checkopenlastskill": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckOpenLastSkill",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/开启第四个连击技能[!].htm",
+      "title": "开启第四个连击技能的命令[!]"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkposemarry": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckPoseMarry",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/结婚脚本.htm",
+      "title": "结婚脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkposemaster": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CheckPoseMaster",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/收徒脚本.htm",
+      "title": "收徒脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkrandomno": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkrandomno",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/随机验证码.htm",
+      "title": "随机验证码"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "checkreadskillng": {
+    "details": "检测是否学过内功",
+    "syntax": "checkreadskillng",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 0,
+    "maxArgs": 0,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/内功系统[!].htm",
+      "title": "内功系统[!]"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg"
+  },
+  "checkscriptparam": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "checkscriptparam",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm",
+      "title": "NPC脚本点击触发带参数"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CHECKSOCKETABLEITEM": {
+    "name": "CHECKSOCKETABLEITEM",
+    "syntax": "CHECKSOCKETABLEITEM",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/镶嵌宝石.html",
+      "title": "镶嵌宝石",
+      "evidenceLine": 30
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CheckStateValue": {
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "details": "检测当前脚本对象是否存在指定状态",
+    "params": "<状态值>",
+    "paramList": [
+      "状态值"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/脚本检测命令/检测对象状态.html"
+    },
+    "syntax": "CheckStateValue <状态值>",
+    "completionVerified": true
+  },
+  "CHECKVAR": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "CHECKVAR",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/镖车功能.htm",
+      "title": "镖车功能"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "clearallpulse": {
+    "details": "清除人物所有经络等级",
+    "syntax": "clearallpulse",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 0,
+    "maxArgs": 0,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/内功系统[!].htm",
+      "title": "内功系统[!]"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg"
+  },
+  "CLONELIST": {
+    "name": "CLONELIST",
+    "syntax": "CLONELIST <L$src> <L$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<L$src> <L$dst>",
+    "paramList": [
+      "<L$src>",
+      "<L$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 376
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "closedrink": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "closedrink",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CO.CHECKHPPER": {
+    "name": "CO.CHECKHPPER",
+    "syntax": "CO.CHECKHPPER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/采集类怪物.htm",
+      "title": "采集类怪物",
+      "evidenceLine": 19
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "CONCATLIST": {
+    "name": "CONCATLIST",
+    "syntax": "CONCATLIST <L$a> <L$b> <L$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<L$a> <L$b> <L$dst>",
+    "paramList": [
+      "<L$a>",
+      "<L$b>",
+      "<L$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 381
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "convertskill": {
+    "details": "技能转换",
+    "syntax": "CONVERTSKILL 原技能 目标技能 是否继承原有等级(0/1)",
+    "params": "原技能 目标技能 是否继承原有等级(0/1)",
+    "paramList": [
+      "原技能",
+      "目标技能",
+      "是否继承原有等级(0/1)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/替换技能.htm",
+      "title": "替换技能"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "COUNTINLIST": {
+    "name": "COUNTINLIST",
+    "syntax": "COUNTINLIST <L$src> <值> <N$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<L$src> <值> <N$dst>",
+    "paramList": [
+      "<L$src>",
+      "<值>",
+      "<N$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 397
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "createectype": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "createectype",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DARTMAP": {
+    "name": "DARTMAP",
+    "syntax": "DARTMAP X坐标 Y坐标 自动寻路范围(0或空,1~12)",
+    "details": "镖车功能",
+    "params": "X坐标 Y坐标 自动寻路范围(0或空,1~12)",
+    "paramList": [
+      "X坐标",
+      "Y坐标",
+      "自动寻路范围(0或空,1~12)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/镖车功能.htm",
+      "title": "镖车功能",
+      "evidenceLine": 2
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "DARTTIME": {
+    "name": "DARTTIME",
+    "syntax": "DartTime 存活时间(秒) 下线是否消失(0/1,可空)",
+    "details": "设置镖车存活时间及下线消失规则",
+    "params": "存活时间(秒) 下线是否消失(0/1,可空)",
+    "paramList": [
+      "存活时间(秒)",
+      "下线是否消失(0/1,可空)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/镖车功能.htm",
+      "title": "镖车功能",
+      "evidenceLine": 5
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "DBGET": {
+    "name": "DBGET",
+    "syntax": "DBGET",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm",
+      "title": "脚本性能检测",
+      "evidenceLine": 90
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DBSET": {
+    "name": "DBSET",
+    "syntax": "DBSET",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm",
+      "title": "脚本性能检测",
+      "evidenceLine": 123
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "decbindmoney": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "decbindmoney",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义货币.html",
+      "title": "自定义货币说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DELBOXITEM": {
+    "details": "删除指定自定义 OK 框中的物品",
+    "params": "OK框编号 [数量]",
+    "syntax": "DELBOXITEM OK框编号 [数量]",
+    "paramList": [
+      "OK框编号",
+      "[数量]"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+      "title": "自定义OK框"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "DELCONFIGFILESECTION": {
+    "details": "删除 INI 配置文件中的指定区段",
+    "params": "文件名 区段",
+    "syntax": "DELCONFIGFILESECTION 文件名 区段",
+    "paramList": [
+      "文件名",
+      "区段"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/读写ini配置项.htm",
+      "title": "读写ini配置项"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/Market_Def/1大陆/主城/34因果律阵-西岐.txt",
+        "line": 128,
+        "text": "DELCONFIGFILESECTION ..\\QUESTDIARY\\04自定义变量\\因果\\因果之力.TXT <$USERNAME>"
+      }
+    ]
+  },
+  "DELETESKILLNG": {
+    "name": "DELETESKILLNG",
+    "syntax": "DELETESKILLNG",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 3213
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DelFromMagicBar": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "从技能提示栏移除指定技能",
+    "params": "技能ID或技能名称",
+    "paramList": [
+      "技能ID或技能名称"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/技能图标设置命令说明.htm"
+    },
+    "completionVerified": true,
+    "syntax": "DelFromMagicBar 技能ID或技能名称"
+  },
+  "DELLINKITEM": {
+    "details": "删除 LinkBagItem 当前关联的背包物品或指定叠加数量",
+    "params": "[物品数量:0或省略时删除整个物品]",
+    "syntax": "DELLINKITEM [物品数量]",
+    "paramList": [
+      "[物品数量:0或省略时删除整个物品]"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 0,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/DB数据库资料/31类物品扩展设置.htm",
+      "title": "31类物品扩展设置"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/QuestDiary/02游戏触发/双击触发.txt",
+        "line": 311,
+        "text": "DELLINKITEM 1"
+      }
+    ]
+  },
+  "delmapgate": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "delmapgate",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/动态地图连接[!].htm",
+      "title": "动态地图连接脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DELMIRRORMAP": {
+    "details": "删除动态创建的镜像地图",
+    "params": "镜像地图编号",
+    "syntax": "DELMIRRORMAP 镜像地图编号",
+    "paramList": [
+      "镜像地图编号"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "delnamedatelist": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "delnamedatelist",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/脚本检测命令/检测会员剩余时间.html",
+      "title": "检测会员剩余时间"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DelScreenMagicButton": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "从屏幕删除指定技能的固定图标",
+    "params": "技能ID或技能名称",
+    "paramList": [
+      "技能ID或技能名称"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/技能图标设置命令说明.htm"
+    },
+    "completionVerified": true,
+    "syntax": "DelScreenMagicButton 技能ID或技能名称"
+  },
+  "DelText": {
+    "details": "创建文本文件",
+    "syntax": "DelText 文本路径 行数 删除模式(0=不保留删除行 1= 保留删除行为空行)",
+    "params": "文本路径 行数 删除模式(0=不保留删除行 1= 保留删除行为空行)",
+    "paramList": [
+      "文本路径",
+      "行数",
+      "删除模式(0=不保留删除行 1= 保留删除行为空行)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/删除文本某一行，保留行号.htm",
+      "title": "删除文本某一行，保留行号"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "DETOXIFICATION": {
+    "name": "DETOXIFICATION",
+    "syntax": "DETOXIFICATION",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2021.htm",
+      "title": "2019-2021年更新记录",
+      "evidenceLine": 1119
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DUMMYLOGONEX": {
+    "name": "DUMMYLOGONEX",
+    "syntax": "DUMMYLOGONEX",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/假人配置.htm",
+      "title": "假人配置",
+      "evidenceLine": 13
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DUMMYSTART": {
+    "name": "DUMMYSTART",
+    "syntax": "DUMMYSTART",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/HTTP、JSON脚本扩展.html",
+      "title": "HTTP / JSON 脚本扩展",
+      "evidenceLine": 335
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "DUMMYSTOP": {
+    "name": "DUMMYSTOP",
+    "syntax": "DUMMYSTOP",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/HTTP、JSON脚本扩展.html",
+      "title": "HTTP / JSON 脚本扩展",
+      "evidenceLine": 340
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "endloop": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "syntax": "ENDLOOP",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/循环脚本运行.htm"
+    },
+    "paramList": [],
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "endwhile": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/循环执行脚本.htm"
+    },
+    "completionVerified": false,
+    "syntax": "ENDWHILE",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "FIRSTPICKUPITEM": {
+    "name": "FIRSTPICKUPITEM",
+    "syntax": "FIRSTPICKUPITEM 优先拾取地面物品(0/1)",
+    "details": "设置假人优先拾取地面物品",
+    "params": "优先拾取地面物品(0/1)",
+    "paramList": [
+      "优先拾取地面物品(0/1)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/假人配置.htm",
+      "title": "假人配置",
+      "evidenceLine": 81
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "FS.RANGEHARM": {
+    "name": "FS.RANGEHARM",
+    "syntax": "FS.RANGEHARM X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 是否物理属性攻击(0/1) WIL特效属性串",
+    "details": "范围伤害附加伤害",
+    "params": "X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 是否物理属性攻击(0/1) WIL特效属性串",
+    "paramList": [
+      "X",
+      "Y",
+      "范围",
+      "基础伤害",
+      "附加效果",
+      "附加属性值",
+      "攻击归属(0/1)",
+      "目标类型(0-2)",
+      "是否物理属性攻击(0/1)",
+      "WIL特效属性串"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/范围伤害附加伤害.htm",
+      "title": "范围伤害附加伤害",
+      "evidenceLine": 60
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "FS.RANGEHARMEX": {
+    "name": "FS.RANGEHARMEX",
+    "syntax": "FS.RANGEHARMEX X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 触发选项串 WIL特效属性串",
+    "details": "范围伤害附加伤害",
+    "params": "X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 触发选项串 WIL特效属性串",
+    "paramList": [
+      "X",
+      "Y",
+      "范围",
+      "基础伤害",
+      "附加效果",
+      "附加属性值",
+      "攻击归属(0/1)",
+      "目标类型(0-2)",
+      "触发选项串",
+      "WIL特效属性串"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/范围伤害附加伤害.htm",
+      "title": "范围伤害附加伤害",
+      "evidenceLine": 61
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "GAMEOFMIR.CHECKONLINE": {
+    "name": "GAMEOFMIR.CHECKONLINE",
+    "syntax": "GAMEOFMIR.CHECKONLINE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/脚本检测命令/检测人物是否在线.html",
+      "title": "检测人物是否在线",
+      "evidenceLine": 15
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GENDER": {
+    "name": "GENDER",
+    "syntax": "GENDER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/结婚脚本.htm",
+      "title": "结婚脚本",
+      "evidenceLine": 33
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GETALLDBITEMFIELDVALUE": {
+    "details": "获取全身装备指定数据库字段的合计值",
+    "params": "字段名 结果变量 [排除称号:1排除]",
+    "syntax": "GETALLDBITEMFIELDVALUE 字段名 结果变量 [排除称号]",
+    "paramList": [
+      "字段名",
+      "结果变量",
+      "[排除称号:1排除]"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 2,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/获取全身装备的原始数据字段指定值总和.html",
+      "title": "获取全身装备的原始数据字段指定值总和"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/QuestDiary/01属性加载/人物属性.txt",
+        "line": 104,
+        "text": "GETALLDBITEMFIELDVALUE 攻击加成 N$数据库攻击加成"
+      }
+    ]
+  },
+  "getbagitemfieldvalue": {
+    "details": "按背包序号或MakeIndex获取物品数据库字段值",
+    "syntax": "GETBAGITEMFIELDVALUE 参数1 参数2 字段名称 保存变量",
+    "params": "参数1 参数2 字段名称 保存变量",
+    "paramList": [
+      "参数1",
+      "参数2",
+      "字段名称",
+      "保存变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 4,
+    "maxArgs": 4,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/获取角色背包信息.htm",
+      "title": "获取角色背包信息"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "getbindmoney": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "getbindmoney",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义货币.html",
+      "title": "自定义货币说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "getchallengebakitem": {
+    "details": "获取挑战备份物品",
+    "syntax": "getchallengebakitem",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 0,
+    "maxArgs": 0,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/挑战功能.htm",
+      "title": "挑战功能"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg"
+  },
+  "getdummyname": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "getdummyname",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/假人配置.htm",
+      "title": "假人配置"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "gethero": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "GetHero",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GetHumCustomItemValue": {
+    "name": "GetHumCustomItemValue",
+    "syntax": "GetHumCustomItemValue 属性位置(-1或0~19) 绑定属性类型(0~17) 属性值变量 百分比变量",
+    "details": "获取人物穿戴装备的自定义属性值",
+    "params": "属性位置(-1或0~19) 绑定属性类型(0~17) 属性值变量 百分比变量",
+    "paramList": [
+      "属性位置(-1或0~19)",
+      "绑定属性类型(0~17)",
+      "属性值变量",
+      "百分比变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义装备属性 自定义装备文本.html",
+      "title": "自定义装备属性 自定义装备文本",
+      "evidenceLine": 32
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "GETHUMSKILLPOWERPER": {
+    "name": "GETHUMSKILLPOWERPER",
+    "syntax": "GETHUMSKILLPOWERPER 技能ID 防御百分比变量 攻击百分比变量",
+    "details": "获取技能防御和攻击百分比",
+    "params": "技能ID 防御百分比变量 攻击百分比变量",
+    "paramList": [
+      "技能ID",
+      "防御百分比变量",
+      "攻击百分比变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/获取技能防御和攻击百分比.htm",
+      "title": "获取技能防御和攻击百分比",
+      "evidenceLine": 1
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "getinsurancecountxx": {
+    "details": "获取保险次数",
+    "syntax": "getinsurancecountxx 位置 变量",
+    "params": "位置 变量",
+    "paramList": [
+      "位置",
+      "变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/装备投保功能.html",
+      "title": "装备投保功能"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "GETITEMABIL": {
+    "name": "GETITEMABIL",
+    "syntax": "GETITEMABIL 装备位置 攻击下限变量 攻击上限变量 魔法下限变量 魔法上限变量 道术下限变量 道术上限变量",
+    "details": "获取身上装备属性值到变量",
+    "params": "装备位置 攻击下限变量 攻击上限变量 魔法下限变量 魔法上限变量 道术下限变量 道术上限变量",
+    "paramList": [
+      "装备位置",
+      "攻击下限变量",
+      "攻击上限变量",
+      "魔法下限变量",
+      "魔法上限变量",
+      "道术下限变量",
+      "道术上限变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/获取身上装备属性值到变量.html",
+      "title": "获取身上装备属性值到变量",
+      "evidenceLine": 2
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "getitemaddvalue": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "getitemaddvalue",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/修改物品的附加属性值.html",
+      "title": "修改物品的附加极品属性值"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "getmapgate": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "getmapgate",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/动态地图连接[!].htm",
+      "title": "动态地图连接脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "getposename": {
+    "details": "取得对面人物名称并写入变量",
+    "syntax": "GetPoseName 返回变量",
+    "params": "返回变量",
+    "paramList": [
+      "返回变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/取对面角色人物名.html",
+      "title": "取对面角色人物名"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "GETRANDOMTEXT": {
+    "details": "从文本文件随机读取一行到变量，可指定行",
+    "params": "文件路径 字符串变量 [指定行]",
+    "syntax": "GETRANDOMTEXT 文件路径 变量 [指定行]",
+    "paramList": [
+      "文件路径",
+      "字符串变量",
+      "[指定行]"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 2,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/假人自动摆摊.htm",
+      "title": "假人自动摆摊"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "GETRANDOMTEXTS": {
+    "name": "GETRANDOMTEXTS",
+    "syntax": "GETRANDOMTEXTS 文件路径 获取数量 起始保存变量 实际数量变量",
+    "details": "从文本里随机获取一组不相同的字符",
+    "params": "文件路径 获取数量 起始保存变量 实际数量变量",
+    "paramList": [
+      "文件路径",
+      "获取数量",
+      "起始保存变量",
+      "实际数量变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/从文本里随机获取一组不相同的字符.htm",
+      "title": "从文本里随机获取一组不相同的字符",
+      "evidenceLine": 1
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "getskillcd": {
+    "details": "获取当前的技能冷却时间",
+    "syntax": "getskillcd 技能名称 变量名",
+    "params": "技能名称 变量名",
+    "paramList": [
+      "技能名称",
+      "变量名"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/减少技能冷却时间.htm",
+      "title": "减少技能冷却时间"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "getskilldeccd": {
+    "details": "获取减多少技能冷却时间",
+    "syntax": "getskilldeccd 技能名称 变量名",
+    "params": "技能名称 变量名",
+    "paramList": [
+      "技能名称",
+      "变量名"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/减少技能冷却时间.htm",
+      "title": "减少技能冷却时间"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "getstonecount": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "getstonecount",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/获取装备镶嵌宝石数量.htm",
+      "title": "获取装备镶嵌宝石数量"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GIVEEXP": {
+    "name": "GIVEEXP",
+    "syntax": "GIVEEXP",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/FORMULATION命令使用说明.html",
+      "title": "FORMULATION 数学表达式命令使用说明",
+      "evidenceLine": 187
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "givefoundryitem": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "givefoundryitem",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/物品合成系统[!].htm",
+      "title": "物品合成系统"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "goldcount": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "goldcount",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/货币实时刷新.htm",
+      "title": "货币实时刷新"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GOM.CHECKLEVEL": {
+    "name": "GOM.CHECKLEVEL",
+    "syntax": "GOM.CHECKLEVEL",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多级脚本使用[!].htm",
+      "title": "多级脚本使用[!]",
+      "evidenceLine": 22
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GOMHASHTABLECLEAR": {
+    "name": "GOMHASHTABLECLEAR",
+    "syntax": "GOMHASHTABLECLEAR",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/高速哈希表.htm",
+      "title": "高速哈希表",
+      "evidenceLine": 74
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GOMHASHTABLECONTAINSKEY": {
+    "name": "GOMHASHTABLECONTAINSKEY",
+    "syntax": "GOMHASHTABLECONTAINSKEY 标识字符串",
+    "details": "高速哈希表",
+    "params": "标识字符串",
+    "paramList": [
+      "标识字符串"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/高速哈希表.htm",
+      "title": "高速哈希表",
+      "evidenceLine": 42
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "GOMHASHTABLEGET": {
+    "name": "GOMHASHTABLEGET",
+    "syntax": "GOMHASHTABLEGET",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/高速哈希表.htm",
+      "title": "高速哈希表",
+      "evidenceLine": 54
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GOMHASHTABLELOAD": {
+    "name": "GOMHASHTABLELOAD",
+    "syntax": "GOMHASHTABLELOAD",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/高速哈希表.htm",
+      "title": "高速哈希表",
+      "evidenceLine": 88
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GOMHASHTABLELOADEX": {
+    "name": "GOMHASHTABLELOADEX",
+    "syntax": "GOMHASHTABLELOADEX",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/高速哈希表.htm",
+      "title": "高速哈希表",
+      "evidenceLine": 104
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "GOMHASHTABLEREMOVE": {
+    "name": "GOMHASHTABLEREMOVE",
+    "syntax": "GOMHASHTABLEREMOVE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/高速哈希表.htm",
+      "title": "高速哈希表",
+      "evidenceLine": 65
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "gotolabelex": {
+    "details": "触发指定范围内队伍或行会成员的脚本标签",
+    "params": "模式 X Y 范围 脚本来源 @标签",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/特殊触发功能/GOTOLABEL触发[!].htm"
+    },
+    "completionVerified": true,
+    "syntax": "GotoLabelEx 模式 X Y 范围 脚本来源 @标签",
+    "paramList": [
+      "模式(0组队/1行会)",
+      "X",
+      "Y",
+      "范围",
+      "脚本来源(0 QFunction/1当前NPC)",
+      "@触发标签"
+    ],
+    "minArgs": 6,
+    "maxArgs": 6
+  },
+  "guildauraepoint": {
+    "details": "修改行会人气度",
+    "syntax": "GuildAuraePoint 操作符 数值",
+    "params": "操作符(+/-) 数值",
+    "paramList": [
+      "操作符(+/-)",
+      "数值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会建设相关.htm",
+      "title": "行会建设相关"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "guildbuildpoint": {
+    "details": "修改行会建筑度",
+    "syntax": "guildbuildpoint 控制符（+-）数字",
+    "params": "控制符（+-）数字",
+    "paramList": [
+      "控制符（+-）数字"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会建设相关.htm",
+      "title": "行会建设相关"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "guildflourishpoint": {
+    "details": "修改行会繁荣度",
+    "syntax": "GuildFlourishPoint 操作符 数值",
+    "params": "操作符(+/-) 数值",
+    "paramList": [
+      "操作符(+/-)",
+      "数值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会建设相关.htm",
+      "title": "行会建设相关"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "GUILDSAVETOLIST": {
+    "name": "GUILDSAVETOLIST",
+    "syntax": "GUILDSAVETOLIST 导出路径 行会名称 成员变量或常量",
+    "details": "导出行会在线成员数据",
+    "params": "导出路径 行会名称 成员变量或常量",
+    "paramList": [
+      "导出路径",
+      "行会名称",
+      "成员变量或常量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/导出行会在线成员数据.htm",
+      "title": "导出行会在线成员数据",
+      "evidenceLine": 4
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "guildstabilitypoint": {
+    "details": "修改行会安定度",
+    "syntax": "GuildStabilityPoint 操作符 数值",
+    "params": "操作符(+/-) 数值",
+    "paramList": [
+      "操作符(+/-)",
+      "数值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会建设相关.htm",
+      "title": "行会建设相关"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "H.ADDMPPER": {
+    "name": "H.ADDMPPER",
+    "syntax": "H.ADDMPPER 操作符(+/-/=) 比例值 [比例模式(0:百分比;1:千分比;2:万分比)]",
+    "details": "按英雄最大 MP 的百分比、千分比或万分比调整当前 MP",
+    "params": "操作符(+/-/=) 比例值 [比例模式(0:百分比;1:千分比;2:万分比)]",
+    "paramList": [
+      "操作符(+/-/=)",
+      "比例值",
+      "[比例模式(0:百分比;1:千分比;2:万分比)]"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整血量，魔法百分比.html",
+      "title": "调整百分比血量、百分比魔法",
+      "evidenceLine": 33
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 2,
+    "maxArgs": 3
+  },
+  "H.CHANGEHUMABILITY": {
+    "name": "H.CHANGEHUMABILITY",
+    "syntax": "H.CHANGEHUMABILITY 属性(1-20) 操作符(+/-/=) 效果值 时间(秒)",
+    "details": "调整人物属性",
+    "params": "属性(1-20) 操作符(+/-/=) 效果值 时间(秒)",
+    "paramList": [
+      "属性(1-20)",
+      "操作符(+/-/=)",
+      "效果值",
+      "时间(秒)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物属性.html",
+      "title": "调整人物属性",
+      "evidenceLine": 18
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "H.CHANGEHUMABILITYPERCENTAGE": {
+    "name": "H.CHANGEHUMABILITYPERCENTAGE",
+    "syntax": "H.CHANGEHUMABILITYPERCENTAGE 属性(1-23) 操作符(+/-/=) 数值 时间(秒)",
+    "details": "调整人物属性",
+    "params": "属性(1-23) 操作符(+/-/=) 数值 时间(秒)",
+    "paramList": [
+      "属性(1-23)",
+      "操作符(+/-/=)",
+      "数值",
+      "时间(秒)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物属性.html",
+      "title": "调整人物属性",
+      "evidenceLine": 85
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "H.CHECKCURRTARGETRACE": {
+    "name": "H.CHECKCURRTARGETRACE",
+    "syntax": "H.CHECKCURRTARGETRACE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/英雄功能操作/英雄死亡触发.htm",
+      "title": "英雄死亡触发",
+      "evidenceLine": 20
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.CHECKHPPER": {
+    "name": "H.CHECKHPPER",
+    "syntax": "H.CHECKHPPER 检测符(>/< /=) 比例值 [比例模式(0:百分比;1:千分比;2:万分比)]",
+    "details": "检测英雄当前 HP 占最大 HP 的百分比、千分比或万分比",
+    "params": "检测符(>/< /=) 比例值 [比例模式(0:百分比;1:千分比;2:万分比)]",
+    "paramList": [
+      "检测符(>/< /=)",
+      "比例值",
+      "[比例模式(0:百分比;1:千分比;2:万分比)]"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整血量，魔法百分比.html",
+      "title": "调整百分比血量、百分比魔法",
+      "evidenceLine": 38
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 2,
+    "maxArgs": 3
+  },
+  "H.CHECKJOB": {
+    "name": "H.CHECKJOB",
+    "syntax": "H.CHECKJOB 职业(WARRIOR/WIZARD/TAOIST)",
+    "details": "检测英雄职业",
+    "params": "职业(WARRIOR/WIZARD/TAOIST)",
+    "paramList": [
+      "职业(WARRIOR/WIZARD/TAOIST)"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/新转职业变性脚本.htm",
+      "title": "新转职业变性脚本",
+      "evidenceLine": 202
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 1,
+    "maxArgs": 1
+  },
+  "H.CHECKLEVELEX": {
+    "name": "H.CHECKLEVELEX",
+    "syntax": "H.CHECKLEVELEX 检测符 英雄等级",
+    "details": "检测英雄等级",
+    "params": "检测符 英雄等级",
+    "paramList": [
+      "检测符",
+      "英雄等级"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/脚本检测命令/脚本检测命令取反NOT[!].htm",
+      "title": "脚本检测命令取反 NOT",
+      "evidenceLine": 21
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 2,
+    "maxArgs": 2
+  },
+  "H.CHECKNAMELIST": {
+    "name": "H.CHECKNAMELIST",
+    "syntax": "H.CHECKNAMELIST 文件路径",
+    "details": "检测英雄名称是否存在于指定名单文件中",
+    "params": "文件路径",
+    "paramList": [
+      "文件路径"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/英雄功能操作/英雄上线触发.htm",
+      "title": "英雄上线触发",
+      "evidenceLine": 5
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 1,
+    "maxArgs": 1
+  },
+  "H.CHECKONLINE": {
+    "name": "H.CHECKONLINE",
+    "syntax": "H.CHECKONLINE",
+    "details": "检测英雄是否在线",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/脚本检测命令/检测人物是否在线.html",
+      "title": "检测人物是否在线",
+      "evidenceLine": 192
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg",
+    "minArgs": 0,
+    "maxArgs": 0
+  },
+  "H.CHECKREADSKILLNG": {
+    "name": "H.CHECKREADSKILLNG",
+    "syntax": "H.CHECKREADSKILLNG",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/酒神弟子完整脚本[!].htm",
+      "title": "酒神弟子完整脚本",
+      "evidenceLine": 37
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.CONVERTSKILL": {
+    "name": "H.CONVERTSKILL",
+    "syntax": "H.CONVERTSKILL",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/替换技能.htm",
+      "title": "替换技能",
+      "evidenceLine": 50
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.DELSKILL": {
+    "name": "H.DELSKILL",
+    "syntax": "H.DELSKILL 技能名称",
+    "details": "删除英雄的指定技能",
+    "params": "技能名称",
+    "paramList": [
+      "技能名称"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/英雄功能操作/英雄上线触发.htm",
+      "title": "英雄上线触发",
+      "evidenceLine": 7
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 1,
+    "maxArgs": 1
+  },
+  "H.GIVE": {
+    "name": "H.GIVE",
+    "syntax": "H.GIVE 物品名称 数量",
+    "details": "给予英雄指定数量的物品",
+    "params": "物品名称 数量",
+    "paramList": [
+      "物品名称",
+      "数量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/英雄功能操作/英雄上线触发.htm",
+      "title": "英雄上线触发",
+      "evidenceLine": 18
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-manual-exact",
+    "minArgs": 2,
+    "maxArgs": 2
+  },
+  "H.ISNEWHUMAN": {
+    "name": "H.ISNEWHUMAN",
+    "syntax": "H.ISNEWHUMAN",
+    "details": "检测英雄是否首次上线",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/英雄功能操作/英雄上线触发.htm",
+      "title": "英雄上线触发",
+      "evidenceLine": 15
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg",
+    "minArgs": 0,
+    "maxArgs": 0
+  },
+  "H.RANGEHARM": {
+    "name": "H.RANGEHARM",
+    "syntax": "H.RANGEHARM X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 是否物理属性攻击(0/1) WIL特效属性串",
+    "details": "范围伤害附加伤害",
+    "params": "X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 是否物理属性攻击(0/1) WIL特效属性串",
+    "paramList": [
+      "X",
+      "Y",
+      "范围",
+      "基础伤害",
+      "附加效果",
+      "附加属性值",
+      "攻击归属(0/1)",
+      "目标类型(0-2)",
+      "是否物理属性攻击(0/1)",
+      "WIL特效属性串"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/范围伤害附加伤害.htm",
+      "title": "范围伤害附加伤害",
+      "evidenceLine": 58
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "H.RANGEHARMEX": {
+    "name": "H.RANGEHARMEX",
+    "syntax": "H.RANGEHARMEX X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 触发选项串 WIL特效属性串",
+    "details": "范围伤害附加伤害",
+    "params": "X Y 范围 基础伤害 附加效果 附加属性值 攻击归属(0/1) 目标类型(0-2) 触发选项串 WIL特效属性串",
+    "paramList": [
+      "X",
+      "Y",
+      "范围",
+      "基础伤害",
+      "附加效果",
+      "附加属性值",
+      "攻击归属(0/1)",
+      "目标类型(0-2)",
+      "触发选项串",
+      "WIL特效属性串"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/范围伤害附加伤害.htm",
+      "title": "范围伤害附加伤害",
+      "evidenceLine": 59
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "H.SETBODYCOLOR": {
+    "name": "H.SETBODYCOLOR",
+    "syntax": "H.SETBODYCOLOR",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/改变人体颜色.html",
+      "title": "改变人体颜色",
+      "evidenceLine": 5
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.SETITEMIDX": {
+    "name": "H.SETITEMIDX",
+    "syntax": "H.SETITEMIDX",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/物品索引替换.html",
+      "title": "物品索引替换命令",
+      "evidenceLine": 105
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.SETNPCIMAGE": {
+    "name": "H.SETNPCIMAGE",
+    "syntax": "H.SETNPCIMAGE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/NPC雕像功能.htm",
+      "title": "NPC雕像功能说明",
+      "evidenceLine": 174
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.SETSNDAITEMBOX": {
+    "name": "H.SETSNDAITEMBOX",
+    "syntax": "H.SETSNDAITEMBOX",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/首饰盒.html",
+      "title": "首饰盒 神佑",
+      "evidenceLine": 48
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.SETSUCKDAMAGE": {
+    "name": "H.SETSUCKDAMAGE",
+    "syntax": "H.SETSUCKDAMAGE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+      "title": "脚本变量大全[!]",
+      "evidenceLine": 493
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.TAKE": {
+    "name": "H.TAKE",
+    "syntax": "H.TAKE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/酒神弟子完整脚本[!].htm",
+      "title": "酒神弟子完整脚本",
+      "evidenceLine": 47
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "H.USEBONUSPOINT": {
+    "name": "H.USEBONUSPOINT",
+    "syntax": "H.USEBONUSPOINT",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/其他相关资料/脚本变量大全[!].htm",
+      "title": "脚本变量大全[!]",
+      "evidenceLine": 490
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "HAVEMASTER": {
+    "name": "HAVEMASTER",
+    "syntax": "HAVEMASTER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/收徒脚本.htm",
+      "title": "收徒脚本",
+      "evidenceLine": 133
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "HAVHERO": {
+    "name": "HAVHERO",
+    "syntax": "HAVHERO",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本",
+      "evidenceLine": 97
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "HCALL": {
+    "details": "指定人物触发 QM 脚本标签",
+    "params": "角色名称 触发标签",
+    "syntax": "HCALL 角色名称 触发标签",
+    "paramList": [
+      "角色名称",
+      "触发标签"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/QuestDiary/02游戏触发/死亡触发.txt",
+        "line": 92,
+        "text": "HCALL <$LASTKILLER> @刷新属性"
+      }
+    ]
+  },
+  "HORSERIDING": {
+    "name": "HORSERIDING",
+    "syntax": "HORSERIDING 状态(0上马,1下马)",
+    "details": "骑马-上马下马",
+    "params": "状态(0上马,1下马)",
+    "paramList": [
+      "状态(0上马,1下马)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/骑马-上马下马.htm",
+      "title": "骑马-上马下马",
+      "evidenceLine": 10
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "httpget": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "httpget",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/HTTP、JSON脚本扩展.html",
+      "title": "HTTP / JSON 脚本扩展"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "HUMANDROPUSEITEM": {
+    "name": "HUMANDROPUSEITEM",
+    "syntax": "HUMANDROPUSEITEM",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "page_5.html",
+      "title": "掉落身上装备命令",
+      "evidenceLine": 15
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "INCFILTLIST": {
+    "name": "INCFILTLIST",
+    "syntax": "INCFILTLIST",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/IncFileList 脚本命令.htm",
+      "title": "IncFileList 脚本命令",
+      "evidenceLine": 4
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "inputnum": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "inputnum",
+    "params": "",
+    "paramList": [],
+    "kind": "say",
+    "contexts": [
+      "SAY"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框绝对坐标.htm",
+      "title": "NPC对话框绝对坐标"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "ISDUMMY": {
+    "name": "ISDUMMY",
+    "syntax": "ISDUMMY",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/假人自动摆摊.htm",
+      "title": "假人自动摆摊",
+      "evidenceLine": 5
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "ISNEWSERVER": {
+    "name": "ISNEWSERVER",
+    "syntax": "ISNEWSERVER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 3080
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "ISSHOWPROGRESSBARDLG": {
+    "name": "ISSHOWPROGRESSBARDLG",
+    "syntax": "ISSHOWPROGRESSBARDLG",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/自定义采集[!].htm",
+      "title": "自定义采集[!]",
+      "evidenceLine": 20
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "JOINLIST": {
+    "name": "JOINLIST",
+    "syntax": "JOINLIST <L$src> <S$dst> <分隔符>",
+    "details": "多元数组、元素变量",
+    "params": "<L$src> <S$dst> <分隔符>",
+    "paramList": [
+      "<L$src>",
+      "<S$dst>",
+      "<分隔符>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 361
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "JOINNATIONAL": {
+    "name": "JOINNATIONAL",
+    "syntax": "JOINNATIONAL 国家编号(0~100)",
+    "details": "加入国家",
+    "params": "国家编号(0~100)",
+    "paramList": [
+      "国家编号(0~100)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/加入国家.html",
+      "title": "加入国家",
+      "evidenceLine": 2
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "KILLERRACE": {
+    "name": "KILLERRACE",
+    "syntax": "KILLERRACE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 4630
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "LEAVEECTYPE": {
+    "name": "LEAVEECTYPE",
+    "syntax": "LEAVEECTYPE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明",
+      "evidenceLine": 53
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "listview": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "listview",
+    "params": "",
+    "paramList": [],
+    "kind": "say",
+    "contexts": [
+      "SAY"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm",
+      "title": "NPC对话框容器"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "loaddummyconfigfile": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "LoadDummyConfigFile",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/假人配置.htm",
+      "title": "假人配置"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "loopgoto": {
+    "details": "循环跳转",
+    "params": "@脚本 脚本运行次数（为空或0时,运行1次）",
+    "syntax": "loopgoto @脚本 脚本运行次数（为空或0时,运行1次）",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/循环脚本运行.htm"
+    },
+    "completionVerified": true
+  },
+  "M.CHANGEHUMABILITY": {
+    "name": "M.CHANGEHUMABILITY",
+    "syntax": "M.CHANGEHUMABILITY 属性(1-20) 操作符(+/-/=) 效果值 时间(秒)",
+    "details": "调整人物属性",
+    "params": "属性(1-20) 操作符(+/-/=) 效果值 时间(秒)",
+    "paramList": [
+      "属性(1-20)",
+      "操作符(+/-/=)",
+      "效果值",
+      "时间(秒)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物属性.html",
+      "title": "调整人物属性",
+      "evidenceLine": 19
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "M.CHANGEHUMABILITYPERCENTAGE": {
+    "name": "M.CHANGEHUMABILITYPERCENTAGE",
+    "syntax": "M.CHANGEHUMABILITYPERCENTAGE 属性(1-23) 操作符(+/-/=) 数值 时间(秒)",
+    "details": "调整人物属性",
+    "params": "属性(1-23) 操作符(+/-/=) 数值 时间(秒)",
+    "paramList": [
+      "属性(1-23)",
+      "操作符(+/-/=)",
+      "数值",
+      "时间(秒)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/调整人物属性.html",
+      "title": "调整人物属性",
+      "evidenceLine": 86
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "M.CHANGEMODEEX": {
+    "name": "M.CHANGEMODEEX",
+    "syntax": "M.ChangeModeEx 模式(11禁锢) 时间(秒) 禁锢范围 免疫等级",
+    "details": "改变用户模式",
+    "params": "模式(11禁锢) 时间(秒) 禁锢范围 免疫等级",
+    "paramList": [
+      "模式(11禁锢)",
+      "时间(秒)",
+      "禁锢范围",
+      "免疫等级"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/改变用户模式[!].htm",
+      "title": "改变用户模式",
+      "evidenceLine": 52
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "M.CheckMonAddByte": {
+    "details": "检测当前攻击怪物的临时标识值",
+    "syntax": "M.CHECKMONADDBYTE 标识号 比较符 值",
+    "params": "标识号 比较符 值",
+    "paramList": [
+      "标识号",
+      "比较符",
+      "值"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/怪物标识.html",
+      "title": "怪物临时标识系统"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "M.DELMONHP": {
+    "name": "M.DELMONHP",
+    "syntax": "M.DELMONHP",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/百分比切割.htm",
+      "title": "百分比切割",
+      "evidenceLine": 14
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "M.GETMONADDBYTE": {
+    "name": "M.GETMONADDBYTE",
+    "syntax": "M.GETMONADDBYTE 标识号(0-9) 保存变量",
+    "details": "怪物临时标识系统",
+    "params": "标识号(0-9) 保存变量",
+    "paramList": [
+      "标识号(0-9)",
+      "保存变量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/怪物标识.html",
+      "title": "怪物临时标识系统",
+      "evidenceLine": 99
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "M.HUMANHP": {
+    "name": "M.HUMANHP",
+    "syntax": "M.HUMANHP",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/特殊触发功能/宝宝相关触发.htm",
+      "title": "宝宝相关触发",
+      "evidenceLine": 11
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "M.SETMONBURSTITEMS": {
+    "name": "M.SETMONBURSTITEMS",
+    "syntax": "M.SETMONBURSTITEMS",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/强制怪物爆出指定物品.htm",
+      "title": "强制怪物爆出指定物品",
+      "evidenceLine": 7
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "M2ReturnRegion": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "把跨服人物遣返回原服务器",
+    "params": "保存模式 地图代码 X坐标 Y坐标 [坐标范围]",
+    "paramList": [
+      "保存模式",
+      "地图代码",
+      "X",
+      "Y",
+      "[坐标范围]"
+    ],
+    "minArgs": 4,
+    "maxArgs": 5,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/角色跨区跨服功能.htm"
+    },
+    "syntax": "M2ReturnRegion 保存模式 地图代码 X坐标 Y坐标 [坐标范围]",
+    "completionVerified": true
+  },
+  "M2SpanRegion": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "把人物传送到跨服中央服务器",
+    "params": "保存模式 地图代码 X坐标 Y坐标 [坐标范围]",
+    "paramList": [
+      "保存模式",
+      "地图代码",
+      "X",
+      "Y",
+      "[坐标范围]"
+    ],
+    "minArgs": 4,
+    "maxArgs": 5,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/角色跨区跨服功能.htm"
+    },
+    "syntax": "M2SpanRegion 保存模式 地图代码 X坐标 Y坐标 [坐标范围]",
+    "completionVerified": true
+  },
+  "MAILGIVE": {
+    "name": "MAILGIVE",
+    "syntax": "MailGive 物品名称 禁止扔 禁止交易 禁止存 禁止修 禁止出售 禁止爆出 丢弃消失 数量 是否绑定(0/1)",
+    "details": "向下一封邮件附加物品",
+    "params": "物品名称 禁止扔 禁止交易 禁止存 禁止修 禁止出售 禁止爆出 丢弃消失 数量 是否绑定(0/1)",
+    "paramList": [
+      "物品名称",
+      "禁止扔",
+      "禁止交易",
+      "禁止存",
+      "禁止修",
+      "禁止出售",
+      "禁止爆出",
+      "丢弃消失",
+      "数量",
+      "是否绑定(0/1)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/邮件系统.htm",
+      "title": "邮件系统",
+      "evidenceLine": 3
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "MARRY": {
+    "name": "MARRY",
+    "syntax": "MARRY",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/结婚脚本.htm",
+      "title": "结婚脚本",
+      "evidenceLine": 119
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "MASTER": {
+    "name": "MASTER",
+    "syntax": "MASTER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/收徒脚本.htm",
+      "title": "收徒脚本",
+      "evidenceLine": 71
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "messagebox": {
+    "details": "弹出消息框，确定或取消后跳转到对应标签",
+    "params": "文字信息 [@确定标签] [@取消标签]",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/扩展MessageBox.html"
+    },
+    "syntax": "MessageBox 文字信息 [@确定标签] [@取消标签]",
+    "paramList": [
+      "文字信息",
+      "[@确定标签]",
+      "[@取消标签]"
+    ],
+    "minArgs": 1,
+    "maxArgs": 3,
+    "completionVerified": true
+  },
+  "MIRRORMAPTIME": {
+    "name": "MIRRORMAPTIME",
+    "syntax": "MIRRORMAPTIME 地图名 时间(秒,可空)",
+    "details": "动态创建镜像地图",
+    "params": "地图名 时间(秒,可空)",
+    "paramList": [
+      "地图名",
+      "时间(秒,可空)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/动态创建镜像地图.html",
+      "title": "动态创建镜像地图",
+      "evidenceLine": 16
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "MISSION": {
+    "name": "MISSION",
+    "syntax": "MISSION",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/怪物攻城脚本.htm",
+      "title": "控制怪物攻城脚本",
+      "evidenceLine": 23
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "MISSIONEX": {
+    "name": "MISSIONEX",
+    "syntax": "MISSIONEX 地图 x1:y1;x2:y2;...;xn:yn 是否循环(0/1)",
+    "details": "巡逻怪物",
+    "params": "地图 x1:y1;x2:y2;...;xn:yn 是否循环(0/1)",
+    "paramList": [
+      "地图",
+      "x1:y1;x2:y2;...;xn:yn",
+      "是否循环(0/1)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物",
+      "evidenceLine": 32
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "mobectypemon": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "mobectypemon",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "MOBFIREBURN": {
+    "details": "在指定地图坐标创建光环伤害效果",
+    "params": "地图号 坐标X 坐标Y 光环效果 持续时间秒 伤害值 [是否最大HP百分比:0/空为数值,1为MAXHP百分比]",
+    "syntax": "MOBFIREBURN 地图号 坐标X 坐标Y 光环效果 持续时间秒 伤害值 [是否最大HP百分比]",
+    "paramList": [
+      "地图号",
+      "坐标X",
+      "坐标Y",
+      "光环效果",
+      "持续时间秒",
+      "伤害值",
+      "[是否最大HP百分比:0/空为数值,1为MAXHP百分比]"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 6,
+    "maxArgs": 7,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/MobFireBurn地图光环效果.htm",
+      "title": "MobFireBurn地图光环效果"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "moveectype": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "moveectype",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "movegroupectype": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "movegroupectype",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm",
+      "title": "副本地图使用说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "MOVEITEMVALUEFAIL": {
+    "name": "MOVEITEMVALUEFAIL",
+    "syntax": "MOVEITEMVALUEFAIL",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/极品属性转移.html",
+      "title": "极品属性转移",
+      "evidenceLine": 20
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "MOVEITEMVALUEOK": {
+    "name": "MOVEITEMVALUEOK",
+    "syntax": "MOVEITEMVALUEOK",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/极品属性转移.html",
+      "title": "极品属性转移",
+      "evidenceLine": 33
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "not": {
+    "details": "对紧随其后的检测命令取反",
+    "params": "检测命令",
+    "syntax": "NOT 检测命令",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/脚本检测命令/脚本检测命令取反NOT[!].htm"
+    },
+    "paramList": [
+      "检测命令"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "minArgs": 1,
+    "completionVerified": true
+  },
+  "offlineplay": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "offlineplay",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/离线挂机[!].htm",
+      "title": "离线挂机脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "openlastskill": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "OpenLastSkill",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/开启第四个连击技能[!].htm",
+      "title": "开启第四个连击技能的命令[!]"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "OPENMOVEITEMVALUEDLG": {
+    "name": "OPENMOVEITEMVALUEDLG",
+    "syntax": "OPENMOVEITEMVALUEDLG",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/极品属性转移.html",
+      "title": "极品属性转移",
+      "evidenceLine": 13
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "openplaydrink": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "openplaydrink",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "OPENSELLCHARDLG": {
+    "name": "OPENSELLCHARDLG",
+    "syntax": "OPENSELLCHARDLG",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/角色交易.htm",
+      "title": "角色交易",
+      "evidenceLine": 49
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "OPENSNDASHOPDLG": {
+    "name": "OPENSNDASHOPDLG",
+    "syntax": "OPENSNDASHOPDLG",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/打开商铺脚本命令.html",
+      "title": "打开商铺脚本命令",
+      "evidenceLine": 5
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "openurl": {
+    "details": "使用外置默认浏览器打开网站",
+    "syntax": "openurl 网站",
+    "params": "网站",
+    "paramList": [
+      "网站"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/打开网站地址.htm",
+      "title": "打开网站地址"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "P.CHECKLEVELEX": {
+    "name": "P.CHECKLEVELEX",
+    "syntax": "P.CHECKLEVELEX",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多级脚本使用[!].htm",
+      "title": "多级脚本使用[!]",
+      "evidenceLine": 39
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "PARAM1": {
+    "details": "设置后续命令使用的参数1",
+    "params": "值",
+    "syntax": "PARAM1 值",
+    "paramList": [
+      "值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "PARAM2": {
+    "details": "设置后续命令使用的参数2",
+    "params": "值",
+    "syntax": "PARAM2 值",
+    "paramList": [
+      "值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "PARAM3": {
+    "details": "设置后续命令使用的参数3",
+    "params": "值",
+    "syntax": "PARAM3 值",
+    "paramList": [
+      "值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "PARAM4": {
+    "details": "设置后续命令使用的参数4",
+    "params": "值",
+    "syntax": "PARAM4 值",
+    "paramList": [
+      "值"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "param5": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "param5",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "param6": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "param6",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "param7": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "param7",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "param8": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "param8",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "param9": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "param9",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/巡逻怪物.htm",
+      "title": "巡逻怪物"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "PasswordLcokSystem": {
+    "name": "PasswordLcokSystem",
+    "syntax": "PasswordLcokSystem",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 1838
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "PET.CHANGEDAMAGEVALUE": {
+    "name": "PET.CHANGEDAMAGEVALUE",
+    "syntax": "PET.CHANGEDAMAGEVALUE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/改变人物对怪物对其他人物的最终伤害倍数.htm",
+      "title": "改变人物对怪物对其他人物的最终伤害倍数",
+      "evidenceLine": 148
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "PICKUPITEM": {
+    "name": "PICKUPITEM",
+    "syntax": "PICKUPITEM",
+    "details": "拾取当前目标物品",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm",
+      "title": "脚本性能检测",
+      "evidenceLine": 298
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg",
+    "minArgs": 0,
+    "maxArgs": 0
+  },
+  "PICKUPITEMS": {
+    "name": "PICKUPITEMS",
+    "syntax": "PICKUPITEMS X Y 范围(1~20) 是否按内挂设置(0/1) 是否不捡人物掉落(0/1)",
+    "details": "自动一键捡取物品",
+    "params": "X Y 范围(1~20) 是否按内挂设置(0/1) 是否不捡人物掉落(0/1)",
+    "paramList": [
+      "X",
+      "Y",
+      "范围(1~20)",
+      "是否按内挂设置(0/1)",
+      "是否不捡人物掉落(0/1)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/自动一键捡取物品.htm",
+      "title": "自动一键捡取物品",
+      "evidenceLine": 27
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "PLAYDICE": {
+    "details": "摇骰子并在结束后跳转到指定脚本标签",
+    "params": "骰子数量 跳转标签",
+    "syntax": "PLAYDICE 骰子数量 跳转标签",
+    "paramList": [
+      "骰子数量",
+      "跳转标签"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/在线执行间隔控制.htm",
+      "title": "在线执行间隔控制"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "playdrinkmsg": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "playdrinkmsg",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "playmagicballeffect": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "playmagicballeffect",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/界面的魔法球血球效果[!].htm",
+      "title": "界面的魔法球血球效果"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "QueryUserState": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "查看在线人物或英雄的装备状态",
+    "params": "用户名/英雄名",
+    "paramList": [
+      "用户名或英雄名"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本命令查看他人装备.htm"
+    },
+    "syntax": "QueryUserState 用户名/英雄名",
+    "completionVerified": true
+  },
+  "QueryUserStateEx": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "查看人物或英雄装备，目标可离线",
+    "params": "用户名/英雄名",
+    "paramList": [
+      "用户名或英雄名"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本命令查看他人装备.htm"
+    },
+    "syntax": "QueryUserStateEx 用户名/英雄名",
+    "completionVerified": true
+  },
+  "random": {
+    "details": "按 1/N 概率进行随机检测",
+    "params": "随机数",
+    "syntax": "RANDOM 随机数",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/其他相关资料/传奇基础脚本命令详解[!].htm"
+    },
+    "completionVerified": true,
+    "paramList": [
+      "随机数"
+    ],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1
+  },
+  "randomex": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/脚本检测命令/随机检测RANDOMEX.htm"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "RANDOMNUMBER": {
+    "name": "RANDOMNUMBER",
+    "syntax": "RANDOMNUMBER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/FORMULATION命令使用说明.html",
+      "title": "FORMULATION 数学表达式命令使用说明",
+      "evidenceLine": 177
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "RANDOMPICKLIST": {
+    "name": "RANDOMPICKLIST",
+    "syntax": "RANDOMPICKLIST <L$src> <S$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<L$src> <S$dst>",
+    "paramList": [
+      "<L$src>",
+      "<S$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 407
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "RandomSplit": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "按字符串#概率列表随机取出一项，并可返回剩余内容",
+    "params": "字符串列表 返回模式 结果变量 [剩余返回模式] [剩余变量]",
+    "paramList": [
+      "字符串列表(字符串#概率|字符串#概率)",
+      "返回模式(0字符串/1概率/2字符串#概率)",
+      "结果变量",
+      "[剩余返回模式(0/1/2)]",
+      "[剩余变量]"
+    ],
+    "minArgs": 3,
+    "maxArgs": 5,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/从长字符串中随机出一段字符串.htm"
+    },
+    "completionVerified": true,
+    "syntax": "RandomSplit 字符串列表 返回模式 结果变量 [剩余返回模式] [剩余变量]"
+  },
+  "readskillng": {
+    "details": "学习内功技能",
+    "syntax": "readskillng",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 0,
+    "maxArgs": 0,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/内功系统[!].htm",
+      "title": "内功系统[!]"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-confirmed-no-arg"
+  },
+  "recalcmonability": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "recalcmonability",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/修改地图内怪物属性.htm",
+      "title": "修改地图内怪物属性"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "RENEWLEVEL": {
+    "details": "增加人物转生次数，并设置转生后等级和分配点数",
+    "params": "转生次数(1-255) 转生后等级(0为不改变) 分配点数(1-20000)",
+    "syntax": "RENEWLEVEL 转生次数 转生后等级 分配点数",
+    "paramList": [
+      "转生次数(1-255)",
+      "转生后等级(0为不改变)",
+      "分配点数(1-20000)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/人物转生[!].htm",
+      "title": "人物转生脚本"
+    },
+    "completionVerified": true,
+    "completionEnabled": true
+  },
+  "restrenewlevel": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "RestRenewLevel",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/清除人物转生数据.htm",
+      "title": "清除人物转生"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "RETURN": {
+    "name": "RETURN",
+    "syntax": "RETURN 返回值1 返回值2 ...",
+    "details": "GOTO将传递参数返回值保存到变量 脚本参数回调",
+    "params": "返回值1 返回值2 ...",
+    "paramList": [
+      "返回值1",
+      "返回值2",
+      "..."
+    ],
+    "kind": "control",
+    "contexts": [
+      "ANY"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/GOTO将传递参数返回值保存到变量.html",
+      "title": "GOTO将传递参数返回值保存到变量 脚本参数回调",
+      "evidenceLine": 13
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "RETURNBOXITEM": {
+    "details": "把指定自定义 OK 框中的物品退回包裹",
+    "params": "OK框编号",
+    "syntax": "RETURNBOXITEM OK框编号",
+    "paramList": [
+      "OK框编号"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+      "title": "自定义OK框"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/Market_Def/2大陆/地图/55拘魂令-炼魂坛.txt",
+        "line": 52,
+        "text": "RETURNBOXITEM 1"
+      }
+    ]
+  },
+  "S1.CHECKONLINE": {
+    "name": "S1.CHECKONLINE",
+    "syntax": "S1.CHECKONLINE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/脚本检测命令/检测人物是否在线.html",
+      "title": "检测人物是否在线",
+      "evidenceLine": 20
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "S1.MOVEX": {
+    "name": "S1.MOVEX",
+    "syntax": "S1.MOVEX",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/变量数据传递MOVEX.html",
+      "title": "变量数据传递MOVEX",
+      "evidenceLine": 8
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "savehero": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "savehero",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SENDMAIL": {
+    "name": "SENDMAIL",
+    "syntax": "SendMail 邮件标题 邮件内容 接收范围(0当前玩家,1在线玩家,2所有玩家,3指定玩家) 指定玩家名(可空)",
+    "details": "发送邮件",
+    "params": "邮件标题 邮件内容 接收范围(0当前玩家,1在线玩家,2所有玩家,3指定玩家) 指定玩家名(可空)",
+    "paramList": [
+      "邮件标题",
+      "邮件内容",
+      "接收范围(0当前玩家,1在线玩家,2所有玩家,3指定玩家)",
+      "指定玩家名(可空)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/邮件系统.htm",
+      "title": "邮件系统",
+      "evidenceLine": 5
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "sendnewlinemsg": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "sendnewlinemsg",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm",
+      "title": "脚本性能检测"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SetAngryValue": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "调整当前在线英雄的合击怒气值",
+    "params": "操作符(+/-/=) 值 是否为百分比值(0:点数;1:百分比)",
+    "paramList": [
+      "操作符(+/-/=)",
+      "值",
+      "值类型:0点数/1百分比"
+    ],
+    "aliases": [
+      "H.SetAngryValue"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/调整合击怒气值.htm"
+    },
+    "syntax": "SetAngryValue 操作符(+/-/=) 值 是否为百分比值(0:点数;1:百分比)",
+    "completionVerified": true
+  },
+  "setcurrtarget": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "setcurrtarget",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/其他相关资料/MOV INC DEC变量操作命令.htm",
+      "title": "MOV INC DEC变量操作命令"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SETDUMMYCONFIGFILENAME": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "SETDUMMYCONFIGFILENAME",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/假人配置.htm",
+      "title": "假人配置"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "setdummyheroname": {
+    "details": "设置假人的英雄名称",
+    "syntax": "SetDummyHeroName 英雄名称",
+    "params": "英雄名称",
+    "paramList": [
+      "英雄名称"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/假人配置.htm",
+      "title": "假人配置"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "SetDummyPickItem": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "开启或关闭假人捡物品",
+    "params": "开关",
+    "syntax": "SetDummyPickItem 开关",
+    "paramList": [
+      "开关(1开启/0关闭)"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/假人捡物品功能.htm"
+    },
+    "completionVerified": true
+  },
+  "SetDummyPickItemFile": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "设置假人捡取列表文件和优先模式",
+    "params": "捡取列表文件名 [模式]",
+    "syntax": "SetDummyPickItemFile 捡取列表文件名 [模式]",
+    "paramList": [
+      "捡取列表文件名",
+      "[模式:0或空优先/1允许]"
+    ],
+    "minArgs": 1,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/假人捡物品功能.htm"
+    },
+    "completionVerified": true
+  },
+  "SETGUILDWAR": {
+    "name": "SETGUILDWAR",
+    "syntax": "SETGUILDWAR 宣战行会 敌对行会 时间(分钟)",
+    "details": "行会战",
+    "params": "宣战行会 敌对行会 时间(分钟)",
+    "paramList": [
+      "宣战行会",
+      "敌对行会",
+      "时间(分钟)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/行会战.htm",
+      "title": "行会战",
+      "evidenceLine": 3
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "setherosuckdamage": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "setherosuckdamage",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/设置英雄伤害吸收[!].htm",
+      "title": "设置英雄伤害吸收"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SetIcon": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "设置人物或怪物顶戴花翎图标，GOM位置已扩展为0-19",
+    "params": "位置(0-19) WIL文件序号 图片序号 [X] [Y] [播放张数] [播放效果] [播放速度] [仅自己可见] [播放次数|播放顺序]",
+    "paramList": [
+      "位置(0-19)",
+      "WIL文件序号",
+      "图片序号",
+      "[X]",
+      "[Y]",
+      "[播放张数]",
+      "[播放效果(0普通/1特效)]",
+      "[播放速度]",
+      "[仅自己可见(0否/1是)]",
+      "[播放次数|播放顺序]"
+    ],
+    "minArgs": 3,
+    "maxArgs": 10,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "UpDate.htm"
+    },
+    "syntax": "SetIcon 位置(0-19) WIL文件序号 图片序号 [X] [Y] [播放张数] [播放效果] [播放速度] [仅自己可见] [播放次数|播放顺序]",
+    "completionVerified": true
+  },
+  "SETITEMBAGBUTTONINFO": {
+    "name": "SETITEMBAGBUTTONINFO",
+    "syntax": "SETITEMBAGBUTTONINFO 按钮编号(1~5) 是否可见(0/1) 坐标X 坐标Y 提示信息",
+    "details": "动态设置自定义背包按钮",
+    "params": "按钮编号(1~5) 是否可见(0/1) 坐标X 坐标Y 提示信息",
+    "paramList": [
+      "按钮编号(1~5)",
+      "是否可见(0/1)",
+      "坐标X",
+      "坐标Y",
+      "提示信息"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义包裹按钮.html",
+      "title": "自定义包裹按钮",
+      "evidenceLine": 10
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "SETITEMSKILLTIME": {
+    "name": "SETITEMSKILLTIME",
+    "syntax": "SETITEMSKILLTIME",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/装备技能冷却元素.htm",
+      "title": "装备技能冷却元素",
+      "evidenceLine": 10
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "setminimaprange": {
+    "details": "设置小地图显示范围",
+    "syntax": "setminimaprange 参数1(地图编号) 参数2(点类型) 参数3(坐标点/中心点) 参数4(半径) 参数5(填色模式) 参数6(填色色号(0-255)) 边界类型 有效时间",
+    "params": "参数1(地图编号) 参数2(点类型) 参数3(坐标点/中心点) 参数4(半径) 参数5(填色模式) 参数6(填色色号(0-255)) 边界类型 有效时间",
+    "paramList": [
+      "参数1(地图编号)",
+      "参数2(点类型)",
+      "参数3(坐标点/中心点)",
+      "参数4(半径)",
+      "参数5(填色模式)",
+      "参数6(填色色号(0-255))",
+      "边界类型",
+      "有效时间"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 8,
+    "maxArgs": 8,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/设置地图吃鸡范围.htm",
+      "title": "设置地图吃鸡范围"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "SETNATION": {
+    "name": "SETNATION",
+    "syntax": "SETNATION 国家编号(0-255)",
+    "details": "关于国战",
+    "params": "国家编号(0-255)",
+    "paramList": [
+      "国家编号(0-255)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/其他相关资料/关于国战.htm",
+      "title": "关于国战",
+      "evidenceLine": 12
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "SETNEWCUSTOMITEMABIL": {
+    "name": "SETNEWCUSTOMITEMABIL",
+    "syntax": "SETNEWCUSTOMITEMABIL",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/新版自定义属性.htm",
+      "title": "新版自定义属性",
+      "evidenceLine": 147
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SETNEWCUSTOMITEMVALUE": {
+    "name": "SETNEWCUSTOMITEMVALUE",
+    "syntax": "SETNEWCUSTOMITEMVALUE",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/新版自定义属性.htm",
+      "title": "新版自定义属性",
+      "evidenceLine": 124
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SETNEWVALUEHITTIME": {
+    "name": "SETNEWVALUEHITTIME",
+    "syntax": "SETNEWVALUEHITTIME",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/设置一击开启时间.html",
+      "title": "设置一击开启时间",
+      "evidenceLine": 1
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "setnextdamage": {
+    "details": "设置当前脚本对象下一次攻击的伤害百分比及异常状态检测方式",
+    "syntax": "SetNextDamage 伤害百分比 是否检测异常状态(0/1)",
+    "params": "伤害百分比(必须大于0) 是否检测麻痹/冰冻/中毒状态(0/1)",
+    "paramList": [
+      "伤害百分比(必须大于0)",
+      "是否检测麻痹/冰冻/中毒状态(0/1)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 2,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/二次攻击目标.html",
+      "title": "二次攻击目标"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "setnpcimage": {
+    "details": "设置NPC图像的编号、彩色模式和原始大小模式",
+    "syntax": "SETNPCIMAGE 编号 [是否彩色] [是否原始大小]",
+    "params": "编号 [是否彩色] [是否原始大小]",
+    "paramList": [
+      "编号",
+      "[是否彩色]",
+      "[是否原始大小]"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/NPC雕像功能.htm",
+      "title": "NPC雕像功能说明"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "setnpcimagetime": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "setnpcimagetime",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/NPC雕像功能.htm",
+      "title": "NPC雕像功能说明"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SETONOFF": {
+    "name": "SETONOFF",
+    "syntax": "SETONOFF",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/HTTP、JSON脚本扩展.html",
+      "title": "HTTP / JSON 脚本扩展",
+      "evidenceLine": 263
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "setrandomno": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "setrandomno",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/随机验证码.htm",
+      "title": "随机验证码"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "setscriptflag": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "setscriptflag",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/装备名称自定义系统.htm",
+      "title": "装备名称自定义系统"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "setsendmsgflag": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "SetSendMsgFlag",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/祝福语脚本.htm",
+      "title": "祝福语脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "setshopitempricerate": {
+    "details": "设置人物商铺购买价格比例",
+    "syntax": "setshopitempricerate 比例(1-100)",
+    "params": "比例(1-100)",
+    "paramList": [
+      "比例(1-100)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/设置人物商铺购买价格比例.htm",
+      "title": "设置人物商铺购买价格比例"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "SETSKILLDECCD": {
+    "details": "调整指定技能的冷却缩减时间",
+    "params": "技能名称 操作符(+/-/=) 时间秒",
+    "syntax": "SETSKILLDECCD 技能名称 操作符(+/-/=) 时间秒",
+    "paramList": [
+      "技能名称",
+      "操作符(+/-/=)",
+      "时间秒"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/减少技能冷却时间.htm",
+      "title": "减少技能冷却时间"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/QuestDiary/01属性加载/特殊属性.txt",
+        "line": 1938,
+        "text": "SETSKILLDECCD 烈火剑法 = <$STR(N$烈火剑法冷却)>"
+      }
+    ]
+  },
+  "SetTempDBMode": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "开启或关闭临时数据模式",
+    "params": "开/关(0:关;非0:开） [保存标记]",
+    "paramList": [
+      "开关:0关闭/非0开启",
+      "[保存标记]"
+    ],
+    "minArgs": 1,
+    "maxArgs": 2,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本命令临时数据模式.htm"
+    },
+    "syntax": "SetTempDBMode 开/关(0:关;非0:开） [保存标记]",
+    "completionVerified": true
+  },
+  "SETUPGRADEITEM": {
+    "details": "把指定自定义 OK 框中的物品关联为当前升级物品",
+    "params": "OK框编号",
+    "syntax": "SETUPGRADEITEM OK框编号",
+    "paramList": [
+      "OK框编号"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+      "title": "自定义OK框"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/Market_Def/2大陆/主城/33宝石附魔-武术馆.txt",
+        "line": 126,
+        "text": "SETUPGRADEITEM 0"
+      }
+    ]
+  },
+  "showeffect": {
+    "details": "显示特效",
+    "syntax": "showeffect 类型(79~86)",
+    "params": "类型(79~86)",
+    "paramList": [
+      "类型(79~86)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/烟花脚本[!].htm",
+      "title": "烟花脚本实例"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "showfoundryitem": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "ShowFoundryItem",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/物品合成系统[!].htm",
+      "title": "物品合成系统"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SHOWMONITEM": {
+    "name": "SHOWMONITEM",
+    "syntax": "SHOWMONITEM 状态(0关闭,1开启)",
+    "details": "开启爆率透视",
+    "params": "状态(0关闭,1开启)",
+    "paramList": [
+      "状态(0关闭,1开启)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/开启爆率透视.htm",
+      "title": "开启爆率透视",
+      "evidenceLine": 2
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "showuseiteminfo": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "showuseiteminfo",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/其他相关资料/物品绑定人物[!].htm",
+      "title": "物品绑定人物[!]"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "SHUFFLELIST": {
+    "name": "SHUFFLELIST",
+    "syntax": "SHUFFLELIST <L$src> <L$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<L$src> <L$dst>",
+    "paramList": [
+      "<L$src>",
+      "<L$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 402
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "sorthumvartolistex": {
+    "details": "排序人物自定义变量",
+    "params": "变量名 变量路径 排序模式(0,1) 保存路径 保存模式(0,1)",
+    "syntax": "sorthumvartolistex 变量名 变量路径 排序模式(0,1) 保存路径 保存模式(0,1)",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/排序人物自定义变量[!].htm"
+    },
+    "completionVerified": true
+  },
+  "SPLITTOLIST": {
+    "name": "SPLITTOLIST",
+    "syntax": "SPLITTOLIST <字符串> <分隔符> <L$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<字符串> <分隔符> <L$dst>",
+    "paramList": [
+      "<字符串>",
+      "<分隔符>",
+      "<L$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 367
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "startautoplaygame": {
+    "details": "开始内挂挂机并按参数生成挂机点",
+    "params": "挂机范围 挂机点间距 模式",
+    "syntax": "StartAutoPlayGame 挂机范围 挂机点间距 模式",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/内挂自动挂机[!].htm"
+    },
+    "paramList": [
+      "挂机范围",
+      "挂机点间距",
+      "模式(0必须已有挂机点/1没有时自动生成/2清空后重新生成)"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "completionVerified": true
+  },
+  "STARTPICKUP": {
+    "name": "STARTPICKUP",
+    "syntax": "STARTPICKUP 时间(分钟,可空)",
+    "details": "自动一键捡取物品",
+    "params": "时间(分钟,可空)",
+    "paramList": [
+      "时间(分钟,可空)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/自动一键捡取物品.htm",
+      "title": "自动一键捡取物品",
+      "evidenceLine": 9
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "starttakegold": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "starttakegold",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/元宝转帐.htm",
+      "title": "元宝转帐脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "stopautoplaygame": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/内挂自动挂机[!].htm"
+    },
+    "syntax": "StopAutoPlayGame",
+    "paramList": [],
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "STOPCOLLECT": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "syntax": "STOPCOLLECT",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/游戏功能详解/采集类怪物.htm",
+      "title": "采集类怪物"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "corpusEvidence": [
+      {
+        "kind": "server-script",
+        "path": "Mir200/Envir/QuestDiary/02游戏触发/采集触发.txt",
+        "line": 76,
+        "text": "STOPCOLLECT"
+      }
+    ],
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "stopheroautopractice": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "stopheroautopractice",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/英雄功能操作/创建副将英雄脚本.html",
+      "title": "创建副将英雄脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "STOPPICKUP": {
+    "name": "STOPPICKUP",
+    "syntax": "STOPPICKUP",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/自动一键捡取物品.htm",
+      "title": "自动一键捡取物品",
+      "evidenceLine": 23
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "STRUCKDAMAGE": {
+    "name": "STRUCKDAMAGE",
+    "syntax": "STRUCKDAMAGE 威力 是否检测异常状态(0/1)",
+    "details": "二次攻击目标",
+    "params": "威力 是否检测异常状态(0/1)",
+    "paramList": [
+      "威力",
+      "是否检测异常状态(0/1)"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/二次攻击目标.html",
+      "title": "二次攻击目标",
+      "evidenceLine": 19
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "SUMLIST": {
+    "name": "SUMLIST",
+    "syntax": "SUMLIST <L$src> <N$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<L$src> <N$dst>",
+    "paramList": [
+      "<L$src>",
+      "<N$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 392
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "tagmapinfo": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "tagmapinfo",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+      "title": "记忆石设置方法"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "tagmapmove": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "tagmapmove",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/记忆石设置方法[!].htm",
+      "title": "记忆石设置方法"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "takecastlegold": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "takecastlegold",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/部分脚本实例/沙城主公告.htm",
+      "title": "沙城主公告脚本"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "TAKECHECKITEM": {
+    "name": "TAKECHECKITEM",
+    "syntax": "TAKECHECKITEM",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 1998
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "TakeMine": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "TakeMine",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/脚本检测命令/检测物品纯度.htm",
+      "title": "检测物品纯度"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "takeon": {
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "syntax": "takeon",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/字符串分割.htm",
+      "title": "字符串分割EXTRACTSTRING"
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "TAKETIME": {
+    "name": "TAKETIME",
+    "syntax": "TAKETIME",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/取两个日期之间相差的天数.htm",
+      "title": "取两个日期之间相差的天数、秒数",
+      "evidenceLine": 16
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "TAKEWEX": {
+    "name": "TAKEWEX",
+    "syntax": "TAKEWEX 物品名称 数量",
+    "details": "直接从身上回收物品",
+    "params": "物品名称 数量",
+    "paramList": [
+      "物品名称",
+      "数量"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/直接从身上回收物品.htm",
+      "title": "直接从身上回收物品",
+      "evidenceLine": 11
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "UNIQUELIST": {
+    "name": "UNIQUELIST",
+    "syntax": "UNIQUELIST <L$src> <L$dst>",
+    "details": "多元数组、元素变量",
+    "params": "<L$src> <L$dst>",
+    "paramList": [
+      "<L$src>",
+      "<L$dst>"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/多元数组、元素变量.htm",
+      "title": "多元数组、元素变量",
+      "evidenceLine": 387
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "UnixToStr": {
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "details": "把UTC Unix秒时间戳转换为北京时间字符串",
+    "params": "<UTC时间戳> <保存变量> <格式>",
+    "paramList": [
+      "UTC时间戳",
+      "保存变量",
+      "格式(0/1)"
+    ],
+    "minArgs": 3,
+    "maxArgs": 3,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/时间戳转北京时间.html"
+    },
+    "syntax": "UnixToStr <UTC时间戳> <保存变量> <格式>",
+    "completionVerified": true
+  },
+  "UNMARRY": {
+    "name": "UNMARRY",
+    "syntax": "UNMARRY",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/结婚脚本.htm",
+      "title": "结婚脚本",
+      "evidenceLine": 183
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "UNMASTER": {
+    "name": "UNMASTER",
+    "syntax": "UNMASTER",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/部分脚本实例/收徒脚本.htm",
+      "title": "收徒脚本",
+      "evidenceLine": 135
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "UPDATEBOXITEM": {
+    "name": "UPDATEBOXITEM",
+    "syntax": "UpDateBoxItem OK框编号",
+    "details": "刷新指定自定义 OK 框物品",
+    "params": "OK框编号",
+    "paramList": [
+      "OK框编号"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+      "title": "自定义OK框",
+      "evidenceLine": 286
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "manual-own-help-exact"
+  },
+  "WebBroser": {
+    "name": "WebBroser",
+    "syntax": "WebBroser",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "UpDate2012-2015.htm",
+      "title": "2010-2015年更新记录",
+      "evidenceLine": 4272
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  },
+  "webbrowser": {
+    "details": "浏览网页",
+    "syntax": "webbrowser 地址",
+    "params": "地址",
+    "paramList": [
+      "地址"
+    ],
+    "kind": "action",
+    "contexts": [
+      "ACT"
+    ],
+    "aliases": [],
+    "minArgs": 1,
+    "maxArgs": 1,
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/在登陆器里浏览网页.htm",
+      "title": "在登陆器里浏览网页"
+    },
+    "completionVerified": true,
+    "completionEnabled": true,
+    "diagnosticSupported": true,
+    "completionReview": "cross-engine-help-exact"
+  },
+  "while": {
+    "details": "循环开始",
+    "params": "整数变量 操作符(>,<,=,?) 整数",
+    "syntax": "while 整数变量 操作符(>,<,=,?) 整数",
+    "source": {
+      "revision": "2026-07-19",
+      "page": "游戏引擎反外挂系统/功能操作命令/循环执行脚本.htm"
+    },
+    "completionVerified": true
+  },
+  "WITHIN": {
+    "name": "WITHIN",
+    "syntax": "WITHIN",
+    "details": "当前引擎帮助文档收录了此命令名，但未提供可逐项核对的完整参数格式",
+    "params": "",
+    "paramList": [],
+    "kind": "check",
+    "contexts": [
+      "IF"
+    ],
+    "aliases": [],
+    "source": {
+      "revision": "2026-07-26",
+      "page": "游戏引擎反外挂系统/功能操作命令/脚本性能检测.htm",
+      "title": "脚本性能检测",
+      "evidenceLine": 295
+    },
+    "completionVerified": false,
+    "completionEnabled": false,
+    "diagnosticSupported": true,
+    "completionReview": "final-own-help-name-only-disabled"
+  }
+}

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>BOO 地图查看器</title>
+<style>
+:root{--bg:#1e1e1e;--fg:#d4d4d4;--sidebar:#252526}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:'Microsoft YaHei';height:100vh;overflow:hidden;display:flex}
+.sidebar{width:220px;background:var(--sidebar);border-right:1px solid #444;display:flex;flex-direction:column;flex-shrink:0}
+.sidebar h3{color:#ff8c00;padding:10px;font-size:13px;border-bottom:1px solid #444}
+.sidebar .list{flex:1;overflow-y:auto}
+.sidebar .item{padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar .item:hover{background:#2a2a2a}
+.sidebar .item.active{background:#0e639c;color:#fff}
+.sidebar .item .size{color:#888;font-size:10px;margin-left:6px}
+.sidebar .item.active .size{color:#ccc}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.header{background:linear-gradient(90deg,#1e3c72,#2a5298);color:#fff;padding:8px 16px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:16px}
+.map-content{flex:1;position:relative;background:#000;overflow:hidden}
+#mapCanvas{position:absolute;top:0;left:0;width:100%;height:100%;cursor:grab;image-rendering:pixelated;transform-origin:0 0}
+.controls{position:absolute;bottom:15px;right:15px;display:flex;gap:6px;z-index:50}
+.controls button{background:rgba(0,120,215,0.85);color:#fff;border:none;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:14px}
+.controls button:hover{background:#0078d7}
+.controls button.active{background:#c45d00;box-shadow:0 0 0 1px #ff9d3d inset}
+.coords{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.85);color:#ffcc00;padding:4px 10px;border-radius:4px;font-size:12px;pointer-events:none;z-index:50}
+.legend{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.85);padding:6px 10px;border-radius:4px;font-size:11px;display:flex;gap:10px;z-index:50}
+.legend-item{display:flex;align-items:center;gap:4px;color:#ccc}
+.info-bar{position:absolute;bottom:15px;left:15px;background:rgba(0,0,0,0.85);padding:4px 10px;border-radius:4px;font-size:12px;z-index:50;color:#ccc}
+</style>
+</head>
+<body>
+<div class="sidebar">
+<h3>Mir200\Map\</h3>
+<div class="list" id="mapList"></div>
+</div>
+<div class="main">
+<div class="header">
+<h1 id="title">BOO 地图查看器</h1>
+<span id="mapInfo" style="font-size:12px"></span>
+</div>
+<div class="map-content">
+<canvas id="mapCanvas"></canvas>
+<div class="coords" id="coords">坐标: (0,0)</div>
+<div class="legend">
+<div class="legend-item"><span style="width:12px;height:12px;background:#4a8;display:inline-block;border-radius:2px"></span>通行</div>
+<div class="legend-item"><span style="width:12px;height:12px;background:#222;display:inline-block;border-radius:2px"></span>阻挡</div>
+<div class="legend-item"><span style="width:12px;height:12px;background:#05b;display:inline-block;border-radius:2px"></span>不可达</div>
+</div>
+<div class="controls">
+<button id="toggleLayer" title="切换地图底图和通行图" style="display:none">图</button>
+<button id="zoomIn" title="放大">+</button>
+<button id="zoomOut" title="缩小">-</button>
+<button id="resetView" title="重置">&#8634;</button>
+</div>
+<div class="info-bar" id="zoomInfo">缩放: 100%</div>
+</div>
+</div>
+<script>
+var vscode=acquireVsCodeApi();
+var state={scale:1,offsetX:0,offsetY:0,dragging:false,lastX:0,lastY:0,w:0,h:0,bitmap:null,miniMapImage:null,showMiniMap:false,loadToken:0,mapFiles:[],currentFile:'',tileSize:1,blocking:null,bng:null,obj:null,mid:null};
+var canvas=document.getElementById('mapCanvas'),ctx=canvas.getContext('2d');
+
+function buildBitmap(w,h,blocking,bng){
+  var ts=1; // 每格1px
+  state.tileSize=ts;state.blocking=blocking;state.bng=bng;
+  var pw=w*ts,ph=h*ts;
+  var off=document.createElement('canvas');off.width=pw;off.height=ph;
+  var octx=off.getContext('2d');
+  var img=octx.createImageData(pw,ph);
+  for(var y=0;y<h;y++){
+    for(var x=0;x<w;x++){
+      var idx=y*w+x;
+      var b=blocking[idx];
+      var t=bng&&idx<bng.length?bng[idx]:0;
+      var r,gR,bR;
+      if(b===2){r=0;gR=82+(t%50);bR=180;}
+      else if(b===1){r=20+(t%20);gR=20+(t%10);bR=20+(t%8);}
+      else{r=60+(t%80);gR=130+(t%30);bR=50+(t%30);}
+      r=Math.max(0,Math.min(255,r));
+      gR=Math.max(0,Math.min(255,gR));
+      bR=Math.max(0,Math.min(255,bR));
+      for(var dy=0;dy<ts;dy++){
+        for(var dx=0;dx<ts;dx++){
+          var pi=((y*ts+dy)*pw+(x*ts+dx))*4;
+          img.data[pi]=r;img.data[pi+1]=gR;img.data[pi+2]=bR;img.data[pi+3]=255;
+        }
+      }
+    }
+  }
+  octx.putImageData(img,0,0);
+  return off;
+}
+
+function render(){
+  if(!state.bitmap&&!state.miniMapImage)return;
+  canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  ctx.translate(state.offsetX,state.offsetY);
+  ctx.scale(state.scale,state.scale);
+  if(state.showMiniMap&&state.miniMapImage)ctx.drawImage(state.miniMapImage,0,0,state.w,state.h);
+  else if(state.bitmap)ctx.drawImage(state.bitmap,0,0);
+  ctx.restore();
+  document.getElementById('zoomInfo').textContent='缩放: '+Math.round(state.scale*100)+'%';
+  document.querySelector('.legend').style.display=state.showMiniMap?'none':'flex';
+  document.getElementById('toggleLayer').classList.toggle('active',state.showMiniMap);
+}
+
+function fitMap(){
+  setCanvasSize();
+  var sx=(canvas.width-24)/Math.max(1,state.w*state.tileSize);
+  var sy=(canvas.height-24)/Math.max(1,state.h*state.tileSize);
+  state.scale=Math.max(0.05,Math.min(20,Math.min(sx,sy)));
+  state.offsetX=(canvas.width-state.w*state.tileSize*state.scale)/2;
+  state.offsetY=(canvas.height-state.h*state.tileSize*state.scale)/2;
+}
+
+function updateMap(msg){
+  var token=++state.loadToken;
+  state.w=msg.width;state.h=msg.height;state.scale=1;state.currentFile=msg.fileName||state.currentFile;
+  state.miniMapImage=null;state.showMiniMap=false;
+  var bm=buildBitmap(state.w,state.h,msg.blocking,msg.bng||[]);
+  state.obj=msg.obj||[];state.mid=msg.mid||[];
+  Promise.resolve(typeof createImageBitmap==='function'?createImageBitmap(bm):bm).then(function(b){
+    if(token!==state.loadToken)return;
+    state.bitmap=b;fitMap();render();
+  }).catch(function(){state.bitmap=bm;fitMap();render();});
+  var layerButton=document.getElementById('toggleLayer');
+  layerButton.style.display=msg.miniMapUrl?'block':'none';
+  if(msg.miniMapUrl){
+    var miniImage=new Image();
+    miniImage.onload=function(){
+      if(token!==state.loadToken)return;
+      state.miniMapImage=miniImage;state.showMiniMap=true;fitMap();render();
+    };
+    miniImage.onerror=function(){
+      if(token!==state.loadToken)return;
+      state.miniMapImage=null;state.showMiniMap=false;layerButton.style.display='none';render();
+    };
+    miniImage.src=msg.miniMapUrl;
+  }
+  var ref=msg.wilRefs;
+  var refStr='';
+  if(ref){
+    if(ref.tiles&&ref.tiles.length) refStr+=' Tiles'+ref.tiles.join(',');
+    if(ref.objects&&ref.objects.length) refStr+=' Objects'+ref.objects.join(',');
+    if(ref.smtiles&&ref.smtiles.length) refStr+=' SmTiles'+ref.smtiles.join(',');
+  }
+  var miniInfo=msg.miniMapPak!==undefined?' ['+msg.miniMapPak+':'+String(msg.miniMapIndex).padStart(6,'0')+(msg.miniMapUrl?'':' 未缓存')+']':'';
+  document.getElementById('title').textContent=msg.fileName||'BOO 地图查看器';
+  document.getElementById('mapInfo').textContent=(msg.fileName||state.currentFile)+' '+state.w+'x'+state.h+' ['+(msg.format||'')+']'+miniInfo+refStr;
+}
+
+function setCanvasSize(){canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;}
+
+function zoom(f,cx,cy){
+  var old=state.scale;state.scale*=f;state.scale=Math.max(0.05,Math.min(20,state.scale));
+  if(cx!==undefined)state.offsetX=cx-(cx-state.offsetX)*(state.scale/old);
+  if(cy!==undefined)state.offsetY=cy-(cy-state.offsetY)*(state.scale/old);
+  render();
+}
+
+function loadMapFile(name){
+  state.currentFile=name;
+  var items=document.querySelectorAll('.item');
+  for(var i=0;i<items.length;i++)items[i].classList.toggle('active',items[i].textContent.indexOf(name)===0);
+  vscode.postMessage({type:'loadMap',fileName:name});
+}
+
+function renderMapList(files){
+  state.mapFiles=files;var el=document.getElementById('mapList');
+  if(!files||files.length===0){el.innerHTML='<div style="padding:10px;color:#666;font-size:12px">未找到.map文件</div>';return}
+  var h='';
+  for(var i=0;i<files.length;i++){
+    var kb=Math.round(files[i].size/1024);
+    var cls=files[i].name===state.currentFile?' active':'';
+    h+='<div class="item'+cls+'" onclick="loadMapFile(\''+files[i].name.replace(/'/g,"\\'")+'\')">'+files[i].name+'<span class="size">'+kb+'KB</span></div>';
+  }
+  el.innerHTML=h;
+}
+
+canvas.addEventListener('mousedown',function(e){if(e.button===0){state.dragging=true;state.lastX=e.clientX;state.lastY=e.clientY;canvas.style.cursor='grabbing'}});
+canvas.addEventListener('mousemove',function(e){
+  if(state.dragging){state.offsetX+=e.clientX-state.lastX;state.offsetY+=e.clientY-state.lastY;state.lastX=e.clientX;state.lastY=e.clientY;render()}
+  var rect=canvas.getBoundingClientRect();
+  var mx=e.clientX-rect.left-state.offsetX,my=e.clientY-rect.top-state.offsetY;
+  var ts=state.tileSize*state.scale;
+  var x=Math.floor(mx/ts),y=Math.floor(my/ts);
+  if(x>=0&&y>=0&&x<state.w&&y<state.h)document.getElementById('coords').textContent='('+x+','+y+')';
+});
+canvas.addEventListener('mouseup',function(){state.dragging=false;canvas.style.cursor='grab'});
+canvas.addEventListener('wheel',function(e){e.preventDefault();zoom(e.deltaY<0?1.2:0.8,e.clientX,e.clientY)});
+document.getElementById('zoomIn').addEventListener('click',function(){zoom(1.3)});
+document.getElementById('zoomOut').addEventListener('click',function(){zoom(0.75)});
+document.getElementById('resetView').addEventListener('click',function(){fitMap();render()});
+document.getElementById('toggleLayer').addEventListener('click',function(){if(!state.miniMapImage)return;state.showMiniMap=!state.showMiniMap;render()});
+window.addEventListener('resize',function(){setCanvasSize();render()});
+
+window.addEventListener('message',function(e){
+  if(e.data.type==='updateMap'){updateMap(e.data)}
+  else if(e.data.type==='mapList'){renderMapList(e.data.files)}
+});
+vscode.postMessage({type:'ready'});setCanvasSize();
+</script>
+</body>
+</html>

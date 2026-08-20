@@ -1,0 +1,8 @@
+{
+  "name": "BOO Cyberpunk",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#FF00FF", "keyword.cmd": "#00FFFF", "keyword.action": "#FF00FF", "keyword.say": "#7CFF00", "keyword.flow": "#FF6600", "keyword.label": "#FF0066", "keyword.path": "#FF9900", "variable": "#00FF88"
+  }
+}

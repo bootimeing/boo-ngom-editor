@@ -1,0 +1,8 @@
+{
+  "name": "BOO Forest",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#228B22", "keyword.cmd": "#2E8B57", "keyword.action": "#228B22", "keyword.say": "#FFD54F", "keyword.flow": "#006400", "keyword.label": "#FF4500", "keyword.path": "#8B4513", "variable": "#98FB98"
+  }
+}

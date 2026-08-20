@@ -1,0 +1,8 @@
+{
+  "name": "BOO Aurora",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#00BFA5", "keyword.cmd": "#1DE9B6", "keyword.action": "#00BFA5", "keyword.say": "#FFD740", "keyword.flow": "#651FFF", "keyword.label": "#FF4081", "keyword.path": "#FF6E40", "variable": "#B388FF"
+  }
+}

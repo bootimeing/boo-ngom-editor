@@ -1,0 +1,8 @@
+{
+  "name": "BOO Ember",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#FF6F00", "keyword.cmd": "#FF8F00", "keyword.action": "#FF6F00", "keyword.say": "#29B6F6", "keyword.flow": "#BF360C", "keyword.label": "#FF3D00", "keyword.path": "#8D6E63", "variable": "#FFD54F"
+  }
+}

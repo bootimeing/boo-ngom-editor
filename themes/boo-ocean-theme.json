@@ -1,0 +1,8 @@
+{
+  "name": "BOO Ocean",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#0077B6", "keyword.cmd": "#00B4D8", "keyword.action": "#0077B6", "keyword.say": "#FFD166", "keyword.flow": "#03045E", "keyword.label": "#FF6B6B", "keyword.path": "#CA6702", "variable": "#ADE8F4"
+  }
+}

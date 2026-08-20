@@ -1,0 +1,30 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "BOO Dark",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "colors": {
+    "editor.background": "#1e1e1e",
+    "editor.foreground": "#d4d4d4",
+    "editor.lineHighlightBackground": "#2a2d2e",
+    "editor.selectionBackground": "#264f78",
+    "editorCursor.foreground": "#aeafad",
+    "editorHoverWidget.background": "#1e1e1e",
+    "editorHoverWidget.foreground": "#d4d4d4",
+    "editorHoverWidget.border": "#6AAEFF"
+  },
+  "tokenColors": [
+    { "scope": "source.gomscript", "settings": { "foreground": "#d4d4d4" } },
+    { "scope": "comment.line.gomscript", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } }
+  ],
+  "semanticTokenColors": {
+    "keyword":        "#569CD6",
+    "keyword.cmd":    "#4EC9B0",
+    "keyword.action": "#DCDCAA",
+    "keyword.say":    "#4FC1FF",
+    "keyword.flow":   "#C586C0",
+    "keyword.label":  "#FF6B6B",
+    "keyword.path":   "#CE9178",
+    "variable":       "#9CDCFE"
+  }
+}

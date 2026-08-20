@@ -1,0 +1,8 @@
+{
+  "name": "BOO Violet",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#7B1FA2", "keyword.cmd": "#9C27B0", "keyword.action": "#7B1FA2", "keyword.say": "#26C6DA", "keyword.flow": "#4A148C", "keyword.label": "#FF4081", "keyword.path": "#8D6E63", "variable": "#E1BEE7"
+  }
+}

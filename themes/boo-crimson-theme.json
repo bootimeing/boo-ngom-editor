@@ -1,0 +1,8 @@
+{
+  "name": "BOO Crimson",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#E53935", "keyword.cmd": "#EF5350", "keyword.action": "#E53935", "keyword.say": "#4FC3F7", "keyword.flow": "#880E4F", "keyword.label": "#FF1744", "keyword.path": "#BCAAA4", "variable": "#FFCDD2"
+  }
+}

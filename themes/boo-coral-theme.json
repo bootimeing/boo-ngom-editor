@@ -1,0 +1,8 @@
+{
+  "name": "BOO Coral",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#FF7043", "keyword.cmd": "#FF8A65", "keyword.action": "#FF7043", "keyword.say": "#29B6F6", "keyword.flow": "#BF360C", "keyword.label": "#E91E63", "keyword.path": "#8D6E63", "variable": "#FFCCBC"
+  }
+}

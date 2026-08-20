@@ -1,0 +1,8 @@
+{
+  "name": "BOO Steel",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#607D8B", "keyword.cmd": "#78909C", "keyword.action": "#607D8B", "keyword.say": "#FFB74D", "keyword.flow": "#37474F", "keyword.label": "#FF5252", "keyword.path": "#8D6E63", "variable": "#B0BEC5"
+  }
+}

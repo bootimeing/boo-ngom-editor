@@ -1,0 +1,8 @@
+{
+  "name": "BOO Obsidian",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#FFD700", "keyword.cmd": "#FFC107", "keyword.action": "#FFD700", "keyword.say": "#4FC3F7", "keyword.flow": "#FF8F00", "keyword.label": "#FF5252", "keyword.path": "#A0A0A0", "variable": "#FFF9C4"
+  }
+}

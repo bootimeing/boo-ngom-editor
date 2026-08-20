@@ -1,0 +1,16 @@
+node_modules/
+out/
+*.vsix
+.vscode-test/
+archives/
+artifacts/*
+!artifacts/README.md
+data/temp/
+data/md-export/
+data/backup-*/
+Reference/
+docs/engine-reference/
+tools/PakBridge/src/**/__pycache__/
+tools/PakBridge/src/**/*.py[cod]
+tools/M2Reloader/obj/
+tools/M2Reloader/bin/

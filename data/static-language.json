@@ -1,0 +1,3070 @@
+{
+  "schemaVersion": 1,
+  "revision": "2026-07-26",
+  "saySnippets": [
+    {
+      "id": "img-absolute",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&IMG:N:F:X:Y>",
+          "snippet": "<&IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}>",
+          "description": "使用绝对坐标显示静态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框绝对坐标.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&IMG:N:F:X:Y>",
+          "snippet": "<&IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}>",
+          "description": "使用绝对坐标显示静态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "img-relative",
+      "engineVariants": {
+        "GOM": {
+          "label": "<IMG:N:F:X:Y>",
+          "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}>",
+          "description": "显示静态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "<IMG:N:F:X:Y>",
+          "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}>",
+          "description": "显示静态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "<IMG:N:F:X:Y/@Label>",
+          "snippet": "<IMG:${1:图片序号}:${2:资源序号}:${3:X}:${4:Y}/@${5:标签}>",
+          "description": "显示可点击的静态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "img-hover",
+      "engineVariants": {
+        "GOM": {
+          "label": "<IMG:N:F:X:Y|备注>",
+          "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}|${5:悬停备注}>",
+          "description": "显示带鼠标悬停备注的静态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "<IMG:N:F:X:Y|备注>",
+          "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}|${5:悬停备注}>",
+          "description": "显示带鼠标悬停备注的静态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/npc标签功能.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "imgex-absolute",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&IMGEX:F:U:H:D:X:Y>",
+          "snippet": "<&IMGEX:${1:WIL序号}:${2:默认图片}:${3:移入图片}:${4:按下图片}:${5:X}:${6:Y}>",
+          "description": "使用绝对坐标显示三态按钮图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框绝对坐标.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&IMGEX:F:U:H:D:X:Y>",
+          "snippet": "<&IMGEX:${1:WIL序号}:${2:默认图片}:${3:移入图片}:${4:按下图片}:${5:X}:${6:Y}>",
+          "description": "使用绝对坐标显示三态按钮图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "playimg-absolute",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&PLAYIMG:F:N:C:T:X:Y>",
+          "snippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}>",
+          "description": "使用绝对坐标播放动态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框绝对坐标.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&PLAYIMG:F:N:C:T:X:Y>",
+          "snippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}>",
+          "description": "使用绝对坐标播放动态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "playimgex-absolute",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&PLAYIMGEX:F:N:C:T:H:X:Y>",
+          "snippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}>",
+          "description": "使用绝对坐标按指定次数播放动态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&PLAYIMGEX:F:N:C:T:H:X:Y>",
+          "snippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}>",
+          "description": "使用绝对坐标按指定次数播放动态图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "text-absolute",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&TEXT:内容:X:Y{FCOLOR=颜色}>",
+          "snippet": "<&TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:251}}>",
+          "description": "使用绝对坐标显示文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/设置NPC文字坐标.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&TEXT:内容:X:Y{FCOLOR=颜色}>",
+          "snippet": "<&TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:251}}>",
+          "description": "使用绝对坐标显示文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/Npc文字Text使用.htm"
+          }
+        },
+        "996PC": {
+          "label": "<TEXT:内容:X:Y{FCOLOR=颜色}/@标签>",
+          "snippet": "<TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:250}}/@${5:标签}>",
+          "description": "使用坐标显示可点击文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/设置NPC文字坐标.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "text-absolute-link",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&TEXT:内容:X:Y{FCOLOR=颜色}/@标签>",
+          "snippet": "<&TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:251}}/@${5:标签}>",
+          "description": "使用绝对坐标显示可点击文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/设置NPC文字坐标.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&TEXT:内容:X:Y{FCOLOR=颜色}/@标签>",
+          "snippet": "<&TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:251}}/@${5:标签}>",
+          "description": "使用绝对坐标显示可点击文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/Npc文字Text使用.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "text-link",
+      "engineVariants": {
+        "GOM": {
+          "label": "<文字/@标签>",
+          "snippet": "<${1:文字}/@${2:标签}>",
+          "description": "显示可点击的相对坐标文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm"
+          }
+        },
+        "GEE": {
+          "label": "<文字/@标签>",
+          "snippet": "<${1:文字}/@${2:标签}>",
+          "description": "显示可点击的相对坐标文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.html"
+          }
+        },
+        "996PC": {
+          "label": "<文字/@标签>",
+          "snippet": "<${1:文字}/@${2:标签}>",
+          "description": "显示可点击文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm"
+          },
+          "evidenceToken": "SCRIPTPARAM1"
+        }
+      }
+    },
+    {
+      "id": "text-link-params",
+      "engineVariants": {
+        "GOM": {
+          "label": "<文字/@标签(参数)>",
+          "snippet": "<${1:文字}/@${2:标签}(${3:参数})>",
+          "description": "显示带脚本参数的可点击文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm"
+          }
+        },
+        "GEE": {
+          "label": "<文字/@标签(参数)>",
+          "snippet": "<${1:文字}/@${2:标签}(${3:参数})>",
+          "description": "显示带脚本参数的可点击文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.html"
+          }
+        },
+        "996PC": {
+          "label": "<文字/@标签(参数)>",
+          "snippet": "<${1:文字}/@${2:标签}(${3:参数})>",
+          "description": "显示带脚本参数的可点击文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm"
+          },
+          "evidenceToken": "SCRIPTPARAM1"
+        }
+      }
+    },
+    {
+      "id": "text-color",
+      "engineVariants": {
+        "GOM": {
+          "label": "<文字/FCOLOR=颜色>",
+          "snippet": "<${1:文字}/FCOLOR=${2:251}>",
+          "description": "显示指定颜色的相对坐标文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/设置NPC文字坐标.htm"
+          }
+        },
+        "GEE": {
+          "label": "<文字/FCOLOR=颜色>",
+          "snippet": "<${1:文字}/FCOLOR=${2:251}>",
+          "description": "显示指定颜色的相对坐标文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/Npc文字Text使用.htm"
+          }
+        },
+        "996PC": {
+          "label": "<文字/FCOLOR=颜色>",
+          "snippet": "<${1:文字}/FCOLOR=${2:250}>",
+          "description": "显示指定颜色的文字",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "item-show",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&ITEMSHOW:D:F:X:Y:B>",
+          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:边框}>",
+          "description": "使用绝对坐标显示物品图片和属性",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&ITEMSHOW:D:F:X:Y:B>",
+          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:边框}>",
+          "description": "使用绝对坐标显示物品图片和属性",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/其他相关资料/货币实时刷新常量.htm"
+          }
+        },
+        "996PC": {
+          "label": "<ITEMSHOW:D:F:X:Y:B>",
+          "snippet": "<ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:显示背景(0/1)}>",
+          "description": "显示物品图片并在悬停时显示属性",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "input-text",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&INPUTTEXT:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+          "snippet": "<&INPUTTEXT:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+          "description": "创建文本输入框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&INPUTTEXT:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+          "snippet": "<&INPUTTEXT:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+          "description": "创建文本输入框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/其他相关资料/NPC对话框内默认输入框.htm"
+          }
+        },
+        "996PC": {
+          "label": "<INPUTTEXT:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+          "snippet": "<INPUTTEXT:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+          "description": "创建文本输入框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "input-number",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&INPUTNUM:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+          "snippet": "<&INPUTNUM:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小值}:${10:最大值}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+          "description": "创建数字输入框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&INPUTNUM:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+          "snippet": "<&INPUTNUM:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小值}:${10:最大值}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+          "description": "创建数字输入框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/其他相关资料/NPC对话框内默认输入框.htm"
+          }
+        },
+        "996PC": {
+          "label": "<INPUTNUM:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+          "snippet": "<INPUTNUM:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小值}:${10:最大值}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+          "description": "创建数字输入框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "countdown",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&COUNTDOWN:S:C:COLOR:X:Y:M/@LABEL>",
+          "snippet": "<&COUNTDOWN:${1:秒数}:${2:次数}:${3:颜色}:${4:X}:${5:Y}:${6:显示格式}/@${7:触发标签}>",
+          "description": "显示文字倒计时并在结束时触发脚本",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内倒计时.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&COUNTDOWN:S:C:COLOR:X:Y:M/@LABEL>",
+          "snippet": "<&COUNTDOWN:${1:秒数}:${2:次数}:${3:颜色}:${4:X}:${5:Y}:${6:显示格式}/@${7:触发标签}>",
+          "description": "显示文字倒计时并在结束时触发脚本",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框内倒计时.html"
+          }
+        },
+        "996PC": {
+          "label": "<COUNTDOWN:秒数:次数:颜色:X:Y/@标签>",
+          "snippet": "<COUNTDOWN:${1:秒数}:${2:次数(0无限)}:${3:颜色}:${4:X}:${5:Y}/@${6:标签}>",
+          "description": "NPC面板倒计时",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/新增功能/NPC面板倒计时.htm",
+            "title": "NPC面板倒计时",
+            "evidenceLine": 3
+          }
+        }
+      }
+    },
+    {
+      "id": "image-countdown",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&IMGCOUNTDOWN:S:C:N:GAP:X:Y:M/@LABEL>",
+          "snippet": "<&IMGCOUNTDOWN:${1:秒数}:${2:次数}:${3:开始图片}:${4:图片间隔}:${5:X}:${6:Y}:${7:显示格式}/@${8:触发标签}>",
+          "description": "使用图片数字显示倒计时",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内倒计时.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&IMGCOUNTDOWN:S:C:N:GAP:X:Y:M/@LABEL>",
+          "snippet": "<&IMGCOUNTDOWN:${1:秒数}:${2:次数}:${3:开始图片}:${4:图片间隔}:${5:X}:${6:Y}:${7:显示格式}/@${8:触发标签}>",
+          "description": "使用图片数字显示倒计时",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框内倒计时.html"
+          }
+        }
+      }
+    },
+    {
+      "id": "image-number",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&IMGNUM:N:VALUE:GAP:X:Y:D>",
+          "snippet": "<&IMGNUM:${1:开始图片}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:方向}>",
+          "description": "将数字转换为连续图片显示",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框数字转图片.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&IMGNUM:N:VALUE:GAP:X:Y:D>",
+          "snippet": "<&IMGNUM:${1:开始图片}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:方向}>",
+          "description": "将数字转换为连续图片显示",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/数字转换为图片显示标签.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "progress-bar",
+      "engineVariants": {
+        "GOM": {
+          "label": "<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
+          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:模式}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
+          "description": "显示动态进度条",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm"
+          }
+        },
+        "GEE": {
+          "label": "<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
+          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:模式}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
+          "description": "显示动态进度条",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "item-box",
+      "engineVariants": {
+        "GOM": {
+          "label": "<ITEMBOX:N:F:M:X:Y:W:H:S:T>",
+          "snippet": "<ITEMBOX:${1:编号}:${2:WIL序号}:${3:背景图片}:${4:X}:${5:Y}:${6:宽度}:${7:高度}:${8:允许类型}:${9:提示文字}>",
+          "description": "创建自定义物品 OK 框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "<ITEMBOX:N:F:M:X:Y:W:H:S:T>",
+          "snippet": "<ITEMBOX:${1:编号}:${2:WIL序号}:${3:背景图片}:${4:X}:${5:Y}:${6:宽度}:${7:高度}:${8:允许类型}:${9:提示文字}>",
+          "description": "创建自定义物品 OK 框",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/功能操作命令/自定义OK框.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "human-variable",
+      "engineVariants": {
+        "GOM": {
+          "label": "<$HUMAN(变量名)>",
+          "snippet": "<$HUMAN(${1:变量名})>",
+          "description": "读取已声明的人物自定义变量",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
+          }
+        },
+        "GEE": {
+          "label": "<$HUMAN(变量名)>",
+          "snippet": "<$HUMAN(${1:变量名})>",
+          "description": "读取已声明的人物自定义变量",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
+          }
+        },
+        "996PC": {
+          "label": "<$HUMAN(变量名)>",
+          "snippet": "<$HUMAN(${1:变量名})>",
+          "description": "读取已声明的人物自定义变量",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "guild-variable",
+      "engineVariants": {
+        "GEE": {
+          "label": "<$GUILD(变量名)>",
+          "snippet": "<$GUILD(${1:变量名})>",
+          "description": "读取已声明的行会自定义变量",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "imgex-relative-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<IMGEX:F:U:H:D:X:Y/@Label>",
+          "snippet": "<IMGEX:${1:资源序号}:${2:默认图片}:${3:移入图片}:${4:按下图片}:${5:X}:${6:Y}/@${7:标签}>",
+          "description": "显示可点击的三态按钮图片",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          },
+          "evidenceToken": "IMGEX"
+        }
+      }
+    },
+    {
+      "id": "playimg-relative-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<PLAYIMG:F:N:C:T:X:Y:M:L:R/@Label>",
+          "snippet": "<PLAYIMG:${1:资源序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0/1)}:${8:播放次数}:${9:修复模式(0/1)}/@${10:标签}>",
+          "description": "播放动态图片，可设置绘制模式、次数和坐标修复模式",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
+          },
+          "evidenceToken": "PLAYIMG"
+        }
+      }
+    },
+    {
+      "id": "time-tips",
+      "engineVariants": {
+        "996PC": {
+          "label": "<TIMETIPS:秒数:次数:颜色:X:Y/@标签>",
+          "snippet": "<TIMETIPS:${1:秒数}:${2:次数(0无限)}:${3:颜色}:${4:X}:${5:Y}/@${6:标签}>",
+          "description": "NPC面板倒计时",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/新增功能/NPC面板倒计时.htm",
+            "title": "NPC面板倒计时",
+            "evidenceLine": 6
+          }
+        }
+      }
+    }
+  ],
+  "mapInfoParams": [
+    {
+      "id": "ALLOWUSEMYSHOP",
+      "engineVariants": {
+        "GOM": {
+          "label": "ALLOWUSEMYSHOP",
+          "description": "允许摆摊，该参数只对个人商店的摆摊有效，对摆摊的无效(必需先设置摆摊限制在指定地图才会生效)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "ALLOWUSEMYSHOP",
+          "description": "允许摆摊(个人商店允许购买物品的地图加此参数,使用仿herom2指定地图摆摊也需此参数)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "ALLOWUSEMYSHOP",
+          "description": "允许摆摊，该参数只对个人商店的摆摊有效，对仿Hero摆摊的无效(必需先设置摆摊限制在指定地图才会生效)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "BATTLINGDISEXIT",
+      "engineVariants": {
+        "GOM": {
+          "label": "BattlingDisExit",
+          "description": "战斗状态禁止退出",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "BattlingDisExit",
+          "description": "战斗状态禁止退出",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "CHECKQUEST",
+      "engineVariants": {
+        "GOM": {
+          "label": "CHECKQUEST(Q001)",
+          "description": "进入本地图执行任务脚本 格式：CHECKQUEST(Q001) 说明： Q001 代表脚本名。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "CHECKQUEST(Q001)",
+          "description": "进入本地图执行任务脚本 格式：CHECKQUEST(Q001) 说明： Q001 代表脚本名。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "CHECKQUEST(Q001)",
+          "description": "进入本地图执行任务脚本 格式：CHECKQUEST(Q001) 说明： Q001 代表脚本名。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "CUSTOMEFFECT",
+      "engineVariants": {
+        "GOM": {
+          "label": "CustomEffect(掉血数值,伤害算法,掉血范围|每波数量,每波间隔秒|特效参数)",
+          "description": "掉血地图参数，按波次随机坐标播放自定义特效并造成掉血，怪物不受影响。伤害算法：0固定点数，1最大血量百分比，2千分比，3万分比，4真实伤害。特效参数支持两种写法：WIL文件序号,开始图片数,播放图片张数,播放速度毫秒,播放效果(0普通 1特效)，或 P:预置特效ID 调用预置地图魔法特效。例：CustomEffect(10,0,1|10,2|0,1190,7,60,0)；CustomEffect(10,1,1|10,2|P:1)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "CustomEffect(参数)",
+          "description": "例:CustomEffect(参数)设置地图伤害和特效等",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DARK",
+      "engineVariants": {
+        "GOM": {
+          "label": "DARK",
+          "description": "黑暗效果 如果同时存在 DAY以DAY参数效果为准",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "DARK",
+          "description": "黑暗效果 如果同时存在 DAY以DAY参数效果为准",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "DARK",
+          "description": "黑暗效果 如果同时存在 DAY以DAY参数效果为准",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DAY",
+      "engineVariants": {
+        "GOM": {
+          "label": "DAY",
+          "description": "白天效果 如果同时存在DARK以DAY参数效果为准 SAYLEVEL(等级)可限制当前地图人物说话等级.",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "DAY",
+          "description": "白天效果 如果同时存在DARK以DAY参数效果为准",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "DAY",
+          "description": "白天效果 如果同时存在DARK以DAY参数效果为准",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DECEXPRATETIME",
+      "engineVariants": {
+        "GOM": {
+          "label": "DECEXPRATETIME(值)",
+          "description": "每秒减双倍经验时间,如值小于1时，则默认为1",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "DECEXPRATETIME(值)",
+          "description": "每秒减双倍经验时间,如值小于1时，则默认为1",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "DECEXPRATETIME(值)",
+          "description": "每秒减双倍经验时间,如值小于1时，则默认为1",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DECGAMEGOLD",
+      "engineVariants": {
+        "GOM": {
+          "label": "DECGAMEGOLD(1/10)",
+          "description": "进入本地图后自动减游戏币 格式：DECGAMEGOLD(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次减多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "DECGAMEGOLD(1/10)",
+          "description": "进入本地图后自动减游戏币 格式：DECGAMEGOLD(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次减多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "DECGAMEGOLD(1/10)",
+          "description": "进入本地图后自动减游戏币 格式：DECGAMEGOLD(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次减多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DECGAMEPOINT",
+      "engineVariants": {
+        "GEE": {
+          "label": "DECGAMEPOINT(1/10)",
+          "description": "进入本地图后自动减游戏点 格式：DECGAMEPOINT(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次减多少点；(用于游戏泡点功能)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DECHP",
+      "engineVariants": {
+        "GOM": {
+          "label": "DECHP(1/10)",
+          "description": "进入本地图后自动减HP 格式：DECHP(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次减多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "DECHP(1/10)",
+          "description": "进入本地图后自动减HP 格式：DECHP(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次减多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "DECHP(1/10)",
+          "description": "进入本地图后自动减HP 格式：DECHP(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次减多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DECMONEY",
+      "engineVariants": {
+        "996PC": {
+          "label": "DECMONEY(元宝/1/10/@XX)",
+          "description": "进入本地图后自动减游戏币 格式：DECMONEY(元宝/1/10/@XX) 说明 货币名称或ID/1/10 1代表减的间隔(秒)，10代表一次减多少点；触发QFunction-0.txt [@XX] XX可以随便写对应就好",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DELDROPITEM",
+      "engineVariants": {
+        "GOM": {
+          "label": "DELDROPITEM",
+          "description": "人物(英雄)死亡后掉落的身上物品立即消失(不掉落在地图中).",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "DELDROPITEM",
+          "description": "人物(英雄)死亡后掉落的身上物品立即消失(不掉落在地图中).",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "DELDROPITEM",
+          "description": "人物(英雄)死亡后掉落的身上物品立即消失(不掉落在地图中).",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DIETIME",
+      "engineVariants": {
+        "GEE": {
+          "label": "DIETIME(10)",
+          "description": "当前地图人物死亡多长时间后自动掉线,DIETIME(时间秒),加入此项后,M2上的时间设置对当前地图无效!",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DISABLECALLHERO",
+      "engineVariants": {
+        "GEE": {
+          "label": "DisableCallHero",
+          "description": "禁止召唤英雄，已召唤英雄不受影响",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "DROPITEMADDUSERBAG",
+      "engineVariants": {
+        "GEE": {
+          "label": "DROPITEMADDUSERBAG(破魂|降魔)",
+          "description": "怪物死亡掉落物品直接进入玩家背包,多件物品使用 | 隔开",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "EXPRATE",
+      "engineVariants": {
+        "GOM": {
+          "label": "EXPRATE(100)",
+          "description": "进入本地图后杀怪经验倍数 格式：EXPRATE(100) 说明：100代表经验倍数，除以100后为实际倍数。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "EXPRATE(100)",
+          "description": "进入本地图后杀怪经验倍数 格式：EXPRATE(100) 说明：100代表经验倍数，除以100后为实际倍数。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "EXPRATE(100)",
+          "description": "进入本地图后杀怪经验倍数 格式：EXPRATE(100) 说明：100代表经验倍数，除以100后为实际倍数。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "FB",
+      "engineVariants": {
+        "GOM": {
+          "label": "FB(数量,副本名称,模式,延时进入分钟,空图回收秒)",
+          "description": "配置副本模板；脚本再使用 CREATEECTYPE、MOVEECTYPE 等命令创建和进入副本。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/副本地图使用说明.htm"
+          }
+        },
+        "GEE": {
+          "label": "FB(40,祖玛副本,0,1)",
+          "description": "FB(40,祖玛副本,0,1)创建40个祖玛副本地图 第3个参数：0:限制队友必须有三职业; 1:不限制职业，队友都可进; 2:只允许自己进入; 3:允许行会进入 第4个参数：副本创建1分钟后(未收回时)，允许延时进入副本时间(分)系统默认时间为1分钟.此参数为在1分钟时间基础上延长多少分,第5个参数默认留空，表示当角色退出副本地图后删除副本时间，留空默认10秒",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "FIGHT",
+      "engineVariants": {
+        "GOM": {
+          "label": "FIGHT",
+          "description": "杀人不加PK值 死亡不掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "FIGHT",
+          "description": "此参数地图不犯法，不爆装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "FIGHT",
+          "description": "杀人不加PK值 死亡不掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "FIGHT2",
+      "engineVariants": {
+        "GOM": {
+          "label": "FIGHT2",
+          "description": "杀人不加PK值 死亡掉装备 适合用来做一些战争PK的地图",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "FIGHT2",
+          "description": "杀人不犯法.但是会爆装备.适合用来做一些战争PK的地图",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "FIGHT2",
+          "description": "杀人不加PK值 死亡掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "FIGHT3",
+      "engineVariants": {
+        "GOM": {
+          "label": "FIGHT3(是否掉装备)",
+          "description": "行会战地图 进入该地图名字颜色会变色，杀人不加PK。格式:FIGHT3(0) 死亡不掉装备 格式:FIGHT3(1) 死亡掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "FIGHT3(是否掉装备)",
+          "description": "行会战地图进入该地图名字颜色会变色，杀人不加PK。格式:FIGHT3(0) 死亡不掉装备 格式:FIGHT3(1) 死亡掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "FIGHT3(是否掉装备)",
+          "description": "行会战地图 进入该地图名字颜色会变色，杀人不加PK。格式:FIGHT3(0) 死亡不掉装备 格式:FIGHT3(1) 死亡掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "FIGHT4",
+      "engineVariants": {
+        "GOM": {
+          "label": "FIGHT4",
+          "description": "挑战地图 杀人不加PK 死亡不掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "FIGHT4",
+          "description": "挑战地图",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "FIGHT4",
+          "description": "挑战地图 杀人不加PK 死亡不掉装备",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "FIGHT5",
+      "engineVariants": {
+        "GOM": {
+          "label": "FIGHT5(是否掉装备)",
+          "description": "国战地图 （FIGHT5(0)，不掉落，FIGHT5(1) 掉落） 进入该地图名字颜色会变色 不增加PK值",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "FLAME",
+      "engineVariants": {
+        "GEE": {
+          "label": "FLAME(45:82:50|43:84:50)",
+          "description": "FLAME(45:82:50|43:84:50)参数说明:x坐标：y坐标：伤害 可以为多坐标以|分隔",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "FLAME(45:82:50|43:84:50)",
+          "description": "FLAME(45:82:50|43:84:50)参数说明:x坐标：y坐标：伤害 可以为多坐标以|分隔",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "GREATTHUNDER",
+      "engineVariants": {
+        "GOM": {
+          "label": "GREATTHUNDER(威力)",
+          "description": "大雷电，群体攻击 扩展攻击算法(10|1)字符|后面的1、2、3、4分别为：被攻击人物最大血量的百分比 THUNDER(10|1)、千分比 THUNDER(10|2)、万分比 THUNDER(10|3)、真实伤害 THUNDER(100000|4)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "HITMON",
+      "engineVariants": {
+        "GOM": {
+          "label": "HITMON(触发字段)",
+          "description": "攻击怪物触发。例:HITMON(@攻击) 攻击怪物会触发QF脚本的[@攻击]字段 [@KILLMON] 不限制地图任何地图杀怪都触发",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "HITMON(触发字段)",
+          "description": "攻击怪物触发。例:HITMON(@攻击) 攻击怪物会触发QF脚本的[@攻击]字段",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "HITMON(@触发标签)",
+          "description": "检查正在攻击中的怪物名字",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/兼容HeroM2/脚本检测命令/检查正在攻击中的怪物名字.htm",
+            "title": "检查正在攻击中的怪物名字",
+            "evidenceLine": 3
+          }
+        }
+      }
+    },
+    {
+      "id": "HORSE",
+      "engineVariants": {
+        "GOM": {
+          "label": "HORSE",
+          "description": "允许骑马",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "HUMAFMMODE",
+      "engineVariants": {
+        "GOM": {
+          "label": "HumAFMMode(模式|范围)",
+          "description": "人物攻击过滤掩码地图模式，人物包含英雄、宝宝和人物下属，格式：HumAFMMode(模式|范围)。双方掩码均大于255时生效；1|1=掩码不匹配或目标是怪物，1|2=掩码不匹配或目标是人物，1|3=掩码不匹配生物；2|1=掩码匹配并且目标是人物，2|2=掩码匹配并且目标是怪物，2|3=掩码匹配的生物；3|1=目标是怪物(忽略掩码)，3|2=目标是人物(忽略掩码)，3|3=所有攻击无效。例：[D502 祖玛寺庙二层] HumAFMMode(2|3)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "INCGAMEGOLD",
+      "engineVariants": {
+        "GOM": {
+          "label": "INCGAMEGOLD(1/10)",
+          "description": "进入本地图后自动加游戏币 格式：INCGAMEGOLD(1/10) 说明 1/10 1代表加的间隔(秒)，10代表一次加多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "INCGAMEGOLD(1/10)",
+          "description": "进入本地图后自动加游戏币 格式：INCGAMEGOLD(1/10) 说明 1/10 1代表加的间隔(秒)，10代表一次加多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "INCGAMEGOLD(1/10)",
+          "description": "进入本地图后自动加游戏币 格式：INCGAMEGOLD(1/10) 说明 1/10 1代表加的间隔(秒)，10代表一次加多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "INCGAMEPOINT",
+      "engineVariants": {
+        "GOM": {
+          "label": "INCGAMEPOINT(1/10)",
+          "description": "进入本地图后自动加游戏点 格式：INCGAMEPOINT(1/10) 说明 1/10 1代表加的间隔(秒)，10代表一次加多少点；(用于游戏泡点功能)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "INCGAMEPOINT(1/10)",
+          "description": "进入本地图后自动加游戏点 格式：INCGAMEPOINT(1/10) 说明 1/10 1代表加的间隔(秒)，10代表一次加多少点；(用于游戏泡点功能)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "INCGAMEPOINT(1/10)",
+          "description": "进入本地图后自动加游戏点 格式：INCGAMEPOINT(1/10) 说明 1/10 1代表加的间隔(秒)，10代表一次加多少点；(用于游戏泡点功能)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "INCHP",
+      "engineVariants": {
+        "GOM": {
+          "label": "INCHP(1/10)",
+          "description": "进入本地图后自动加HP 格式：INCHP(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次加多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "INCHP(1/10)",
+          "description": "进入本地图后自动加HP 格式：INCHP(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次加多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "INCHP(1/10)",
+          "description": "进入本地图后自动加HP 格式：INCHP(1/10) 说明 1/10 1代表减的间隔(秒)，10代表一次加多少点；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "INCMONEY",
+      "engineVariants": {
+        "996PC": {
+          "label": "INCMONEY(元宝/1/10/@XX)",
+          "description": "进入本地图后自动加游戏币 格式：INCMONEY(元宝/1/10/@XX) 说明 货币名称或ID/1/10 1代表加的间隔(秒)，10代表一次加多少点；触发QFunction-0.txt [@XX] XX可以随便写对应就好",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "LAVA",
+      "engineVariants": {
+        "GOM": {
+          "label": "LAVA(威力)",
+          "description": "喷岩浆，群体攻击 扩展攻击算法(10|1)字符|后面的1、2、3、4分别为：被攻击人物最大血量的百分比 THUNDER(10|1)、千分比 THUNDER(10|2)、万分比 THUNDER(10|3)、真实伤害 THUNDER(100000|4)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "LAVA(10)",
+          "description": "例:LAVA(10) 此地图地上冒岩浆,击中减HP为10",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "LAVA(10)",
+          "description": "例:LAVA(10) 此地图地上冒岩浆,击中减HP为10",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "LIGHTCOLOR",
+      "engineVariants": {
+        "996PC": {
+          "label": "lightcolor(74|231|74)",
+          "description": "地图光效渲染可自由编辑RGB颜色，可以实现各种场景的光效 例如:恐怖惨绿色lightcolor(74|231|74) 熔岩洞窟火红色lightcolor(220|0|0)等等",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "MAXPLAYER",
+      "engineVariants": {
+        "996PC": {
+          "label": "maxplayer(3)",
+          "description": "示例1:[g003 足球场] maxplayer(3)//当前地图人数达到3自动创建镜像地图 示例2:[jxdt|g003 足球场] maxplayer(3)//必须要有示例1的g003地图 创建的镜像根据mongen.txt进行刷怪(注:镜像引擎重启自动删除,创建的地图过多会导致卡崩溃,不能当个人镜像使用)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "MINE",
+      "engineVariants": {
+        "GOM": {
+          "label": "MINE",
+          "description": "可以挖矿",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "MINE",
+          "description": "可以挖矿",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "MINE",
+          "description": "可以挖矿",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "MISSION",
+      "engineVariants": {
+        "GOM": {
+          "label": "MISSION",
+          "description": "不允许使用任何物品和技能，并且宝宝在该地图会自动消失，不能攻击",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "MISSION",
+          "description": "不允许使用任何物品和技能，并且宝宝在该地图会自动消失，不能攻击",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "MISSION",
+          "description": "不允许使用任何物品和技能，并且宝宝在该地图会自动消失，不能攻击",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "MONAFMMODE",
+      "engineVariants": {
+        "GOM": {
+          "label": "MonAFMMode(模式|范围)",
+          "description": "怪物攻击过滤掩码地图模式，格式：MonAFMMode(模式|范围)。双方掩码均大于255时生效；模式：1=怪物不能攻击掩码匹配的目标，2=怪物只能攻击掩码匹配的目标，3=怪物不能攻击带攻击掩码的目标；范围：1=人物，2=怪物，3=生物。例：[D502 祖玛寺庙二层] MonAFMMode(1|3)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "MONRANDOMADDVALUE",
+      "engineVariants": {
+        "996PC": {
+          "label": "MONRANDOMADDVALUE(1-100)",
+          "description": "配置当前地图怪物爆出极品几率,数字越小几率越大,1是最大，优先走地图参数几率,没有配置的地图极品几率走M2上的极品几率",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "MUSIC",
+      "engineVariants": {
+        "GOM": {
+          "label": "MUSIC(Wav\\bg.mp3)",
+          "description": "进入入本地图播放音乐 格式：MUSIC(Wav\\bg.mp3) 或者 MUSIC(Wav\\sellect-loop2.wav)代表客户端Wav目录下的sellect-loop2.wav文件",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "MUSIC(..\\Wav\\bg.mp3)",
+          "description": "进入入本地图播放音乐 格式：MUSIC(..\\Wav\\bg.mp3) 或者 MUSIC(.\\Wav\\sellect-loop2.wav)代表客户端Wav文件下的sellect-loop2.wav文件",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "MUSIC(Wav\\bg.mp3)",
+          "description": "进入入本地图播放音乐 格式：MUSIC(Wav\\bg.mp3) 或者 MUSIC(Wav\\sellect-loop2.wav)代表客户端Wav目录下的sellect-loop2.wav文件",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEEDHOLE",
+      "engineVariants": {
+        "GOM": {
+          "label": "NEEDHOLE",
+          "description": "进入需要洞",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NEEDHOLE",
+          "description": "进入需要洞",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NEEDHOLE",
+          "description": "进入需要洞",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEEDLEVELTIME",
+      "engineVariants": {
+        "GOM": {
+          "label": "NEEDLEVELTIME",
+          "description": "没到指定等级时不让进入，发送string.ini里的NeedLevelToXYErrorMsg提示可以自行修改",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NEEDLEVELTIME",
+          "description": "没到指定等级时不让进入，发送string.ini里的NeedLevelToXYErrorMsg提示可以自行修改",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NEEDLEVELTIME",
+          "description": "没到指定等级时不让进入，发送string.ini里的NeedLevelToXYErrorMsg提示可以自行修改",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEEDSET_OFF",
+      "engineVariants": {
+        "GOM": {
+          "label": "NEEDSET_OFF(001)",
+          "description": "进入本地图需要人物指定标志为关闭状态 格式：NEEDSET_OFF(001) 说明：001 代表人物标志",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NEEDSET_OFF(001)",
+          "description": "进入本地图需要人物指定标志为关闭状态格式：NEEDSET_OFF(001) 说明：001 代表人物标志",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NEEDSET_OFF(001)",
+          "description": "进入本地图需要人物指定标志为关闭状态 格式：NEEDSET_OFF(001) 说明：001 代表人物标志",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NEEDSET_ON",
+      "engineVariants": {
+        "GOM": {
+          "label": "NEEDSET_ON(001)",
+          "description": "进入本地图需要人物指定标志为打开状态 格式：NEEDSET_ON(001) 说明：001 代表人物标志",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NEEDSET_ON(001)",
+          "description": "进入本地图需要人物指定标志为打开状态格式：NEEDSET_ON(001) 说明：001 代表人物标志",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NEEDSET_ON(001)",
+          "description": "进入本地图需要人物指定标志为打开状态 格式：NEEDSET_ON(001) 说明：001 代表人物标志",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NGEXPRATE",
+      "engineVariants": {
+        "GOM": {
+          "label": "NGEXPRATE(数值)",
+          "description": "内功经验倍数(100代表经验倍数，除以100后为实际倍数)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NGEXPRATE(数值)",
+          "description": "内功经验倍数(100代表经验倍数，除以100后为实际倍数)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NGEXPRATE(数值)",
+          "description": "内功经验倍数(100代表经验倍数，除以100后为实际倍数)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NIGHT",
+      "engineVariants": {
+        "GOM": {
+          "label": "NIGHT",
+          "description": "该参数与M2内挂设置配合使用，当M2设置免蜡烛时凡是地图带NIGHT开启天气效果，M2取消免蜡烛时不带该参数的地图天启天气效果",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NIGHT",
+          "description": "该参数与M2禁止免蜡无关联，凡是地图参数包含NIGHT那么该地图就开启天气效果（不受禁止免蜡控制）",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NIGHT",
+          "description": "该参数与M2内挂设置配合使用，当M2设置免蜡烛时凡是地图带NIGHT开启天气效果，M2取消免蜡烛时不带该参数的地图天启天气效果",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOALLOWUSEITEMS",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOALLOWUSEITEMS(回城卷,随机传送卷)",
+          "description": "不允许使用物品NOALLOWUSEITEMS(回城卷,随机传送卷)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOALLOWUSEITEMS(回城卷,随机传送卷)",
+          "description": "不允许使用物品NOALLOWUSEITEMS(回城卷,随机传送卷)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOALLOWUSEITEMS(回城卷,随机传送卷)",
+          "description": "不允许使用物品NOALLOWUSEITEMS(回城卷,随机传送卷)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOAUTODROPITEMTOBAG",
+      "engineVariants": {
+        "GEE": {
+          "label": "NoAutoDropItemToBag",
+          "description": "禁止OpenAutoDropItemToBag命令物品自动入包",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOAUTOONLINE",
+      "engineVariants": {
+        "GEE": {
+          "label": "NoAutoOnline",
+          "description": "当前地图禁止挂机",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOAUTORANGEPICKITEM",
+      "engineVariants": {
+        "GEE": {
+          "label": "NoAutoRangePickItem",
+          "description": "禁止OpenAutoPickItem命令范围拾取",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOCALLHERO",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOCALLHERO",
+          "description": "禁止召唤英雄，已召唤英雄将自动消失",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOCALLHERO",
+          "description": "禁止召唤英雄，已召唤英雄将自动消失",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOCALLHERO",
+          "description": "禁止召唤英雄，已召唤英雄将自动消失",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOCALLPET",
+      "engineVariants": {
+        "GEE": {
+          "label": "NoCallPet",
+          "description": "禁止召唤宠物，已召唤宠物将自动收回",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOCHALLENGE",
+      "engineVariants": {
+        "GEE": {
+          "label": "NOCHALLENGE",
+          "description": "当前地图禁止挑战",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NODEAL",
+      "engineVariants": {
+        "GOM": {
+          "label": "NODEAL",
+          "description": "禁止交易",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NoDeal",
+          "description": "禁止交易",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NODEAL",
+          "description": "禁止交易",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NODEARRECALL",
+      "engineVariants": {
+        "GOM": {
+          "label": "NODEARRECALL",
+          "description": "禁止夫妻召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NODEARRECALL",
+          "description": "禁止夫妻召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NODEARRECALL",
+          "description": "禁止夫妻召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NODROPITEM",
+      "engineVariants": {
+        "GEE": {
+          "label": "NODROPITEM",
+          "description": "禁止死亡爆装备、物品(怪除外)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NODROPITEMFILENAME",
+      "engineVariants": {
+        "GOM": {
+          "label": "NODROPITEMFILENAME(QuestDiary\\禁止扔物品列表.txt)",
+          "description": "禁止某个地图扔某个物品 例如：NODROPITEMFILENAME(QuestDiary\\禁止扔物品列表.txt) 禁止扔物品列表.txt 这个里面就是禁止扔的物品名称",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NODROPITEMFILENAME(QuestDiary\\禁止扔物品列表.txt)",
+          "description": "禁止某个地图扔某个物品 例如：NODROPITEMFILENAME(QuestDiary\\禁止扔物品列表.txt) 禁止扔物品列表.txt 这个里面就是禁止扔的物品名称",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NODROPUSEITEMS",
+      "engineVariants": {
+        "GOM": {
+          "label": "NODROPUSEITEMS",
+          "description": "当前地图人物死亡不掉落身上的物品",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NODROPUSEITEMS",
+          "description": "当前地图人物死亡不掉落身上的物品",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NODROPUSEITEMS",
+          "description": "当前地图人物死亡不掉落身上的物品",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NODRUG",
+      "engineVariants": {
+        "GOM": {
+          "label": "NODRUG",
+          "description": "禁止吃药",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NODRUG",
+          "description": "禁止使用任何药品",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NODRUG",
+          "description": "禁止吃药",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOGUILDRECALL",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOGUILDRECALL",
+          "description": "禁止行会召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOGUILDRECALL",
+          "description": "禁止行会召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOGUILDRECALL",
+          "description": "禁止行会召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOHEROPROTECT",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOHEROPROTECT",
+          "description": "为禁止英雄守护",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOHEROPROTECT",
+          "description": "禁止英雄守护",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOHEROPROTECT",
+          "description": "为禁止英雄守护",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOHORSE",
+      "engineVariants": {
+        "GEE": {
+          "label": "NOHORSE",
+          "description": "当前地图禁止骑马",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOHORSE",
+          "description": "禁止骑马",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOMANNOMON",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOMANNOMON(120)",
+          "description": "智能刷怪，当地图无人时清理怪物，有人时重新刷怪 (写NOMANNOMON(120)表示120秒后清理，只写NOMANNOMON则取怪物设置里的清理时间) ， 1.引擎-选项-怪物设置清理时间和是否记录清理数量(记录后按上次的数量刷怪)。 2.引擎-选项-性能参数-勾选新的刷怪模式，重启生效。 建议刷怪总数超过3万的版本使用该功能，可减少CPU、内存占用。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOMANNOMON",
+          "description": "智能刷怪，当地图无人时清理怪物，有人时重新刷怪，此功能需在M2怪物设置开启",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOMANNOMON(60)",
+          "description": "地图没有人时，自动清理怪物(cfg_monster.xls表ISBOSS列标记为BOSS的除外)默认60秒，清理时间建议大于这个地图的刷怪时间 避免进入地图没有怪物。刷怪总数超过5万建议使用该参数可有效减少内存占有率 刷怪数量可以通过日志文件\\Mir200\\Log\\data_xxxxx.txt进行查看",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOMASTERRECALL",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOMasterRECALL",
+          "description": "禁止师徒传送",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOMasterRECALL",
+          "description": "禁止师徒传送",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOMasterRECALL",
+          "description": "禁止师徒传送",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOPOSITIONMOVE",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOPOSITIONMOVE",
+          "description": "禁止定座标移动、传送戒指、坐标传送",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOPOSITIONMOVE",
+          "description": "禁止定座标移动、传送戒指、坐标传送",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOPOSITIONMOVE",
+          "description": "禁止定座标移动",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NORANDOMMOVE",
+      "engineVariants": {
+        "GOM": {
+          "label": "NORANDOMMOVE",
+          "description": "禁止随机传送 禁止使用瞬息移动",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NORANDOMMOVE",
+          "description": "禁止随机传送;瞬息移动",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NORANDOMMOVE",
+          "description": "禁止使用瞬息移动",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NORECALL",
+      "engineVariants": {
+        "GOM": {
+          "label": "NORECALL",
+          "description": "禁止记忆召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NORECALL",
+          "description": "禁止记忆召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NORECALL",
+          "description": "禁止记忆召唤",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NORECONNECT",
+      "engineVariants": {
+        "GOM": {
+          "label": "NORECONNECT(3)",
+          "description": "进游戏时退出本地图 格式:NORECONNECT(3) 说明：3 代表地图号盟重",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NORECONNECT(3)",
+          "description": "进游戏时退出本地图 格式:NORECONNECT(3) 说明：3 代表地图号盟重",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NORECONNECT(3)",
+          "description": "进游戏时退出本地图 格式:NORECONNECT(3) 说明：3 代表地图号盟重",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NORUNHUMAN",
+      "engineVariants": {
+        "GOM": {
+          "label": "NORUNHUMAN",
+          "description": "禁止穿人",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NORUNHUMAN",
+          "description": "禁止穿人",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NORUNHUMAN",
+          "description": "禁止穿人",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NORUNMON",
+      "engineVariants": {
+        "GOM": {
+          "label": "NORUNMON",
+          "description": "禁止穿怪",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NORUNMON",
+          "description": "禁止穿怪",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NORUNMON",
+          "description": "禁止穿怪",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOSAFEPOSITIONMOVE",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOSAFEPOSITIONMOVE",
+          "description": "禁止在当前地图安全区中使用传送戒指",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOSAFEPOSITIONMOVE",
+          "description": "禁止在当前地图安全区中使用传送戒指",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOSAFEPOSITIONMOVE",
+          "description": "禁止在当前地图安全区中使用传送戒指",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOSHOP",
+      "engineVariants": {
+        "GEE": {
+          "label": "NoShop",
+          "description": "禁止使用商铺",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOSWITCHATTACKMODE",
+      "engineVariants": {
+        "GEE": {
+          "label": "NOSWITCHATTACKMODE(1)",
+          "description": "锁定攻击模式1-8（0或无括号表示不锁定）",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOTALLOWUSEITEMS",
+      "engineVariants": {
+        "GEE": {
+          "label": "NOTALLOWUSEITEMS",
+          "description": "禁止使用物品 说明：NOALLOWUSEITEMS(回城卷|强效金创药)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOTALLOWUSEITEMS",
+          "description": "禁止使用物品 说明：NOALLOWUSEITEMS(回城卷|强效金创药)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOTALLOWUSEMAGIC",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOTALLOWUSEMAGIC(火墙|彻地钉)",
+          "description": "禁止使用技能 说明：NOTALLOWUSEMAGIC(火墙|彻地钉)。玩家进入地图时，如果飞剑等开关技能已开启且在禁止列表中，将自动关闭。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "NOTALLOWUSEMAGIC(火墙|彻地钉)",
+          "description": "禁止使用技能 说明：NOTALLOWUSEMAGIC(火墙|彻地钉)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOTALLOWUSEMAGIC(火墙|彻地钉)",
+          "description": "禁止使用技能 说明：NOTALLOWUSEMAGIC(火墙|彻地钉)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOTHROWITEM",
+      "engineVariants": {
+        "GEE": {
+          "label": "NOTHROWITEM",
+          "description": "禁止丢物品(连金币都不可以)!",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOTSTONE",
+      "engineVariants": {
+        "GEE": {
+          "label": "NOTSTONE",
+          "description": "当前地图魔血石、气血石、幻魔石无效!",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOUSESNDASHOP",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOUSESNDASHOP",
+          "description": "禁止某个地图购买商铺物品",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOUSESNDASHOP",
+          "description": "禁止某个地图购买商铺物品",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOUSESTORAGE",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOUSESTORAGE",
+          "description": "禁止某个地图使用仓库，无法寄存和取回",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "NOUSESTORAGE",
+          "description": "禁止某个地图使用仓库，无法寄存和取回",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "ONKILLMON",
+      "engineVariants": {
+        "GOM": {
+          "label": "ONKILLMON",
+          "description": "杀死怪物时触发,对应地图参数中需要加入ONKILLMON才可生效!",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "ONKILLMON",
+          "description": "杀死怪物时启用对应的 QFunction 触发。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "ONKILLMON",
+          "description": "杀死怪物时触发,对应地图参数中需要加入ONKILLMON才可生效!",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "PKLOSTEXP",
+      "engineVariants": {
+        "GOM": {
+          "label": "PKLOSTEXP",
+          "description": "进入本地图后可以PK死亡掉经验 格式：PKLOSTEXPP(1000) 说明：1000代表掉多少经验；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "PKLOSTEXP",
+          "description": "进入本地图后可以PK死亡掉经验 格式：PKLOSTEXPP(1000) 说明：1000代表掉多少经验；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "PKLOSTEXP",
+          "description": "进入本地图后可以PK死亡掉经验 格式：PKLOSTEXPP(1000) 说明：1000代表掉多少经验；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "PKLOSTLEVEL",
+      "engineVariants": {
+        "GOM": {
+          "label": "PKLOSTLEVEL(1)",
+          "description": "进入本地图后可以PK死亡掉等级 格式：PKLOSTLEVEL(1) 说明：1代表掉多少等级；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "PKLOSTLEVEL(1)",
+          "description": "进入本地图后可以PK死亡掉等级 格式：PKLOSTLEVEL(1) 说明：1代表掉多少等级；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "PKLOSTLEVEL(1)",
+          "description": "进入本地图后可以PK死亡掉等级 格式：PKLOSTLEVEL(1) 说明：1代表掉多少等级；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "PKWINEXP",
+      "engineVariants": {
+        "GOM": {
+          "label": "PKWINEXP(1000)",
+          "description": "进入本地图后可以PK得经验 格式：PKWINEXP(1000) 说明：1000代表得多少经验；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "PKWINEXP(1000)",
+          "description": "进入本地图后可以PK得经验 格式：PKWINEXP(1000) 说明：1000代表得多少经验；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "PKWINEXP(1000)",
+          "description": "进入本地图后可以PK得经验 格式：PKWINEXP(1000) 说明：1000代表得多少经验；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "PKWINLEVEL",
+      "engineVariants": {
+        "GOM": {
+          "label": "PKWINLEVEL(1)",
+          "description": "进入本地图后可以PK升级 格式：PKWINLEVEL(1) 说明：1代表升多少级；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "PKWINLEVEL(1)",
+          "description": "进入本地图后可以PK升级 格式：PKWINLEVEL(1) 说明：1代表升多少级；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "PKWINLEVEL(1)",
+          "description": "进入本地图后可以PK升级 格式：PKWINLEVEL(1) 说明：1代表升多少级；",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "PULSEXPRATE",
+      "engineVariants": {
+        "GOM": {
+          "label": "PULSEXPRATE(数值)",
+          "description": "经络经验倍数(100代表经验倍数，除以100后为实际倍数)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "PULSEXPRATE(数值)",
+          "description": "经络经验倍数(100代表经验倍数，除以100后为实际倍数)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "PULSEXPRATE(数值)",
+          "description": "经络经验倍数(100代表经验倍数，除以100后为实际倍数)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "QUIZ",
+      "engineVariants": {
+        "GOM": {
+          "label": "QUIZ",
+          "description": "禁止喊话",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "QUIZ",
+          "description": "禁止喊话",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "QUIZ",
+          "description": "禁止喊话",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "REVIVAL",
+      "engineVariants": {
+        "GOM": {
+          "label": "REVIVAL(X:N)",
+          "description": "当前地图人物可复活的次数,X表示复活次数,N表示人物在当前地图已经复活次数的自动清零间隔(最小30秒).具体表示:每经过指定秒人物在当前地图复活过的次数自动减1.",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "REVIVAL(X/N)",
+          "description": "当前地图人物可复活的次数,X表示复活次数(X设置0为禁止复活),N表示人物在当前地图已经复活次数的自动清零间隔(最小30秒).具体表示:设定多少秒内允许复活次数,达到指定时间后重新计数.",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "REVIVAL(X:N)",
+          "description": "当前地图人物可复活的次数,X表示复活次数,N表示人物在当前地图已经复活次数的自动清零间隔(最小30秒).具体表示:每经过指定秒人物在当前地图复活过的次数自动减1.",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "RUNHUMAN",
+      "engineVariants": {
+        "GOM": {
+          "label": "RUNHUMAN",
+          "description": "允许穿人",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "RUNHUMAN",
+          "description": "允许穿人",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "RUNHUMAN",
+          "description": "允许穿人",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "RUNMON",
+      "engineVariants": {
+        "GOM": {
+          "label": "RUNMON",
+          "description": "允许穿怪",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "RUNMON",
+          "description": "允许穿怪",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "RUNMON",
+          "description": "允许穿怪",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "SAFE",
+      "engineVariants": {
+        "GOM": {
+          "label": "Safe",
+          "description": "此地图为安全地图，不可PK，类似安全区",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "Safe",
+          "description": "此地图为安全地图，不可PK类似安全区",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "SAFE",
+          "description": "安全地图",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "SAYLEVEL",
+      "engineVariants": {
+        "GOM": {
+          "label": "SAYLEVEL(等级)",
+          "description": "限制当前地图人物说话等级。",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "SAYLEVEL(等级)",
+          "description": "可限制当前地图人物说话等级.",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "SAYLEVEL(等级)",
+          "description": "可限制当前地图人物说话等级.",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "SHOWNATIONCOLOR",
+      "engineVariants": {
+        "GEE": {
+          "label": "SHOWNATIONCOLOR(1)",
+          "description": "强制显示国家颜色（游戏参数——》状态控制 中设置名字颜色）SHOWNATIONCOLOR(1)不含怪物,去掉(1)则包含怪物",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "SLAVENOTATTACKHERO",
+      "engineVariants": {
+        "GEE": {
+          "label": "SLAVENOTATTACKHERO",
+          "description": "宝宝不攻击英雄",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "SLAVENOTATTACKHUMAN",
+      "engineVariants": {
+        "GEE": {
+          "label": "SLAVENOTATTACKHUMAN",
+          "description": "宝宝不攻击人物",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "SPURT",
+      "engineVariants": {
+        "GOM": {
+          "label": "SPURT(威力)",
+          "description": "喷气，群体攻击 扩展攻击算法(10|1)字符|后面的1、2、3、4分别为：被攻击人物最大血量的百分比 THUNDER(10|1)、千分比 THUNDER(10|2)、万分比 THUNDER(10|3)、真实伤害 THUNDER(100000|4)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "THUNDER",
+      "engineVariants": {
+        "GOM": {
+          "label": "THUNDER(威力)",
+          "description": "雷电，单体攻击 扩展攻击算法(10|1)字符|后面的1、2、3、4分别为：被攻击人物最大血量的百分比 THUNDER(10|1)、千分比 THUNDER(10|2)、万分比 THUNDER(10|3)、真实伤害 THUNDER(100000|4)",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "GEE": {
+          "label": "THUNDER(10)",
+          "description": "例:THUNDER(10) 此地图有闪电效果,击中减hp为10",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "THUNDER(10)",
+          "description": "例:THUNDER(10) 此地图有闪电效果,击中减hp为10",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "TIMEMAP",
+      "engineVariants": {
+        "996PC": {
+          "label": "TimeMap(3|5|1|@计时地图返回)",
+          "description": "使用地图参数限制角色在地图内时间 格式:TimeMap(3|5|1|@计时地图返回) 参数一到时间返回的地图代码#多个地图分成组设置同ID(同ID下共用一个倒计时时间) 参数二 倒计时时间分钟计算 参数三 是否显示当前地图剩余倒计时 参数四 退出地图触发QF字段",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "WEATHER1",
+      "engineVariants": {
+        "GOM": {
+          "label": "WEATHER1",
+          "description": "天气效果1 读取Effect_SE.wzl",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "WEATHER1",
+          "description": "天气效果1 读取Effect_SE.wzl",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "WEATHER2",
+      "engineVariants": {
+        "GOM": {
+          "label": "WEATHER2",
+          "description": "天气效果2 读取Effect_SE.wzl",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "WEATHER2",
+          "description": "天气效果2 读取Effect_SE.wzl",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "WEATHER3",
+      "engineVariants": {
+        "GOM": {
+          "label": "WEATHER3",
+          "description": "天气效果3 读取Effect_SE.wzl",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        },
+        "996PC": {
+          "label": "WEATHER3",
+          "description": "天气效果3 读取Effect_SE.wzl",
+          "source": {
+            "revision": "2026-07-23",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm"
+          }
+        }
+      }
+    },
+    {
+      "id": "NOEXPRATE",
+      "engineVariants": {
+        "GOM": {
+          "label": "NOEXPRATE",
+          "description": "新增地图参数：NOEXPRATE 杀怪经验倍数无效 NOHIGHLVEXP",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "UpDate.htm",
+            "title": "GameOfMir2025-2026年更新记录",
+            "evidenceLine": 678
+          }
+        }
+      }
+    },
+    {
+      "id": "PKLOSTEXPP",
+      "engineVariants": {
+        "GOM": {
+          "label": "PKLOSTEXPP(死亡掉落经验)",
+          "description": "地图参数表",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm",
+            "title": "地图参数表",
+            "evidenceLine": 21
+          }
+        },
+        "GEE": {
+          "label": "PKLOSTEXPP(死亡掉落经验)",
+          "description": "地图参数详解[!]",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm",
+            "title": "地图参数详解[!]",
+            "evidenceLine": 32
+          }
+        },
+        "996PC": {
+          "label": "PKLOSTEXPP(死亡掉落经验)",
+          "description": "地图参数表",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm",
+            "title": "地图参数表",
+            "evidenceLine": 23
+          }
+        }
+      }
+    },
+    {
+      "id": "REVIVALREVIVAL",
+      "engineVariants": {
+        "GOM": {
+          "label": "REVIVALREVIVAL(X:N)",
+          "description": "增加地图参数 REVIVALREVIVAL(X:N)",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "UpDate2012-2015.htm",
+            "title": "2010-2015年更新记录",
+            "evidenceLine": 3641
+          }
+        },
+        "GEE": {
+          "label": "REVIVALREVIVAL(X:N)",
+          "description": "增加地图参数 REVIVALREVIVAL(X:N) 当前地图人物可复活的次数,",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "UpDate.htm",
+            "title": "翎风引擎历史更新记录",
+            "evidenceLine": 7339
+          }
+        }
+      }
+    },
+    {
+      "id": "SECRET",
+      "engineVariants": {
+        "GOM": {
+          "label": "SECRET(模式|固定名字|参数3|参数4)",
+          "description": "自定义装备外显",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/功能操作命令/自定义装备外显.htm",
+            "title": "自定义装备外显",
+            "evidenceLine": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "NOAUCTION",
+      "engineVariants": {
+        "GEE": {
+          "label": "NOAUCTION",
+          "description": "地图参数增加 禁止使用拍卖行的参数 NOAUCTION",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "UpDate.htm",
+            "title": "翎风引擎历史更新记录",
+            "evidenceLine": 3081
+          }
+        }
+      }
+    },
+    {
+      "id": "PULSEEXPRATE",
+      "engineVariants": {
+        "GEE": {
+          "label": "PULSEEXPRATE(英雄经络经验倍数)",
+          "description": "经络连击[!]",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/游戏功能详解/经络连击[!].htm",
+            "title": "经络连击[!]",
+            "evidenceLine": 89
+          }
+        }
+      }
+    },
+    {
+      "id": "FIGHT6",
+      "engineVariants": {
+        "996PC": {
+          "label": "FIGHT6(是否掉落0/1)",
+          "description": "国家系统",
+          "source": {
+            "revision": "2026-07-26",
+            "page": "游戏引擎反外挂系统/跨服功能/国家系统.htm",
+            "title": "国家系统",
+            "evidenceLine": 117
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Tabulator 6.5.2
+Source: https://github.com/olifolkerd/tabulator/tree/6.5.2
+Package: tabulator-tables@6.5.2
+Files: dist/js/tabulator.min.js, dist/css/tabulator_midnight.min.css, LICENSE

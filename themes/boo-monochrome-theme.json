@@ -1,0 +1,8 @@
+{
+  "name": "BOO Monochrome",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "semanticTokenColors": {
+    "keyword": "#D4D4D4", "keyword.cmd": "#E0E0E0", "keyword.action": "#D4D4D4", "keyword.say": "#80CBC4", "keyword.flow": "#FFFFFF", "keyword.label": "#FF4444", "keyword.path": "#A0A0A0", "variable": "#B0B0B0"
+  }
+}

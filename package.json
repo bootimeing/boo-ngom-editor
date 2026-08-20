@@ -1,0 +1,731 @@
+{
+  "name": "boo-ngom-editor",
+  "displayName": "BOO UI编辑器",
+  "description": "面向传奇类游戏 GM 的 VS Code 开发工具，提供脚本智能提示、UI 可视化编辑、PAK/JPK 读取、数据库与地图查看及 M2 重载。",
+  "version": "4.3.1",
+  "publisher": "boo1213",
+  "author": "boo1213",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bootimeing/boo-ngom-editor.git"
+  },
+  "homepage": "https://github.com/bootimeing/boo-ngom-editor#readme",
+  "bugs": {
+    "url": "https://github.com/bootimeing/boo-ngom-editor/issues"
+  },
+  "engines": {
+    "vscode": "^1.68.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Other"
+  ],
+  "extensionPack": [
+    "MS-CEINTL.vscode-language-pack-zh-hans",
+    "vscode-icons-team.vscode-icons"
+  ],
+  "icon": "resources/icon.png",
+  "activationEvents": [
+    "onLanguage:gomscript",
+    "onLanguage:plaintext",
+    "onView:boo.patchView",
+    "onView:boo.editorView",
+    "onView:boo.dbView",
+    "onView:boo.mapPreviewView",
+    "onView:boo.deepseekView",
+    "onCommand:boo.deepseek.openPanel",
+    "onCommand:boo.deepseek.openInBrowser",
+    "onCommand:boo.deepseek.startServer",
+    "onCustomEditor:boo.tableEditor",
+    "onCustomEditor:boo.xlsEditor",
+    "onCommand:boo.syncToOtherZones",
+    "onCommand:boo.openScriptSync"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "gomscript",
+        "aliases": [
+          "GOM脚本",
+          "BOO脚本",
+          "gomscript"
+        ],
+        "extensions": [
+          ".txt"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "boo.tableEditor",
+        "displayName": "BOO 表格视图",
+        "selector": [
+          {
+            "filenamePattern": "merchant.table"
+          },
+          {
+            "filenamePattern": "mongen.table"
+          }
+        ]
+      },
+      {
+        "viewType": "boo.csvEditor",
+        "displayName": "BOO CSV 编辑器",
+        "selector": [
+          {
+            "filenamePattern": "*.csv"
+          }
+        ]
+      },
+      {
+        "viewType": "boo.xlsEditor",
+        "displayName": "BOO XLS 编辑器",
+        "selector": [
+          {
+            "filenamePattern": "*.xls"
+          }
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gomscript",
+        "scopeName": "source.gomscript",
+        "path": "./syntaxes/gom.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "BOO Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-dark-color-theme.json"
+      },
+      {
+        "label": "BOO Forest",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-forest-theme.json"
+      },
+      {
+        "label": "BOO Ocean",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-ocean-theme.json"
+      },
+      {
+        "label": "BOO Sunset",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-sunset-theme.json"
+      },
+      {
+        "label": "BOO Neon",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-neon-theme.json"
+      },
+      {
+        "label": "BOO Monochrome",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-monochrome-theme.json"
+      },
+      {
+        "label": "BOO Cyberpunk",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-cyberpunk-theme.json"
+      },
+      {
+        "label": "BOO Aurora",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-aurora-theme.json"
+      },
+      {
+        "label": "BOO Ember",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-ember-theme.json"
+      },
+      {
+        "label": "BOO Mint",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-mint-theme.json"
+      },
+      {
+        "label": "BOO Lavender",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-lavender-theme.json"
+      },
+      {
+        "label": "BOO Crimson",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-crimson-theme.json"
+      },
+      {
+        "label": "BOO Steel",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-steel-theme.json"
+      },
+      {
+        "label": "BOO Amber",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-amber-theme.json"
+      },
+      {
+        "label": "BOO Jade",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-jade-theme.json"
+      },
+      {
+        "label": "BOO Violet",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-violet-theme.json"
+      },
+      {
+        "label": "BOO Obsidian",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-obsidian-theme.json"
+      },
+      {
+        "label": "BOO Coral",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-coral-theme.json"
+      },
+      {
+        "label": "BOO Arctic",
+        "uiTheme": "vs-dark",
+        "path": "./themes/boo-arctic-theme.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "boo.openEditor",
+        "title": "BOO: 打开可视化编辑器",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "boo.showStats",
+        "title": "BOO: 显示脚本统计"
+      },
+      {
+        "command": "boo.formatScript",
+        "title": "BOO: 格式化脚本"
+      },
+      {
+        "command": "boo.showColorChart",
+        "title": "BOO: 显示颜色代码表"
+      },
+      {
+        "command": "boo.showEquipSlots",
+        "title": "BOO: 显示装备位置代码表"
+      },
+      {
+        "command": "boo.showStdMode",
+        "title": "BOO: 显示StdMode代码表"
+      },
+      {
+        "command": "boo.quickColor",
+        "title": "BOO: 快速插入颜色代码"
+      },
+      {
+        "command": "boo.stringTransform",
+        "title": "BOO: 大小写智能转换"
+      },
+      {
+        "command": "boo.addVarDesc",
+        "title": "BOO: 添加变量备注"
+      },
+      {
+        "command": "boo.addLineNote",
+        "title": "BOO: 添加行备注"
+      },
+      {
+        "command": "boo.clearLineNotes",
+        "title": "BOO: 清除所有行备注"
+      },
+      {
+        "command": "boo.toggleEngine",
+        "title": "BOO: 切换引擎 (GOM / 翎风 / 996PC)"
+      },
+      {
+        "command": "boo.diagnoseAll",
+        "title": "BOO: 代码审查 (全部文件)"
+      },
+      {
+        "command": "boo.analyzeVariables",
+        "title": "BOO: 变量统计 (全工作区)"
+      },
+      {
+        "command": "boo.batchEditNumbers",
+        "title": "BOO: 批量编辑数值 (加减乘除/递增+)"
+      },
+      {
+        "command": "boo.showAnisSymbols",
+        "title": "BOO: ANIS特殊符号插入"
+      },
+      {
+        "command": "boo.detectEncoding",
+        "title": "BOO: 检测文件编码"
+      },
+      {
+        "command": "boo.openDatabase",
+        "title": "BOO: 数据库编辑器 (物品/怪物/技能)"
+      },
+      {
+        "command": "boo.openMapViewer",
+        "title": "BOO: 地图查看器 (.map文件)"
+      },
+      {
+        "command": "boo.showMapInfo",
+        "title": "BOO: MapInfo 地图参数参考"
+      },
+      {
+        "command": "boo.insertTemplate",
+        "title": "BOO: 插入脚本模板"
+      },
+      {
+        "command": "boo.findUnusedLabels",
+        "title": "BOO: 查找未使用的标签"
+      },
+      {
+        "command": "boo.toUpperCase",
+        "title": "BOO: 英文转大写"
+      },
+      {
+        "command": "boo.toUpperCaseAll",
+        "title": "BOO: 所有脚本英文转大写"
+      },
+      {
+        "command": "boo.openCompletionEditor",
+        "title": "BOO: 代码补全编辑器"
+      },
+      {
+        "command": "boo.autoLoadSettings",
+        "title": "BOO: 助手设置"
+      },
+      {
+        "command": "boo.reloadM2",
+        "title": "BOO: M2重载"
+      },
+      {
+        "command": "boo.scanM2",
+        "title": "BOO: 扫描M2Server菜单"
+      },
+      {
+        "command": "boo.quickFix",
+        "title": "BOO: 自动快速修复"
+      },
+      {
+        "command": "boo.createMissingFile",
+        "title": "BOO: 创建缺失文件"
+      },
+      {
+        "command": "boo.addLabelToFile",
+        "title": "BOO: 添加标签到目标文件"
+      },
+      {
+        "command": "boo.addLabelToCurrentFile",
+        "title": "BOO: 添加标签到当前文件"
+      },
+      {
+        "command": "boo.wrapVariable",
+        "title": "BOO: 变量转STR包裹"
+      },
+      {
+        "command": "boo.retriggerPathComplete",
+        "title": "BOO: 路径补全展开"
+      },
+      {
+        "command": "boo.cleanAllLogs",
+        "title": "BOO: 一键清理所有日志"
+      },
+      {
+        "command": "boo.openFontSettings",
+        "title": "BOO: 字体设置"
+      },
+      {
+        "command": "boo.addToClipboard",
+        "title": "BOO: 加入常用指令"
+      },
+      {
+        "command": "boo.refreshVariables",
+        "title": "刷新变量列表",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "boo.openColorSettings",
+        "title": "BOO: 颜色设置"
+      },
+      {
+        "command": "boo.syncToOtherZones",
+        "title": "同步其他区",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "boo.openScriptSync",
+        "title": "BOO: 脚本同步",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "boo.openQuickFiles",
+        "title": "快捷文件"
+      },
+      {
+        "command": "boo.saveAll",
+        "title": "全部保存"
+      },
+      {
+        "command": "boo.deepseek.openPanel",
+        "title": "DeepSeek: 在右侧打开 AI 助手"
+      },
+      {
+        "command": "boo.deepseek.openInBrowser",
+        "title": "DeepSeek: 在浏览器中打开"
+      },
+      {
+        "command": "boo.deepseek.startServer",
+        "title": "DeepSeek: 启动本地服务"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "boo.wrapVariable",
+        "key": "ctrl+d",
+        "when": "editorTextFocus && editorHasSelection && editorLangId == gomscript"
+      },
+      {
+        "command": "boo.quickFix",
+        "key": "ctrl+q",
+        "when": "editorTextFocus && editorLangId == gomscript"
+      },
+      {
+        "command": "boo.quickColor",
+        "key": "ctrl+f1",
+        "when": "editorTextFocus && editorLangId == gomscript"
+      },
+      {
+        "command": "boo.stringTransform",
+        "key": "alt+shift+u",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "boo.batchEditNumbers",
+        "key": "alt+x",
+        "when": "editorTextFocus && editorHasSelection"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "boo-patch",
+          "title": "补丁管理",
+          "icon": "resources/patch-icon.svg"
+        },
+        {
+          "id": "boo-editor",
+          "title": "BOO 可视化编辑器",
+          "icon": "resources/boo-icon.svg"
+        },
+        {
+          "id": "boo-assistant",
+          "title": "变量列表",
+          "icon": "resources/var-icon.svg"
+        },
+        {
+          "id": "boo-tools",
+          "title": "BOO脚本助手",
+          "icon": "resources/tools-icon.svg"
+        },
+        {
+          "id": "boo-database",
+          "title": "数据库",
+          "icon": "resources/db-icon.svg"
+        },
+        {
+          "id": "boo-clipboard",
+          "title": "常用",
+          "icon": "resources/clipboard-icon.svg"
+        },
+        {
+          "id": "boo-map-preview",
+          "title": "地图预览",
+          "icon": "resources/map-icon.svg"
+        },
+        {
+          "id": "boo-deepseek",
+          "title": "DeepSeek",
+          "icon": "resources/deepseek-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "boo-patch": [
+        {
+          "type": "webview",
+          "id": "boo.patchView",
+          "name": "补丁管理",
+          "visibility": "visible"
+        }
+      ],
+      "boo-clipboard": [
+        {
+          "type": "webview",
+          "id": "boo.clipboardView",
+          "name": "常用脚本指令",
+          "visibility": "visible"
+        }
+      ],
+      "boo-editor": [
+        {
+          "type": "webview",
+          "id": "boo.editorView",
+          "name": "使用教程",
+          "visibility": "visible"
+        }
+      ],
+      "boo-assistant": [
+        {
+          "type": "tree",
+          "id": "boo.varView",
+          "name": "变量列表"
+        }
+      ],
+      "boo-tools": [
+        {
+          "type": "webview",
+          "id": "boo.toolsView",
+          "name": "BOO脚本助手",
+          "visibility": "visible"
+        }
+      ],
+      "boo-database": [
+        {
+          "type": "webview",
+          "id": "boo.dbView",
+          "name": "数据库",
+          "visibility": "visible"
+        }
+      ],
+      "boo-map-preview": [
+        {
+          "type": "webview",
+          "id": "boo.mapPreviewView",
+          "name": "地图预览",
+          "visibility": "visible"
+        }
+      ],
+      "boo-deepseek": [
+        {
+          "type": "webview",
+          "id": "boo.deepseekView",
+          "name": "DeepSeek",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "boo.openQuickFiles",
+          "when": "editorLangId == gomscript",
+          "group": "navigation@1"
+        },
+        {
+          "command": "boo.saveAll",
+          "when": "editorLangId == gomscript",
+          "group": "navigation@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "boo.refreshVariables",
+          "when": "view == boo.varView",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "boo.addToClipboard",
+          "group": "boo@1",
+          "when": "editorHasSelection && editorLangId == gomscript"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "boo.syncToOtherZones",
+          "group": "boo@8",
+          "when": "resourceScheme == file"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "BOO",
+      "properties": {
+        "boo.completionCase": {
+          "type": "string",
+          "enum": [
+            "lowercase",
+            "uppercase",
+            "capitalize"
+          ],
+          "enumDescriptions": [
+            "小写",
+            "大写",
+            "首字母大写"
+          ],
+          "default": "uppercase",
+          "description": "代码补全时命令名称的大小写方式"
+        },
+        "boo.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否在标签定义上方显示引用计数"
+        },
+        "boo.enableFolding": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否启用脚本块代码折叠(#IF块和标签区域)"
+        },
+        "boo.engine": {
+          "type": "string",
+          "enum": [
+            "GOM",
+            "GEE",
+            "996PC"
+          ],
+          "enumDescriptions": [
+            "NGOM引擎(922G)",
+            "翎风引擎",
+            "996PC引擎"
+          ],
+          "default": "GOM",
+          "description": "选择当前使用的传奇引擎类型（NGOM引擎922G版 / 翎风引擎 / 996PC引擎），影响命令补全、代码审查和资源读取"
+        },
+        "boo.autoDetectEngine": {
+          "type": "boolean",
+          "default": true,
+          "description": "根据服务端特征自动识别引擎；证据不足时保留当前选择，不修改设置"
+        },
+        "boo.archivePreviewMode": {
+          "type": "string",
+          "enum": [
+            "direct",
+            "legacy"
+          ],
+          "enumDescriptions": [
+            "高速模式：仅建立索引，显示时从 PAK/JPK 按需读取",
+            "兼容模式：沿用 V4.2.4 的全量 PNG 缓存"
+          ],
+          "default": "direct",
+          "description": "资源包读取方式；高速模式失败时会自动回退兼容模式，不会删除旧缓存"
+        },
+        "boo.enableFColor": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否在fcolor值旁显示实际颜色方块"
+        },
+        "boo.diagnosticSeverity": {
+          "type": "string",
+          "enum": [
+            "strict",
+            "normal",
+            "relaxed"
+          ],
+          "enumDescriptions": [
+            "严格模式：报告所有问题",
+            "正常模式：仅报告警告和错误",
+            "宽松模式：仅报告错误"
+          ],
+          "default": "normal",
+          "description": "脚本诊断的严格程度"
+        },
+        "boo.enableCompletion": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用代码补全功能"
+        },
+        "boo.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用代码审查(诊断)功能"
+        },
+        "boo.deepseek.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "DeepSeek Harness 本地服务地址"
+        },
+        "boo.deepseek.port": {
+          "type": "number",
+          "default": 3080,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "复用已有 DeepSeek Harness 实例时探测的端口；本扩展新启动的服务会自动选择空闲端口"
+        }
+      }
+    }
+  },
+  "configurationDefaults": {
+    "[gomscript]": {
+      "editor.wordBasedSuggestions": "off",
+      "editor.snippetSuggestions": "none",
+      "editor.semanticHighlighting.enabled": true,
+      "editor.links": false,
+      "editor.fontFamily": "SimSun, 宋体, monospace",
+      "editor.fontSize": 14,
+      "files.encoding": "gb2312",
+      "files.autoGuessEncoding": false
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run lint && npm run compile && npm run verify:pak-runtime",
+    "build:m2-native": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/M2Reloader/build-native.ps1",
+    "apply:engine-variants": "node tools/data-maintenance/apply-2026-07-command-variants.js",
+    "audit:engine-language": "node tools/data-maintenance/audit-engine-language-accuracy.js",
+    "audit:final-language": "npm run compile && node tools/data-maintenance/audit-final-engine-language-catalog.js",
+    "audit:help-command-coverage": "npm run compile && node tools/data-maintenance/audit-help-command-coverage.js",
+    "audit:cross-engine-help": "npm run compile && node tools/data-maintenance/reconcile-cross-engine-help.js",
+    "reconcile:cross-engine-help": "npm run compile && node tools/data-maintenance/reconcile-cross-engine-help.js --apply",
+    "audit:server-language": "node tools/data-maintenance/audit-server-language-compatibility.js",
+    "audit:996pc-real-data": "node tools/data-maintenance/audit-996pc-real-data.js",
+    "classify:engine-data": "node tools/data-maintenance/classify-engine-data.js --apply",
+    "generate:static-language": "node tools/data-maintenance/generate-static-language-data.js",
+    "generate:996pc-language": "node tools/data-maintenance/generate-996pc-language.js --apply",
+    "compile": "tsc -p ./",
+    "verify:pak-runtime": "node tools/PakBridge/verify-runtime.js",
+    "verify:pak-legacy": "python tests/pak-legacy.test.py",
+    "verify:pak-legacy-runtime": "node tools/PakBridge/verify-legacy-runtime.js",
+    "verify:pak-gee2": "python tests/pak-geepak2.test.py",
+    "verify:pak-gee2-runtime": "node tools/PakBridge/verify-geepak2-runtime.js",
+    "verify:packaged-dependencies": "node tools/release/verify-packaged-dependencies.js",
+    "normalize:engine-functions": "node tools/data-maintenance/normalize-engine-function-catalog.js",
+    "watch": "tsc -watch -p ./",
+    "package": "node tools/release/package-vsix.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test:996pc": "npm run compile && node tests/engine-detect.test.js && node tests/engine-language-isolation.test.js && node tests/static-language.test.js && node tests/engine-help-data.test.js && node tests/server-language-audit.test.js && node tests/completion-search.test.js && node tests/script-labels.test.js && node tests/script-call-context.test.js && node tests/jpk-reader.test.js && node tests/pak-password.test.js && node tests/patch-cache.test.js && node tests/patch-manager.test.js && node tests/database-biff8.test.js && node tests/database-browser.test.js && node tests/item-image.test.js && node tests/minimap.test.js && node tests/m2-target.test.js && node tests/ui-codegen.test.js && node tests/ui-regressions.test.js",
+    "test:cache": "npm run compile && node tests/cache-storage.test.js && node tests/archive-index.test.js && node tests/geepak2-parser.test.js && node tests/wil-wzl-reader.test.js && node tests/original-map-wil-wzl.test.js && node tests/client-resources.test.js && node tests/patch-cache.test.js && node tests/pak-history.test.js && node tests/pak-password.test.js && node tests/pak-index.test.js && node tests/pak-format.test.js && node tests/jpk-reader.test.js && node tests/patch-manager.test.js && node tests/database-browser.test.js && node tests/database-detail.test.js && node tests/database-biff8.test.js && node tests/item-image.test.js && node tests/minimap.test.js && node tests/map-marker-state.test.js && node tests/map-entities.test.js && node tests/map-preview-resource-roots.test.js && node tests/m2-target.test.js && node tests/ui-codegen.test.js && node tests/ui-regressions.test.js",
+    "test:language": "npm run compile && node tests/completion-range.test.js && node tests/completion-search.test.js && node tests/command-arguments.test.js && node tests/document-symbols.test.js && node tests/script-labels.test.js && node tests/script-call-context.test.js && node tests/robot-definition.test.js && node tests/script-path-reference.test.js && node tests/script-audit-scope.test.js && node tests/variable-statistics.test.js && node tests/nested-variable-analysis.test.js && node tests/personal-flag-analysis.test.js && node tests/dynamic-reference.test.js && node tests/variable-wrap.test.js && node tests/command-index.test.js && node tests/semantic-commands.test.js && node tests/engine-language-isolation.test.js && node tests/static-language.test.js && node tests/engine-detect.test.js && node tests/engine-help-data.test.js && node tests/final-engine-language-catalog.test.js && node tests/server-language-audit.test.js && node tests/table-configs.test.js && node tests/item-desc-preview.test.js && node tests/xls-table.test.js && node tests/original-map.test.js && node tests/help-command-coverage.test.js && node tests/help-command-apply.test.js && node tests/help-command-manual-review.test.js",
+    "test:extras": "npm run compile && node tests/csv-table.test.js && node tests/table-editor-core.test.js && node tests/table-editor-assets.test.js && node tests/table-editor-browser.test.js && node tests/database-grid-browser.test.js && node tests/help-all-token-manual-review.test.js && node tests/map-preview-editor.test.js && node tests/map-preview.test.js && node tests/pak-image-index.test.js && node tests/pak-inflate.test.js && node tests/pak-slots.test.js && node tests/text-encoding.test.js && node tests/batch-number-edit.test.js && node tests/zone-sync.test.js && node tests/zone-sync-command.test.js && node tests/script-sync-tree.test.js && node tests/script-sync-panel.test.js && node tests/quick-files.test.js && node tests/webview-security.test.js",
+    "test:layout": "node tests/project-layout.test.js && node tests/readme-marketplace.test.js",
+    "test:all": "npm run test:cache && npm run test:language && npm run test:996pc && npm run test:extras && npm run test:layout"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.68.0",
+    "@vscode/vsce": "^3.9.2",
+    "eslint": "9.39.5",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "8.66.0"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.7.2",
+    "mdb-reader": "^3.2.0",
+    "sql.js": "^1.14.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "keywords": [],
+  "type": "commonjs"
+}

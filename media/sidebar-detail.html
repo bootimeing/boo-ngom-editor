@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:transparent;color:#ccc;font-family:Microsoft YaHei,sans-serif;padding:8px;font-size:12px;overflow-y:auto;overflow-x:hidden}
+h4{color:#ffaa00;font-size:11px;margin:8px 0 4px}
+.item-name{color:#ff8c00;font-size:14px;font-weight:bold;margin-bottom:4px}
+.top-desc{padding:6px 10px;background:#000;border-left:3px solid #00d4ff;border-radius:4px;margin:6px 0;color:#aaa;font-size:11px;line-height:1.6;word-break:break-all}
+.item-desc{padding:6px 10px;background:#000;border-left:3px solid #ff8c00;border-radius:4px;margin:6px 0;color:#bbb;font-size:11px;line-height:1.8;word-break:break-all}
+.prop-table{width:100%;border-collapse:collapse;font-size:10px;margin:6px 0}
+.prop-table td{padding:3px 6px;border-bottom:1px solid #222}
+.prop-table td:first-child{color:#888;width:80px;white-space:nowrap}
+.prop-table td:last-child{color:#e2e8f0;word-break:break-all}
+.prop-table tr.empty-value td:last-child{color:#555;font-style:italic}
+.top-desc img,.item-desc img{max-width:100%;height:auto;vertical-align:middle}
+.item-material{min-height:72px;padding:7px;margin:5px 0 7px;border:1px solid #333;background:#151515;display:flex;align-items:center;gap:9px}
+.item-material-preview{width:60px;height:60px;flex:none;display:flex;align-items:center;justify-content:center;background:#080808;border:1px solid #2f2f2f}
+.item-material-preview img{max-width:58px;max-height:58px;image-rendering:pixelated}
+.item-material-meta{min-width:0;color:#888;font-size:10px;word-break:break-all}
+.item-material-missing{color:#6f6f6f}
+.section-file{color:#777;font-size:10px;margin:2px 0 5px;word-break:break-all}
+.monster-empty{padding:8px;border:1px dashed #383838;color:#666;line-height:1.5}
+.monster-editor{margin-bottom:8px}
+.monster-editor textarea{display:block;width:100%;min-height:112px;max-height:320px;resize:vertical;padding:7px 8px;border:1px solid #3b4655;border-radius:4px;outline:none;background:#10151d;color:#e2e8f0;font:12px/1.5 SimSun,宋体,monospace;white-space:pre;overflow:auto}
+.monster-editor textarea:focus{border-color:#0e8f78}
+.monster-editor textarea.icon-config{min-height:88px}
+.monster-editor-footer{min-height:29px;display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:4px}
+.monster-editor-status{min-width:0;flex:1;color:#777;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.monster-editor-status.dirty{color:#d8a449}.monster-editor-status.saving{color:#66b8ff}.monster-editor-status.success{color:#5fd29a}.monster-editor-status.error{color:#ff6b6b;white-space:normal}
+.monster-save{flex:none;min-height:25px;border:0;border-radius:4px;padding:2px 9px;background:#087f6b;color:#fff;font-size:10px;cursor:pointer}
+.monster-save:hover{background:#0a967d}.monster-save:disabled{cursor:default;opacity:.55}
+.monster-editor-tip{margin:-2px 0 7px;color:#6f6f6f;font-size:10px;line-height:1.45}
+.monster-icon-list{display:grid;gap:7px;margin-bottom:8px}
+.monster-icon-card{border:1px solid #333;background:#121212;padding:6px;border-radius:6px}
+.monster-composite-viewport{width:max-content;height:max-content;overflow:hidden;background:#050505;border:1px solid #292929;margin-bottom:6px}
+.monster-composite-stage{position:relative;overflow:hidden;background:#080808;margin:0}
+.monster-body-image,.monster-icon-image{position:absolute;width:auto;height:auto;max-width:none;max-height:none;transform:none;image-rendering:pixelated}
+.monster-body-image{z-index:1}
+.monster-icon-image{z-index:3}
+.monster-icon-image.effect{mix-blend-mode:screen}
+.monster-origin-cell{position:absolute;width:48px;height:32px;box-sizing:border-box;border:1px dashed rgba(216,164,73,.24);pointer-events:none;z-index:0}
+.monster-origin-marker{position:absolute;width:5px;height:5px;box-sizing:border-box;border:1px solid rgba(216,164,73,.72);margin:-2px 0 0 -2px;pointer-events:none;z-index:4}
+.monster-name-label{position:absolute;z-index:4;color:#fff;font:12px/14px SimSun,"宋体",sans-serif;letter-spacing:0;white-space:nowrap;text-align:center;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;transform:translateX(-50%);pointer-events:none}
+.monster-body-meta{margin-bottom:8px;color:#888;font-size:10px;line-height:1.5;word-break:break-all}
+.monster-body-meta strong{color:#d8a449;font-weight:normal}
+.monster-icon-meta{display:flex;flex-wrap:wrap;gap:3px 9px;margin-top:5px;color:#888;font-size:10px;line-height:1.5}
+.monster-icon-meta strong{color:#d8a449;font-weight:normal}
+.empty{color:#555;text-align:center;padding:20px;font-size:11px}
+</style></head><body>
+<div id="content"><div class="empty">点击数据库记录查看详情</div></div>
+<script>
+function escapeHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function renderTableHeader(cols, fileName, header){
+  var h='<div style="padding:4px 0;margin-bottom:8px">';
+  h+='<div style="color:#ff8c00;font-size:11px;margin-bottom:6px;font-weight:bold">'+escapeHtml(fileName||'')+'</div>';
+  h+='<div style="background:#1a1a2e;border:1px solid #444;border-radius:6px;padding:8px 10px">';
+  for(var i=0;i<cols.length;i++){
+    h+='<div style="display:inline-block;background:#2a2a3e;color:#ffaa00;padding:3px 8px;margin:2px 3px;border-radius:3px;font-size:11px;font-weight:bold;white-space:nowrap">';
+    h+=escapeHtml(cols[i]);
+    h+='</div>';
+  }
+  h+='</div></div>';
+  document.getElementById("content").innerHTML=h;
+}
+var vscode=acquireVsCodeApi();
+var C=["#000000","#800000","#008000","#808000","#000080","#800080","#008080","#c0c0c0","#558097","#9db9c8","#7b7373","#2d2929","#5a5252","#635a5a","#423939","#1d1818","#181010","#291818","#100808","#f27971","#e1675f","#ff5a5a","#ff3131","#d65a52","#941000","#942918","#390800","#731000","#b51800","#bd6352","#421810","#ffaa99","#000000","#733929","#a54a31","#947b73","#bd5231","#522110","#7b3118","#2d1810","#8c4a31","#942900","#bd3100","#c67352","#6b3118","#c66b42","#ce4a00","#a56339","#5a3118","#2a1000","#150800","#3a1800","#080000","#290000","#4a0000","#9d0000","#dc0000","#de0000","#fb0000","#9c7352","#946b4a","#734a29","#523118","#8c4a18","#884411","#4a2100","#211810","#d6945a","#c66b21","#ef6b00","#ff7700","#a59484","#423121","#181008","#291808","#211000","#392918","#8c6339","#422910","#6b4218","#7b4a18","#944a00","#8c847b","#6b635a","#4a4239","#292118","#463929","#b5a594","#7b6b5a","#ceb194","#a58c73","#8c735a","#b59473","#d6a573","#efa54a","#efc68c","#7b6342","#6b5639","#bd945a","#633900","#d6c6ad","#524229","#946318","#efd6ad","#a58c63","#635a4a","#bda57b","#5a4218","#bd8c31","#353129","#948463","#7b6b4a","#a58c5a","#5a4a29","#9c7b39","#423110","#efad21","#181000","#292100","#9c6b00","#94845a","#524218","#6b5a29","#7b6321","#9c7b21","#dea500","#5a5239","#312910","#cebd7b","#635a39","#94844a","#c6a529","#109c18","#428c4a","#318c42","#109429","#081810","#081818","#082910","#184229","#a5b5ad","#6b7373","#182929","#18424a","#31424a","#63c6de","#44ddff","#8cd6ef","#736b39","#f7de39","#f7ef8c","#f7e700","#6b6b5a","#5a8ca5","#39b5ef","#4a9cce","#3184b5","#31526b","#deded6","#bdbdb5","#8c8c84","#f7f7de","#000818","#081839","#081029","#081800","#082900","#0052a5","#007bde","#10294a","#10396b","#10528c","#215aa5","#10315a","#104284","#315284","#182131","#4a5a7b","#526ba5","#293963","#104ade","#292921","#4a4a39","#292918","#4a4a29","#7b7b42","#9c9c4a","#5a5a29","#424214","#393900","#595900","#ca352c","#6b7321","#293100","#313910","#313918","#424a00","#526318","#5a7329","#314a18","#182100","#183100","#183910","#63844a","#6bbd4a","#63b54a","#63bd4a","#5a9c4a","#4a8c39","#63c64a","#63d64a","#52844a","#317329","#63c65a","#52bd4a","#10ff00","#182918","#4a884a","#4ae74a","#005a00","#008800","#009400","#00de00","#00ee00","#00fb00","#4a5a94","#6373b5","#7b8cd6","#6b7bd6","#7788ff","#c6c6ce","#94949c","#9c94c6","#313139","#291884","#180084","#4a4252","#52427b","#635a73","#ceb5f7","#8c7b9c","#7722cc","#ddaaff","#f0b42a","#df009f","#e317b3","#fffbf0","#a0a0a4","#808080","#ff0000","#00ff00","#ffff00","#0000ff","#ff00ff","#00ffff","#ffffff"];
+function gc(n){return C[n]||"#fff"}
+
+var _detail={};
+var _iconTimers=[];
+var _descriptionTimers=[];
+var _monsterSavePending={};
+try{ _detail=vscode.getState()||{}; }catch(e){}
+if(_detail&&_detail.name) renderDetail();
+
+window.addEventListener("message",function(e){
+  try{
+    if(e.data.type==="showDatabaseDetail"||e.data.type==="showItemDetail"){
+      if(e.data.type==="showItemDetail"&&!e.data.detailKind)e.data.detailKind='item';
+      var preserveVisuals=e.data.preserveSelectionVisuals===true&&_detail&&_detail.name===e.data.name;
+      if(preserveVisuals&&(!e.data.fields||Object.keys(e.data.fields).length===0)) e.data.fields=_detail.fields||{};
+      if(preserveVisuals&&(!e.data.columnLabels||Object.keys(e.data.columnLabels).length===0)) e.data.columnLabels=_detail.columnLabels||{};
+      if(preserveVisuals&&(!e.data.columnDescriptions||Object.keys(e.data.columnDescriptions).length===0)) e.data.columnDescriptions=_detail.columnDescriptions||{};
+      if(preserveVisuals&&(!e.data.images||Object.keys(e.data.images).length===0)) e.data.images=_detail.images||{};
+      if(preserveVisuals&&(!e.data.animatedImages||Object.keys(e.data.animatedImages).length===0)) e.data.animatedImages=_detail.animatedImages||{};
+      if(preserveVisuals&&!e.data.itemImage) e.data.itemImage=_detail.itemImage||'';
+      if(preserveVisuals&&!e.data.itemImageLabel) e.data.itemImageLabel=_detail.itemImageLabel||'';
+      stopIconAnimations();
+      _detail=e.data; vscode.setState(_detail); renderDetail();
+      if(e.data.saveResult)showMonsterSaveResult(e.data.saveResult);
+      return;
+    }
+    if(e.data.type==="monsterDetailSaveResult"){
+      showMonsterSaveResult(e.data);
+      return;
+    }
+    if(e.data.type==="clearDatabaseDetail"){
+      stopIconAnimations();
+      _detail={detailKind:e.data.detailKind||'other'};vscode.setState(_detail);renderEmpty(_detail.detailKind);
+      return;
+    }
+    if(e.data.type==="showTableHeader"){
+      if(!e.data.columns||e.data.columns.length===0){
+        document.getElementById("content").innerHTML='<div class="empty">点击数据库记录查看详情</div>';
+        return;
+      }
+      renderTableHeader(e.data.columns, e.data.fileName, e.data.header);
+      return;
+    }
+  }catch(ex){}
+});
+
+function renderEmpty(detailKind){
+  var text=detailKind==='monster'?'点击怪物数据库记录查看怪物属性':detailKind==='skill'?'点击技能数据库记录查看技能属性':detailKind==='item'?'点击物品数据库记录查看物品属性':'点击数据库记录查看详情';
+  document.getElementById('content').innerHTML='<div class="empty">'+text+'</div>';
+}
+
+// 大小写不敏感的字段名转中文
+function fz(key,detailKind){
+  var protocolLabels=_detail&&_detail.columnLabels;
+  if(protocolLabels&&protocolLabels[key])return String(protocolLabels[key]);
+  var lo=key.toLowerCase();
+  var common={idx:'编号',sid:'怪物代号',name:'名称',m_id:'内部编号'};
+  var item={
+    idx:'编号',name:'名字',stdmode:'类型',shape:'外观',weight:'重量',anicount:'触发id',
+    source:'来源',reserved:'保留',looks:'背包显示',duramax:'最大持久',
+    ac:'防御min',ac2:'防御max',mac:'魔御min',mac2:'魔御max',
+    dc:'攻击min',dc2:'攻击max',mc:'魔法min',mc2:'魔法max',sc:'道术min',sc2:'道术max',
+    need:'佩戴条件',needlevel:'需求等级',price:'价格',stock:'库存',color:'颜色',
+    overlap:'是否叠加',hp:'生命值',mp:'魔法值',light:'首饰发光',
+    critrate:'暴击几率',adddamage:'攻击伤害',deldamage:'伤害吸收',defspell:'魔法防御',
+    ignoredefense:'忽视防御',reflect:'伤害反弹',exprate:'人物暴率',
+    healthelement:'体力元素',magicelement:'魔法元素',ragerecovery:'怒气恢复',
+    combinedamage:'合击伤害',monsterexprate:'怪物暴率',anticritrate:'防暴几率',
+    antiparalysis:'防止麻痹',antibodygurad:'防止护身',antiresurrection:'防止复活',
+    antifullpoison:'防止全毒',antitemptation:'防止诱惑',antifirewall:'防止火墙',
+    antifrozen:'防止冰冻',anticobweb:'防止蛛网',
+    fatalrate:'致命几率',fataldamage:'致命伤害',fataldefense:'致命防御',critresist:'暴击抗性',
+    insurancecount:'投保金额',insurancetype:'保金类型',zodiaccodition:'首饰生肖条件',
+    horseeffect:'骑马特效',damageresist:'攻伤抗性',killmonexprate:'杀怪经验倍率',
+    piercemin:'刺术下限',piercemax:'刺术上限',arrowmin:'箭术下限',arrowmax:'箭术上限',
+    forcemin:'武力下限',forcemax:'武力上限',job:'职业',customitem:'自定义装备',
+    insurancegold:'投保金额',insurancecurrency:'投保货币',horse:'坐骑属性',asc:'刺术下限',asc2:'刺术上限',
+    arc:'箭术下限',arc2:'箭术上限',mpc:'武力下限',mpc2:'武力上限'
+  };
+  var monster={
+    name:'怪物名称',race:'行动模式及死亡效果',raceimg:'攻击模式',appr:'怪物外观',lvl:'怪物等级',level:'怪物等级',
+    undead:'不死系',cooleye:'主动攻击及反隐形范围',exp:'经验值',hp:'生命值',mp:'魔法值',ac:'物理防御',ac2:'物理防御上限',
+    mac:'魔法防御',dc:'物理攻击下限',dcmax:'物理攻击上限',mc:'魔法攻击',sc:'道术精神力',speed:'速度',hit:'攻击命中率',
+    walk_spd:'行走间隔',walkstep:'行走步数',walkwait:'行走等待时间',attack_spd:'攻击间隔',
+    exploreitem:'探索物品',disablesimpleactor:'禁用简化对象',attackstate:'攻击状态',attacksource:'攻击来源'
+  };
+  var skill={
+    magid:'技能序号',magname:'技能名称',effecttype:'角色动作效果',effect:'技能动画效果',spell:'魔法消耗',
+    power:'伤害下限',maxpower:'伤害上限',defspell:'每级增加魔法消耗',defpower:'每级增加伤害下限',
+    defmaxpower:'每级增加伤害上限',job:'可学习职业',delay:'技能使用延时',descr:'技能备注',maxtrainlv:'最高修炼等级',
+    canupgrade:'是否可升级',maxupgradelv:'最高升级等级'
+  };
+  if(detailKind==='skill'){
+    var need=lo.match(/^needl(\d{1,2})$/);if(need)return need[1]+'级所需人物等级';
+    var train=lo.match(/^l(\d{1,2})train$/);if(train)return train[1]+'级所需熟练度';
+  }
+  // element 系列字段中文映射
+  var elemMap={
+    0:'暴击几率',1:'攻击伤害',2:'伤害吸收',3:'魔法防御',4:'忽视防御',
+    5:'伤害反弹',6:'人物暴率',7:'体力增加',8:'魔力增加',
+    9:'怒气恢复',10:'合击伤害',11:'怪物暴率',12:'防暴几率',
+    13:'防止麻痹',14:'防止护身',15:'防止复活',16:'防止全毒',
+    17:'防止诱惑',18:'防止火墙',19:'防止冰冻',20:'防止蛛网',
+    21:'致命几率',22:'致命伤害',23:'致命防御',24:'暴击抗性',
+    25:'攻伤抗性',26:'杀怪经验倍率'
+  };
+  if(lo==='element') return elemMap[0];
+  var em=lo.match(/^element(\d{1,2})$/);
+  if(em){ var n=parseInt(em[1]); if(n>=1&&n<=26) return elemMap[n]; }
+  if(/^value\d{1,2}$/.test(lo))return '扩展属性'+lo.substring(5);
+  if(/^expand\d{1,2}$/.test(lo))return '扩展字段'+lo.substring(6);
+  var labels=detailKind==='monster'?monster:detailKind==='skill'?skill:item;
+  if(labels[lo])return labels[lo];
+  if(common[lo])return common[lo];
+  return /[\u4e00-\u9fff]/.test(key)?key:'扩展字段（'+key+'）';
+}
+
+function fieldDescription(key,detailKind){
+  var descriptions=_detail&&_detail.columnDescriptions;
+  return descriptions&&descriptions[key]?String(descriptions[key]):fz(key,detailKind);
+}
+
+function renderDetail(){
+  try{
+  stopDescriptionAnimations();
+  var d=_detail||{},detailKind=d.detailKind||'item',h='<div class="item-name">'+escapeHtml(d.name||'')+'</div>';
+  h+=buildPropTable(d,detailKind);
+  if(detailKind==='item'){
+    if(d.topDesc!=null)h+=buildEditSection('顶部备注','topDesc');
+    if(d.itemDesc!=null)h+=buildEditSection('备注','itemDesc');
+  }
+  if(detailKind==='monster')h+=buildMonsterSections(d);
+  document.getElementById("content").innerHTML=h;
+  if(detailKind==='item'&&_detail._topDescEdited&&document.getElementById("ta_topDesc"))document.getElementById("ta_topDesc").value=_detail._topDescEdited;
+  if(detailKind==='item'&&_detail._itemDescEdited&&document.getElementById("ta_itemDesc"))document.getElementById("ta_itemDesc").value=_detail._itemDescEdited;
+  if(detailKind==='monster'){
+    restoreMonsterEditorText('dropRateText');
+    restoreMonsterEditorText('iconText');
+    startMonsterComposite();
+    startIconAnimations();
+  }
+  if(detailKind==='item')startDescriptionAnimations();
+  }catch(ex){}
+}
+
+function buildEditSection(label,key){
+  var raw=_detail[key]||"";
+  var s='<h4>物品'+label+'</h4>';
+  s+='<div style="display:flex;gap:4px;margin-bottom:4px">';
+  s+='<textarea id="ta_'+key+'" style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:3px;padding:4px 6px;font-size:10px;resize:vertical;min-height:100px">'+escapeHtml(raw)+'</textarea>';
+  s+='<button onclick="saveDesc(\x27'+key+'\x27)" style="background:#059669;color:#fff;border:none;border-radius:3px;padding:2px 8px;font-size:10px;cursor:pointer;white-space:nowrap">保存</button>';
+  s+='</div><div class=top-desc style="margin-bottom:4px">'+p(raw,_detail.images)+'</div>';
+  return s;
+}
+
+function buildPropTable(d,detailKind){
+  var fields=d.fields||{};
+  var sm=parseInt(fields.StdMode)||parseInt(fields.stdmode)||0;
+  var modeMap={
+    5:{ac:'幸运',ac2:'准确',mac:'诅咒',mac2:'攻速'},
+    19:{ac:'无用',ac2:'魔法躲避',mac:'无用',mac2:'幸运'},
+    20:{ac:'无用',ac2:'准确',mac:'无用',mac2:'敏捷'},
+    21:{ac:'攻击速度+',ac2:'体力恢复',mac:'攻击速度-',mac2:'魔法恢复'},
+    23:{ac:'攻击速度+',ac2:'中毒躲避',mac:'攻击速度-',mac2:'中毒恢复'},
+    24:{ac:'无用',ac2:'准确',mac:'无用',mac2:'敏捷'}
+  };
+  var hasLooks=Object.keys(fields).some(function(key){return key.toLowerCase()==='looks'});
+  var sectionTitle=detailKind==='monster'?'怪物属性':detailKind==='skill'?'技能属性':'物品属性';
+  if(detailKind==='other')sectionTitle='数据属性';
+  var h='<h4>'+sectionTitle+'</h4>';
+  if(detailKind==='item'&&(hasLooks||d.itemImageLabel)){
+    h+='<div class="item-material">';
+    h+='<div class="item-material-preview">';
+    if(d.itemImage) h+='<img src="'+escapeHtml(d.itemImage)+'" alt="物品素材" title="'+escapeHtml(d.itemImageLabel||'物品素材')+'">';
+    else h+='<span class="item-material-missing">未缓存</span>';
+    h+='</div><div class="item-material-meta"><div style="color:#d8a449;margin-bottom:3px">物品素材</div>'+escapeHtml(d.itemImageLabel||'未找到对应补丁素材')+'</div></div>';
+  }
+  h+='<table class=prop-table>';
+  var ks=Object.keys(fields);
+  for(var i=0;i<ks.length;i++){
+    var en=ks[i],zh=fz(en,detailKind),val=fields[en];
+    // StdMode特殊映射
+    if(detailKind==='item'&&modeMap[sm]&&modeMap[sm][en.toLowerCase()])zh=modeMap[sm][en.toLowerCase()];
+    if(val===0||val==='0'||val===''||val===null||val===undefined) continue;
+    h+='<tr><td title="'+escapeHtml(fieldDescription(en,detailKind))+'">'+escapeHtml(zh)+'</td><td>'+escapeHtml(String(val))+'</td></tr>';
+  }
+  return h+'</table>';
+}
+
+function buildMonsterSections(d){
+  var body=d.monsterBody||{},icons=Array.isArray(d.monsterIcons)?d.monsterIcons:[];
+  var h='<h4>怪物样子与顶戴</h4>';
+  h+='<div class="monster-composite-viewport"><div class="monster-composite-stage">';
+  h+='<div class="monster-origin-cell" title="48×32 地图格"></div><div class="monster-origin-marker" title="游戏绘制原点"></div>';
+  if(body.url)h+='<img id="monster_body" class="monster-body-image" src="'+escapeHtml(body.url)+'" style="display:none" alt="怪物样子">';
+  for(var i=0;i<icons.length;i++){
+    var icon=icons[i]||{};
+    h+='<img id="monster_icon_'+i+'" class="monster-icon-image'+(Number(icon.effect)===1?' effect':'')+'" style="display:none" alt="顶戴素材">';
+  }
+  if(!body.url&&!icons.some(function(icon){return Array.isArray(icon.frames)&&icon.frames.some(function(url){return !!url})})){
+    h+='<div class="item-material-missing" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:4">素材未缓存</div>';
+  }
+  h+='<div class="monster-name-label">'+escapeHtml(d.name||'')+'</div>';
+  h+='</div></div>';
+  h+='<div class="monster-body-meta"><strong>怪物本体</strong> '+escapeHtml(body.label||body.warning||'未找到对应怪物素材');
+  if(body.configFileName)h+='<br><strong>配置</strong> '+escapeHtml(body.configFileName);
+  h+='</div>';
+  if(icons.length)h+='<div class="monster-icon-list">';
+  for(var i=0;i<icons.length;i++){
+    var icon=icons[i]||{};
+    h+='<div class="monster-icon-card"><div class="monster-icon-meta">';
+    h+='<span><strong>资源</strong> WIL '+escapeHtml(icon.wilIndex)+'</span>';
+    h+='<span><strong>图片</strong> '+String(Number(icon.imageIndex)||0).padStart(6,'0')+'</span>';
+    h+='<span><strong>帧</strong> <b id="monster_frame_'+i+'">0/'+escapeHtml(icon.frameCount||1)+'</b></span>';
+    h+='<span><strong>坐标</strong> '+escapeHtml(icon.x||0)+', '+escapeHtml(icon.y||0)+'</span>';
+    h+='<span><strong>速度</strong> '+escapeHtml(icon.speedMs||300)+' ms</span>';
+    h+='<span><strong>绘制</strong> '+(Number(icon.effect)===1?'特效':'普通')+'</span>';
+    h+='<span><strong>层级</strong> '+(Number(icon.layer)===1?'角色下方':'角色上方')+'</span>';
+    if(icon.previewTruncated)h+='<span>预览前 '+escapeHtml((icon.frames||[]).length)+' 帧</span>';
+    h+='</div></div>';
+  }
+  if(icons.length)h+='</div>';
+  if(!icons.length)h+='<div class="monster-empty">'+(d.iconFileName?'文件中没有可识别的顶戴配置':'未找到该怪物的顶戴配置')+'</div>';
+  if(d.iconConfigTruncated)h+='<div class="monster-empty">配置超过 10 行，仅预览前 10 行</div>';
+  h+='<h4>怪物爆率</h4>';
+  h+='<div class="section-file">'+escapeHtml(d.dropRateFileName||('MonItems\\'+(d.name||'怪物名称')+'.txt'))+'</div>';
+  h+=buildMonsterTextEditor('dropRateText',d.dropRateText||'','输入完整爆率规则；文件不存在时保存会自动创建','保存');
+  h+='<h4>怪物顶戴配置</h4>';
+  h+='<div class="section-file">'+escapeHtml(d.iconFileName||('MonIcons\\'+(d.name||'怪物名称')+'.txt'))+'</div>';
+  h+=buildMonsterTextEditor('iconText',d.iconText||'','每行一组顶戴参数；文件不存在时保存会自动创建','保存并刷新');
+  h+='<div class="monster-editor-tip">格式：WIL序号 图片序号 帧数 X Y 绘制模式 速度 播放次数 层级</div>';
+  return h;
+}
+
+function buildMonsterTextEditor(key,value,placeholder,buttonText){
+  var iconClass=key==='iconText'?' icon-config':'';
+  var h='<div class="monster-editor">';
+  h+='<textarea class="'+iconClass.trim()+'" id="ta_'+key+'" spellcheck="false" placeholder="'+escapeHtml(placeholder)+'" oninput="markMonsterDetailDirty(\x27'+key+'\x27)" onkeydown="handleMonsterEditorKey(event,\x27'+key+'\x27)">'+escapeHtml(value)+'</textarea>';
+  h+='<div class="monster-editor-footer"><span class="monster-editor-status" id="status_'+key+'">'+(value?'':'尚未创建文件')+'</span>';
+  h+='<button class="monster-save" id="save_'+key+'" onclick="saveMonsterDetail(\x27'+key+'\x27)">'+escapeHtml(buttonText)+'</button></div></div>';
+  return h;
+}
+
+function restoreMonsterEditorText(key){
+  var value=_detail['_'+key+'Edited'],textarea=document.getElementById('ta_'+key);
+  if(value===undefined||!textarea)return;
+  textarea.value=value;
+  setMonsterEditorStatus(key,'有未保存的修改','dirty');
+}
+
+function markMonsterDetailDirty(key){
+  var textarea=document.getElementById('ta_'+key);
+  if(!textarea)return;
+  _detail['_'+key+'Edited']=textarea.value;
+  vscode.setState(_detail);
+  _monsterSavePending[key]=false;
+  var button=document.getElementById('save_'+key);if(button)button.disabled=false;
+  setMonsterEditorStatus(key,'有未保存的修改','dirty');
+}
+
+function handleMonsterEditorKey(event,key){
+  if((event.ctrlKey||event.metaKey)&&String(event.key).toLowerCase()==='s'){
+    event.preventDefault();
+    saveMonsterDetail(key);
+  }
+}
+
+function saveMonsterDetail(key){
+  var textarea=document.getElementById('ta_'+key),button=document.getElementById('save_'+key);
+  if(!textarea||_monsterSavePending[key])return;
+  _monsterSavePending[key]=true;
+  if(button)button.disabled=true;
+  setMonsterEditorStatus(key,'正在保存...','saving');
+  vscode.postMessage({
+    type:'saveMonsterDetail',
+    name:_detail.name,
+    key:key,
+    text:textarea.value,
+    fields:_detail.fields||{},
+    columnLabels:_detail.columnLabels||{},
+    columnDescriptions:_detail.columnDescriptions||{}
+  });
+}
+
+function showMonsterSaveResult(result){
+  var key=result&&result.key;if(key!=='dropRateText'&&key!=='iconText')return;
+  _monsterSavePending[key]=false;
+  if(result.ok&&_detail){_detail['_'+key+'Edited']=undefined;vscode.setState(_detail)}
+  var button=document.getElementById('save_'+key);if(button)button.disabled=false;
+  setMonsterEditorStatus(key,result.message||(result.ok?'保存成功':'保存失败'),result.ok?'success':'error');
+}
+
+function setMonsterEditorStatus(key,message,state){
+  var status=document.getElementById('status_'+key);if(!status)return;
+  status.textContent=message||'';status.className='monster-editor-status '+(state||'');status.title=message||'';
+}
+
+function stopIconAnimations(){
+  for(var i=0;i<_iconTimers.length;i++)clearInterval(_iconTimers[i]);
+  _iconTimers=[];
+}
+
+function finiteMonsterNumber(value){
+  if(value===undefined||value===null||value==='')return null;
+  var number=Number(value);return Number.isFinite(number)?number:null;
+}
+
+function buildMonsterPlacement(asset,image,kind,extraX,extraY){
+  asset=asset||{};
+  var assetWidth=finiteMonsterNumber(asset.width),assetHeight=finiteMonsterNumber(asset.height);
+  var naturalWidth=Number(image&&image.naturalWidth)||0,naturalHeight=Number(image&&image.naturalHeight)||0;
+  var width=assetWidth!==null&&assetWidth>0?assetWidth:naturalWidth;
+  var height=assetHeight!==null&&assetHeight>0?assetHeight:naturalHeight;
+  if(!width||!height)return null;
+  var offsetX=finiteMonsterNumber(asset.offsetX),offsetY=finiteMonsterNumber(asset.offsetY);
+  if(offsetX===null)offsetX=0;
+  if(offsetY===null)offsetY=0;
+  var x=offsetX+(finiteMonsterNumber(extraX)||0);
+  var y=offsetY+(finiteMonsterNumber(extraY)||0);
+  if(kind==='icon'){
+    // MonIcons frames are bottom-centered on the in-game 48x32 actor cell at (24, 21).
+    x+=24-Math.floor(width/2);
+    y+=21-height;
+  }
+  return {
+    x:x,
+    y:y,
+    width:width,
+    height:height
+  };
+}
+
+function calculateMonsterStageLayout(bodyPlacement,overlayPlacements,nameWidth,nameHeight){
+  var bodyWidth=bodyPlacement&&Number(bodyPlacement.width)||174;
+  var bodyHeight=bodyPlacement&&Number(bodyPlacement.height)||123;
+  var bodyX=bodyPlacement&&finiteMonsterNumber(bodyPlacement.x);if(bodyX===null)bodyX=0;
+  var bodyY=bodyPlacement&&finiteMonsterNumber(bodyPlacement.y);if(bodyY===null)bodyY=0;
+  var baseWidth=Math.ceil(bodyWidth*1.5),baseHeight=Math.ceil(bodyHeight*1.5);
+  var bodyLeft=Math.floor((baseWidth-bodyWidth)/2),bodyTop=Math.floor((baseHeight-bodyHeight)/2);
+  var minX=bodyX-bodyLeft,minY=bodyY-bodyTop,maxX=minX+baseWidth,maxY=minY+baseHeight;
+  var placements=Array.isArray(overlayPlacements)?overlayPlacements:[];
+  for(var i=0;i<placements.length;i++){
+    var placement=placements[i];if(!placement)continue;
+    var x=finiteMonsterNumber(placement.x),y=finiteMonsterNumber(placement.y);
+    var width=finiteMonsterNumber(placement.width),height=finiteMonsterNumber(placement.height);
+    if(x===null||y===null||width===null||height===null||width<=0||height<=0)continue;
+    minX=Math.min(minX,x-2);minY=Math.min(minY,y-2);
+    maxX=Math.max(maxX,x+width+2);maxY=Math.max(maxY,y+height+2);
+  }
+  var labelWidth=Math.max(0,Number(nameWidth)||0),labelHeight=Math.max(0,Number(nameHeight)||0);
+  if(labelWidth&&labelHeight){
+    var relativeName=calculateMonsterNamePlacement({originX:0,originY:0},labelHeight);
+    minX=Math.min(minX,relativeName.centerX-labelWidth/2-2);
+    maxX=Math.max(maxX,relativeName.centerX+labelWidth/2+2);
+    minY=Math.min(minY,relativeName.top-2);maxY=Math.max(maxY,relativeName.top+labelHeight+2);
+  }
+  minX=Math.floor(minX);minY=Math.floor(minY);maxX=Math.ceil(maxX);maxY=Math.ceil(maxY);
+  return {stageWidth:maxX-minX,stageHeight:maxY-minY,originX:-minX,originY:-minY};
+}
+
+function calculateMonsterNamePlacement(layout,labelHeight){
+  var height=Math.max(0,Math.round(Number(labelHeight)||0));
+  return {
+    centerX:Math.round(layout.originX+24),
+    top:Math.round(layout.originY-(32-height/2)+8)
+  };
+}
+
+function monsterFrameAsset(icon,frameIndex){
+  var assets=icon&&Array.isArray(icon.frameAssets)?icon.frameAssets:[];
+  return assets[frameIndex]||{url:(icon&&icon.frames&&icon.frames[frameIndex])||''};
+}
+
+function applyMonsterPlacement(image,placement,layout,zIndex){
+  image.style.left=Math.round(layout.originX+placement.x)+'px';
+  image.style.top=Math.round(layout.originY+placement.y)+'px';
+  image.style.width=Math.round(placement.width)+'px';
+  image.style.height=Math.round(placement.height)+'px';
+  image.style.zIndex=String(zIndex);
+}
+
+function positionMonsterComposite(){
+  var stage=document.querySelector('.monster-composite-stage');
+  if(!stage)return;
+  var body=_detail.monsterBody||{},bodyImage=document.getElementById('monster_body');
+  var bodyPlacement=buildMonsterPlacement(body,bodyImage,'body',0,0);
+  var icons=Array.isArray(_detail.monsterIcons)?_detail.monsterIcons:[];
+  var iconPlacements=[];
+  icons.forEach(function(icon,iconIndex){
+    var frameAssets=icon&&Array.isArray(icon.frameAssets)?icon.frameAssets:[];
+    frameAssets.forEach(function(asset){
+      var placement=buildMonsterPlacement(asset,null,'icon',icon.x,icon.y);
+      if(placement)iconPlacements.push(placement);
+    });
+    var image=document.getElementById('monster_icon_'+iconIndex);
+    if(!image||!image.naturalWidth||image.style.display==='none')return;
+    var frameIndex=Number(image.getAttribute('data-frame-index'))||0;
+    var currentPlacement=buildMonsterPlacement(monsterFrameAsset(icon,frameIndex),image,'icon',icon.x,icon.y);
+    if(currentPlacement)iconPlacements.push(currentPlacement);
+  });
+  var nameLabel=stage.querySelector('.monster-name-label');
+  var layout=calculateMonsterStageLayout(
+    bodyPlacement,
+    iconPlacements,
+    nameLabel&&nameLabel.offsetWidth||0,
+    nameLabel&&nameLabel.offsetHeight||14
+  );
+  stage.style.width=layout.stageWidth+'px';stage.style.height=layout.stageHeight+'px';
+  var originCell=stage.querySelector('.monster-origin-cell'),originMarker=stage.querySelector('.monster-origin-marker');
+  if(originCell){originCell.style.left=layout.originX+'px';originCell.style.top=layout.originY+'px'}
+  if(originMarker){originMarker.style.left=layout.originX+'px';originMarker.style.top=layout.originY+'px'}
+  if(nameLabel){
+    var namePlacement=calculateMonsterNamePlacement(layout,nameLabel.offsetHeight||14);
+    nameLabel.style.left=namePlacement.centerX+'px';nameLabel.style.top=namePlacement.top+'px';
+  }
+  if(bodyImage&&bodyImage.naturalWidth){
+    if(bodyPlacement)applyMonsterPlacement(bodyImage,bodyPlacement,layout,1);
+  }
+  icons.forEach(function(icon,iconIndex){
+    var image=document.getElementById('monster_icon_'+iconIndex);
+    if(!image||!image.naturalWidth||image.style.display==='none')return;
+    var frameIndex=Number(image.getAttribute('data-frame-index'))||0;
+    var placement=buildMonsterPlacement(monsterFrameAsset(icon,frameIndex),image,'icon',icon.x,icon.y);
+    if(placement)applyMonsterPlacement(image,placement,layout,Number(icon.layer)===1?0:3);
+  });
+}
+
+function startMonsterComposite(){
+  var bodyImage=document.getElementById('monster_body');
+  if(!bodyImage){positionMonsterComposite();return}
+  bodyImage.onload=function(){bodyImage.style.display='block';positionMonsterComposite()};
+  bodyImage.onerror=function(){bodyImage.style.display='none';positionMonsterComposite()};
+  if(bodyImage.complete&&bodyImage.naturalWidth){bodyImage.style.display='block';positionMonsterComposite()}
+}
+
+function showMonsterIconFrame(iconIndex,frameIndex){
+  var icon=(_detail.monsterIcons||[])[iconIndex]||{},frames=Array.isArray(icon.frames)?icon.frames:[];
+  var image=document.getElementById('monster_icon_'+iconIndex),counter=document.getElementById('monster_frame_'+iconIndex);
+  if(!image)return;
+  var url=frames[frameIndex]||'';
+  if(url){
+    image.setAttribute('data-frame-index',String(frameIndex));
+    image.onload=function(){positionMonsterComposite()};
+    image.src=url;image.style.display='block';
+    if(image.complete&&image.naturalWidth)positionMonsterComposite();
+  }else{image.removeAttribute('src');image.style.display='none';positionMonsterComposite()}
+  if(counter)counter.textContent=(frames.length?frameIndex+1:0)+'/'+(icon.frameCount||1);
+}
+
+window.addEventListener('resize',positionMonsterComposite);
+
+function startIconAnimations(){
+  stopIconAnimations();
+  var icons=Array.isArray(_detail.monsterIcons)?_detail.monsterIcons:[];
+  icons.forEach(function(icon,iconIndex){
+    var frames=Array.isArray(icon.frames)?icon.frames:[];
+    if(!frames.length)return;
+    var frameIndex=0,cycles=0,maxCycles=Math.max(0,Number(icon.playCount)||0);
+    showMonsterIconFrame(iconIndex,frameIndex);
+    if(frames.length===1)return;
+    var timer=setInterval(function(){
+      frameIndex=(frameIndex+1)%frames.length;
+      if(frameIndex===0){cycles++;if(maxCycles>0&&cycles>=maxCycles){clearInterval(timer);return}}
+      showMonsterIconFrame(iconIndex,frameIndex);
+    },Math.max(40,Math.min(5000,Number(icon.speedMs)||300)));
+    _iconTimers.push(timer);
+  });
+}
+
+function p(t,imgs){
+  if(!t)return""; t=t.replace(/&/g,"&amp;");
+  var lines=t.split(String.fromCharCode(92)), out="";
+  for(var i=0;i<lines.length;i++){
+    if(i>0)out+="<br>"; var ln=lines[i];
+    // 1. 提取 IMG / PLAYIMG 标签，避免后面的文字颜色解析破坏标签。
+    var imgRe=/<&?(img|playimg):[^>]+>/gi, ph={}, phId=0;
+    ln=ln.replace(imgRe,function(m2,kind){
+      var k='\x00IMG'+(phId++)+'\x00';
+      if(String(kind).toUpperCase()==='PLAYIMG'){
+        var animation=_detail.animatedImages&&_detail.animatedImages[m2];
+        if(animation&&animation.frames&&animation.frames.length){
+          var first=animation.frames.find(function(frame){return !!frame})||'';
+          ph[k]=' <img src="'+escapeHtml(first)+'" data-play-key="'+encodeURIComponent(m2)+'" style="vertical-align:middle;image-rendering:pixelated" title="PLAYIMG"> ';
+        }else ph[k]=' <span style="color:#ffa500">[PLAYIMG]</span> ';
+      }else if(imgs&&imgs[m2]){
+        ph[k]=' <img src="'+escapeHtml(imgs[m2])+'" style="vertical-align:middle;image-rendering:pixelated" title="IMG"> ';
+      }else ph[k]=' <span style="color:#ffa500">[IMG]</span> ';
+      return k;
+    });
+    // 2. 按颜色标记拆分：支持 NNN/ 和 /NNN/ 两种格式
+    var parts=ln.split(/(\/?\d{1,3})\//);
+    // parts 交替: [text, colorNum, text, colorNum, ...]
+    if(parts.length===1 && parts[0]===ln){
+      // 没有颜色标记，整行默认色
+      parts=[ln];
+    }
+    var result="";
+    for(var p=0;p<parts.length;p++){
+      var part=parts[p];
+      if(!part&&part!=="0")continue;
+      // 判断是否为颜色号
+      if(/^\/?\d{1,3}$/.test(part)&&p+1<parts.length){
+        var clr=gc(parseInt(part.replace("/","")));
+        var txt=parts[++p]||"";
+      }else{
+        var clr="#ccc";
+        var txt=part;
+      }
+      // 3. 渲染段内 {} 颜色标记
+      var seg="";
+      var pos=0;
+      while(pos<txt.length){
+        if(txt[pos]==="{"&&txt.indexOf("|",pos)>pos&&txt.indexOf("}",pos)>pos){
+          var bar=txt.indexOf("|",pos), end2=txt.indexOf("}",bar);
+          seg+='<span style=color:'+gc(parseInt(txt.substring(bar+1,end2)))+'>'+txt.substring(pos+1,bar)+'</span>';
+          pos=end2+1;
+        }else{ seg+=txt[pos]==="<"?"&lt;":txt[pos]; pos++; }
+      }
+      if(seg) result+='<span style=color:'+clr+'>'+seg+'</span>';
+    }
+    // 4. 还原 Img 占位符
+    for(var pk in ph) result=result.split(pk).join(ph[pk]);
+    out+=result;
+  }
+  return out;
+}
+
+function stopDescriptionAnimations(){
+  for(var i=0;i<_descriptionTimers.length;i++)clearInterval(_descriptionTimers[i]);
+  _descriptionTimers=[];
+}
+
+function startDescriptionAnimations(){
+  stopDescriptionAnimations();
+  document.querySelectorAll('img[data-play-key]').forEach(function(image){
+    var key='';
+    try{key=decodeURIComponent(image.getAttribute('data-play-key')||'')}catch(e){}
+    var animation=_detail.animatedImages&&_detail.animatedImages[key];
+    var frames=animation&&Array.isArray(animation.frames)?animation.frames:[];
+    if(frames.length<2)return;
+    var frameIndex=0;
+    var timer=setInterval(function(){
+      frameIndex=(frameIndex+1)%frames.length;
+      var url=frames[frameIndex]||'';
+      if(url){image.src=url;image.style.display='inline'}else image.style.display='none';
+    },Math.max(40,Math.min(5000,Number(animation.speedMs)||100)));
+    _descriptionTimers.push(timer);
+  });
+}
+
+function saveDesc(key){
+  var ta=document.getElementById("ta_"+key); if(!ta)return;
+  var newText=ta.value.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
+  _detail[key]=newText; _detail['_'+key+'Edited']=undefined;
+  vscode.postMessage({type:"saveItemDesc",name:_detail.name,key:key,text:newText});
+  renderDetail();
+}
+vscode.postMessage({type:"sidebarReady"});
+</script></body></html>

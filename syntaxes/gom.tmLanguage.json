@@ -1,0 +1,75 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "BOO Script",
+  "scopeName": "source.gomscript",
+  "patterns": [
+    {
+      "name": "comment.line.gomscript",
+      "match": ";.*$"
+    },
+    {
+      "name": "entity.name.tag.gomscript",
+      "match": "\\[@[^\\]]+\\]"
+    },
+    {
+      "name": "entity.name.tag.gomscript",
+      "match": "\\[~[^\\]]+\\]"
+    },
+    {
+      "name": "meta.selector.gomscript",
+      "match": "\\[\\d{1,3}\\]"
+    },
+    {
+      "name": "keyword.control.gomscript",
+      "match": "(?i)#(IF|ACT|SAY|ELSEACT|ELSESAY|OR)\\b"
+    },
+    {
+      "name": "keyword.other.gomscript",
+      "match": "(?i)#(CALL|INCLUDE)\\b"
+    },
+    {
+      "name": "variable.parameter.gomscript",
+      "match": "(?i)<\\$[^>]+>"
+    },
+    {
+      "name": "entity.name.tag.gomscript",
+      "match": "(?i)<&(itemshow|ProgressBar|COUNTDOWN|INPUTTEXT|INPUTNUM|IMG|IMGEX|PlayImg|ADDBUTTON)\\b[^>]*>"
+    },
+    {
+      "name": "markup.underline.gomscript",
+      "match": "/@[A-Za-z0-9_\\u4e00-\\u9fff]*"
+    },
+    {
+      "name": "entity.name.function.gomscript",
+      "match": "(?i)@[A-Za-z0-9_\\u4e00-\\u9fff]+"
+    },
+    {
+      "name": "variable.other.gomscript",
+      "match": "\\b[NnSs]\\$[A-Za-z0-9_\\u4e00-\\u9fff]*"
+    },
+    {
+      "name": "support.type.gomscript",
+      "match": "(?i)\\b(VAR|HUMAN|GLOBAL|GUILD|STRING|INTEGER|MAN|WOMAN|WARRIOR|WIZARD|TAOIST|SELF)\\b"
+    },
+    {
+      "name": "support.type.property.gomscript",
+      "match": "(?i)\\b(NAME|IDE|NIC|VER|ID|IP|IPLOCAL|MAP|MAPNAME|X|Y|DIR|JOB|SEX|HAIR|GOLD|GAMEGIRD|LEVEL|EXP|MAXEXP|AC|MAXAC|MAC|MAXMAC|DC|MAXDC|MC|MAXMC|SC|MAXSC|HP|MAXHP|MP|MAXMP|WEIGHT|MAXWEIGHT|WEARWEIGHT|MAXWEARWEIGHT|HOMEMAP|HOMEX|HOMEY|PK|CREDITPOINT|RELEVEL|GAMEGOLD|GAMEPOINT|BAGSIZE|LOGINLONGMIN|MEMBERTYPE|MEMBERLEVEL|SLAVECOUNT|DEARNAME|MASTERNAME|STORAGEPWD|GUILDNAME|GUILDRANKNO|BONUSPOINT|BONUSPOINTEX|GROUPCOUNT|GROUPOWNER|ATTACKMODE|CARNAME|OFFTALK|CONTRIBUTE|LUCK|BAGITEMCOUNT)\\b"
+    },
+    {
+      "name": "string.unquoted.path.gomscript",
+      "match": "(?:\\.\\.|\\.?[a-zA-Z]:)?[\\\\/][A-Za-z0-9_\\u4e00-\\u9fff\\\\/.]*\\w[\\\\/]?"
+    },
+    {
+      "name": "constant.numeric.gomscript",
+      "match": "(?<![A-Za-z0-9_])(?:-?\\d+(?:\\.\\d+)?)\\b"
+    },
+    {
+      "name": "keyword.operator.gomscript",
+      "match": "(?:==|!=|>=|<=|&&|\\|\\||[+\\-*/%=&|!<>])"
+    },
+    {
+      "name": "punctuation.bracket.gomscript",
+      "match": "[\\[\\]\\(\\)\\{\\}]"
+    }
+  ]
+}

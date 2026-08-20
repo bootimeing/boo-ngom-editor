@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{TABULATOR_CSS_URI}}">
+  <link rel="stylesheet" href="{{TABLE_EDITOR_CSS_URI}}">
+  <title>BOO 表格编辑器</title>
+</head>
+<body>
+  <div class="toolbar" role="toolbar" aria-label="表格操作">
+    <button type="button" id="undoButton" title="撤回 (Ctrl+Z)">撤回</button>
+    <button type="button" id="redoButton" title="恢复 (Ctrl+Y)">恢复</button>
+    <span class="toolbar-separator" aria-hidden="true"></span>
+    <button type="button" id="insertRowButton">插入行</button>
+    <button type="button" id="insertColumnButton">插入列</button>
+    <button type="button" id="deleteRowButton">删除行</button>
+    <button type="button" id="deleteColumnButton">删除列</button>
+    <span class="toolbar-spacer"></span>
+    <span id="fileLabel" class="file-label"></span>
+    <button type="button" id="exitButton">退出表格</button>
+  </div>
+
+  <div class="value-bar">
+    <input id="cellAddress" class="cell-address" type="text" value="A1" readonly aria-label="当前单元格">
+    <span class="value-separator" aria-hidden="true">=</span>
+    <input id="cellValue" class="cell-value" type="text" autocomplete="off" spellcheck="false" aria-label="单元格内容">
+  </div>
+
+  <main id="gridShell" class="grid-shell">
+    <div id="grid" aria-label="表格数据"></div>
+    <div id="fillHandle" class="fill-handle" title="拖动填充" aria-hidden="true"></div>
+    <div id="loading" class="loading">正在创建表格...</div>
+  </main>
+
+  <footer class="status-bar">
+    <span id="dimensions">1 行 × 1 列</span>
+    <span id="selectionInfo">A1</span>
+    <span class="status-spacer"></span>
+    <span id="status" role="status" aria-live="polite"></span>
+  </footer>
+
+  <script src="{{TABLE_EDITOR_CORE_URI}}"></script>
+  <script src="{{TABULATOR_JS_URI}}"></script>
+  <script src="{{TABLE_EDITOR_JS_URI}}"></script>
+</body>
+</html>

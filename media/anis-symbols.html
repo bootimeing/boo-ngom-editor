@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1e1e1e;color:#d4d4d4;font-family:'Microsoft YaHei',monospace;padding:12px}
+h3{color:#ff8c00;margin-bottom:4px;font-size:14px}
+.cat{color:#00d4ff;font-size:11px;margin:10px 0 4px}
+.grid{display:flex;flex-wrap:wrap;gap:4px}
+.sym{width:36px;height:36px;font-size:18px;background:#2a2a2a;color:#fff;border:1px solid #444;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center}
+.sym:hover{background:#0e639c;border-color:#00d4ff;transform:scale(1.15);z-index:1}
+.sym.copied{background:#0a6e0a;border-color:#0f0}
+.toast{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#0a6e0a;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;z-index:99;pointer-events:none;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<h3>ANIS特殊符号 — 点击复制</h3>
+<div id="list"></div>
+<div class="toast" id="toast"></div>
+<script>
+var cats={
+'方向箭头':'↑↓←→↖↗↘↙⇧⇩⇦⇨↕↔▲▼►◀',
+'图形形状':'○●◎◇◆□■△▲▽▼☆★※〓',
+'数学符号':'±×÷＋－＝≠≈≡≤≥＜＞∑∏∪∩∈∵∴⊥∥∠⊙√∝∞∫∮',
+'数字序号':'①②③④⑤⑥⑦⑧⑨⑩ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ',
+'货币符号':'$£¥€¤',
+'希腊字母':'αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘ',
+'表格线条':'┌┬┐├┼┤└┴┘│─═║',
+'边框线':'╔╦╗╠╬╣╚╩╝║═',
+'特殊字符':'♠♡♢♣♤♥♦♧♨♩♪♫♬♭♮♯℃℉№℡™©®'
+};
+var toast=document.getElementById('toast'),timer=null;
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');if(timer)clearTimeout(timer);timer=setTimeout(function(){toast.classList.remove('show')},1200);}
+function copy(sym,el){
+navigator.clipboard.writeText(sym).then(function(){showToast('已复制: '+sym)}).catch(function(){
+var ta=document.createElement('textarea');ta.value=sym;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('已复制: '+sym);
+});
+el.classList.add('copied');setTimeout(function(){el.classList.remove('copied')},600);
+}
+var list=document.getElementById('list'),html='';
+for(var k in cats){
+html+='<div class="cat">'+k+'</div><div class="grid">';
+for(var i=0;i<cats[k].length;i++){var s=cats[k][i];html+='<button class="sym" title="点击复制: '+s+'" data-sym="'+s+'">'+s+'</button>'}
+html+='</div>';
+}
+list.innerHTML=html;
+list.addEventListener('click',function(e){var s=e.target.dataset.sym;if(s)copy(s,e.target)});
+</script>
+</body>
+</html>
