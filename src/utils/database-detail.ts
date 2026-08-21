@@ -33,6 +33,15 @@ export interface MonsterPreviewImageAsset {
   height?: number;
   offsetX?: number;
   offsetY?: number;
+  placementX?: number;
+  placementY?: number;
+}
+
+export interface ActorIconPlacement {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export type MonsterDatabaseDetailTextKey = 'dropRateText' | 'iconText';
@@ -149,7 +158,10 @@ export function buildMonsterIconPreviews(
         const resolved = resolveImage(icon.wilIndex, icon.imageIndex + offset);
         const asset = typeof resolved === 'string' ? { url: resolved } : resolved;
         frames.push(asset.url);
-        frameAssets.push(asset);
+        const placement = calculateActorIconPlacement(asset, icon.x, icon.y);
+        frameAssets.push(placement
+          ? { ...asset, placementX: placement.x, placementY: placement.y }
+          : asset);
       }
       return {
         ...icon,
@@ -160,6 +172,40 @@ export function buildMonsterIconPreviews(
     }),
     iconConfigTruncated: icons.length > iconConfigs.length,
   };
+}
+
+export function calculateActorIconPlacement(
+  asset: Pick<MonsterPreviewImageAsset, 'width' | 'height' | 'offsetX' | 'offsetY'>,
+  scriptX: number,
+  scriptY: number,
+  naturalWidth = 0,
+  naturalHeight = 0
+): ActorIconPlacement | undefined {
+  const assetWidth = finiteNumber(asset.width);
+  const assetHeight = finiteNumber(asset.height);
+  const width = assetWidth !== undefined && assetWidth > 0 ? assetWidth : finitePositive(naturalWidth);
+  const height = assetHeight !== undefined && assetHeight > 0 ? assetHeight : finitePositive(naturalHeight);
+  if (width === undefined || height === undefined) return undefined;
+
+  const offsetX = finiteNumber(asset.offsetX) || 0;
+  const offsetY = finiteNumber(asset.offsetY) || 0;
+  return {
+    x: offsetX + (finiteNumber(scriptX) || 0) + 24 - Math.floor(width / 2),
+    y: offsetY + (finiteNumber(scriptY) || 0) + 21 - height,
+    width,
+    height,
+  };
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function finitePositive(value: unknown): number | undefined {
+  const number = finiteNumber(value);
+  return number !== undefined && number > 0 ? number : undefined;
 }
 
 export function describeMonsterBodyAppearance(

@@ -18,6 +18,11 @@ import {
   ENGINE_IDS,
   normalizeEngineId as normalizeRegisteredEngineId,
 } from './engine-registry';
+import {
+  customLanguageEntries,
+  CustomLanguageData,
+  CustomLanguageEntry,
+} from './custom-language';
 
 export interface IndexedCommand {
   name: string;
@@ -37,7 +42,7 @@ export interface IndexedCommand {
   corpusEvidence?: ServerCorpusEvidence[];
   aliasOf?: string;
   legacyShared: boolean;
-  origin: 'shared' | 'engine';
+  origin: 'shared' | 'engine' | 'custom';
 }
 
 export interface LanguageIndex {
@@ -246,6 +251,29 @@ function normalizeEngineFunction(
   };
 }
 
+function normalizeCustomCommand(
+  entry: CustomLanguageEntry,
+  kind: 'check' | 'action',
+  engine: EngineId
+): RankedCommand {
+  const name = commandToken(entry.name);
+  return {
+    name,
+    syntax: entry.syntax || name,
+    description: entry.description,
+    params: entry.params,
+    kind,
+    contexts: kind === 'check' ? ['IF'] : ['ACT'],
+    aliases: [],
+    engines: [engine],
+    completionVerified: true,
+    completionEnabled: true,
+    legacyShared: false,
+    origin: 'custom',
+    priority: 100,
+  };
+}
+
 function mergeCommands(existing: RankedCommand, incoming: RankedCommand): RankedCommand {
   const preferred = incoming.priority > existing.priority ? incoming : existing;
   const fallback = preferred === incoming ? existing : incoming;
@@ -272,7 +300,8 @@ function mergeCommands(existing: RankedCommand, incoming: RankedCommand): Ranked
 function buildCommandsForEngine(
   commandsData: CommandsData | null,
   catalog: EngineFunctionCatalog,
-  engine: EngineId
+  engine: EngineId,
+  customData?: CustomLanguageData
 ): RankedCommand[] {
   const byCanonicalName = new Map<string, RankedCommand>();
   const add = (command: RankedCommand | null) => {
@@ -290,6 +319,12 @@ function buildCommandsForEngine(
   }
   for (const [name, info] of Object.entries(catalog[engine] || {})) {
     add(normalizeEngineFunction(name, info, engine));
+  }
+  for (const entry of customLanguageEntries(customData, engine, 'check')) {
+    add(normalizeCustomCommand(entry, 'check', engine));
+  }
+  for (const entry of customLanguageEntries(customData, engine, 'action')) {
+    add(normalizeCustomCommand(entry, 'action', engine));
   }
 
   return [...byCanonicalName.values()].sort((a, b) => (
@@ -351,8 +386,12 @@ function variableNameMap(variables: VariableEntry[]): Map<string, VariableEntry>
   return result;
 }
 
-function activeTriggers(data: CommandsData | null, engine: EngineId): TriggerEntry[] {
-  return (data?.triggers || [])
+function activeTriggers(
+  data: CommandsData | null,
+  engine: EngineId,
+  customData?: CustomLanguageData
+): TriggerEntry[] {
+  const entries = (data?.triggers || [])
     .filter(trigger => trigger.engines?.includes(engine) && trigger.engineVariants?.[engine])
     .map(trigger => {
       const variant = trigger.engineVariants![engine]!;
@@ -360,8 +399,23 @@ function activeTriggers(data: CommandsData | null, engine: EngineId): TriggerEnt
         ...variant,
         engines: [engine],
       };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+    });
+  const byName = new Map<string, TriggerEntry>(
+    entries.map(entry => [triggerKey(entry.name), entry])
+  );
+  for (const custom of customLanguageEntries(customData, engine, 'function')) {
+    const entry: TriggerEntry = {
+      name: custom.syntax,
+      label: custom.name,
+      description: custom.description,
+      engines: [engine],
+      aliases: [],
+    };
+    byName.set(triggerKey(entry.name), entry);
+  }
+  return [...byName.values()].sort((a, b) => (
+    a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })
+  ));
 }
 
 function triggerNameMap(triggers: TriggerEntry[]): Map<string, TriggerEntry> {
@@ -376,11 +430,29 @@ function triggerNameMap(triggers: TriggerEntry[]): Map<string, TriggerEntry> {
 
 function activeConstants(
   catalog: EngineConstantCatalog | undefined,
-  engine: EngineId
+  engine: EngineId,
+  customData?: CustomLanguageData
 ): ConstantEntry[] {
-  return (catalog?.[engine]?.constants || [])
+  const entries = (catalog?.[engine]?.constants || [])
     .filter(entry => entry.completionEnabled || entry.diagnosticSupported)
     .map(entry => ({ ...entry, engines: [engine] }));
+  const byName = new Map<string, ConstantEntry>(
+    entries.map(entry => [variableKey(entry.name), entry])
+  );
+  for (const custom of customLanguageEntries(customData, engine, 'constant')) {
+    const entry: ConstantEntry = {
+      name: custom.syntax,
+      full: custom.name,
+      description: custom.description,
+      scope: custom.params.join(' '),
+      engines: [engine],
+      aliases: [],
+      completionVerified: true,
+      completionEnabled: true,
+    };
+    byName.set(variableKey(entry.name), entry);
+  }
+  return [...byName.values()];
 }
 
 function constantNameMap(constants: ConstantEntry[]): Map<string, ConstantEntry> {
@@ -398,11 +470,12 @@ export function buildLanguageIndex(
   variablesData: VariablesData | null,
   catalog: EngineFunctionCatalog,
   engine: EngineId,
-  constantCatalog?: EngineConstantCatalog
+  constantCatalog?: EngineConstantCatalog,
+  customData?: CustomLanguageData
 ): LanguageIndex {
   const commandCatalog = new Map<EngineId, RankedCommand[]>();
   for (const candidate of ENGINE_IDS) {
-    commandCatalog.set(candidate, buildCommandsForEngine(commandsData, catalog, candidate));
+    commandCatalog.set(candidate, buildCommandsForEngine(commandsData, catalog, candidate, customData));
   }
   const commands: IndexedCommand[] = commandCatalog.get(engine) || [];
   const commandByName = commandNameMap(commands);
@@ -417,11 +490,11 @@ export function buildLanguageIndex(
   const verifiedCommands = commands.filter(command => (
     command.completionEnabled
     && command.completionVerified
-    && Boolean(command.source)
+    && (Boolean(command.source) || command.origin === 'custom')
   ));
   const nameConfirmedCommands = commands.filter(command => (
     command.completionEnabled
-    && Boolean(command.source)
+    && (Boolean(command.source) || command.origin === 'custom')
   ));
   const commandCompletions = expandAliases(verifiedCommands);
   const commandNameCompletions = expandAliases(nameConfirmedCommands);
@@ -442,21 +515,21 @@ export function buildLanguageIndex(
       if (!variableByName.has(name)) addUnsupportedEntry(unsupportedVariableByName, name, variable);
     }
   }
-  const triggers = activeTriggers(commandsData, engine);
+  const triggers = activeTriggers(commandsData, engine, customData);
   const triggerByName = triggerNameMap(triggers);
   const unsupportedTriggerByName = new Map<string, TriggerEntry>();
   for (const candidate of ENGINE_IDS) {
     if (candidate === engine) continue;
-    for (const [name, trigger] of triggerNameMap(activeTriggers(commandsData, candidate))) {
+    for (const [name, trigger] of triggerNameMap(activeTriggers(commandsData, candidate, customData))) {
       if (!triggerByName.has(name)) addUnsupportedEntry(unsupportedTriggerByName, name, trigger);
     }
   }
-  const constants = activeConstants(constantCatalog, engine);
+  const constants = activeConstants(constantCatalog, engine, customData);
   const constantByName = constantNameMap(constants);
   const unsupportedConstantByName = new Map<string, ConstantEntry>();
   for (const candidate of ENGINE_IDS) {
     if (candidate === engine) continue;
-    for (const [name, constant] of constantNameMap(activeConstants(constantCatalog, candidate))) {
+    for (const [name, constant] of constantNameMap(activeConstants(constantCatalog, candidate, customData))) {
       if (!constantByName.has(name) && !variableByName.has(name)) {
         addUnsupportedEntry(unsupportedConstantByName, name, constant);
       }

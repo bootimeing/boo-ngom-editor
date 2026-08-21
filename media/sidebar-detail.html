@@ -386,9 +386,13 @@ function buildMonsterPlacement(asset,image,kind,extraX,extraY){
   var x=offsetX+(finiteMonsterNumber(extraX)||0);
   var y=offsetY+(finiteMonsterNumber(extraY)||0);
   if(kind==='icon'){
-    // MonIcons frames are bottom-centered on the in-game 48x32 actor cell at (24, 21).
-    x+=24-Math.floor(width/2);
-    y+=21-height;
+    var placementX=finiteMonsterNumber(asset.placementX),placementY=finiteMonsterNumber(asset.placementY);
+    if(placementX!==null&&placementY!==null){x=placementX;y=placementY}
+    else{
+      // MonIcons and NpcIcons share the same 48x32 actor-cell anchor at (24, 21).
+      x+=24-Math.floor(width/2);
+      y+=21-height;
+    }
   }
   return {
     x:x,

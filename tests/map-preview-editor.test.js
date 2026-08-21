@@ -37,8 +37,8 @@ function main() {
   assert.doesNotMatch(html, /function fit\(/);
   assert.match(
     html,
-    /\.npc-map-name\{[^}]*transform:translate\(-50%,-50%\);pointer-events:none/,
-    'NPC name centers must be aligned independently from the sprite frame'
+    /\.npc-map-name\{[^}]*transform:translate\(-50%,calc\(-100% \+ var\(--npc-name-half-line,8px\)\)\)[^}]*white-space:pre[^}]*pointer-events:none/,
+    'multiline NPC names must keep the source first segment on the bottom calibrated line'
   );
   assert.match(
     html,
@@ -100,6 +100,16 @@ function main() {
   assert.match(html, /pointerdown[\s\S]*navigateFromMapNavigator/);
   assert.match(html, /data\.type==='revealMerchantNpc'[\s\S]*revealMerchantNpc\(data\.npc\)/);
   assert.match(html, /NPC 编辑器/);
+  assert.match(html, /id="npcAppearance" type="number"/);
+  assert.match(html, /id="npcIconText"/);
+  assert.doesNotMatch(html, /\.map-entity:hover,/);
+  assert.match(html, /\.spawn-entity:hover,\.spawn-entity\.selected/);
+  assert.match(html, /function applyNpcIconFrame\(node,image,frame,icon\)/);
+  assert.match(html, /assetOffsetX\+\(Number\(icon\.x\)\|\|0\)\+24-Math\.floor\(width\/2\)/);
+  assert.match(html, /assetOffsetY\+\(Number\(icon\.y\)\|\|0\)\+21-height/);
+  assert.match(html, /if\(event&&event\.target===npcEditor\.iconText\)npc\.iconDirty=true/);
+  assert.match(html, /if\(entity\.iconDirty===true\)npc\.iconText=entity\.iconText\|\|''/);
+  assert.match(html, /data\.type==='npcSaved'&&data\.npc[\s\S]*state\.npcs\[index\]=data\.npc;rebuildEntities\(\);updateNpcJumpBar\(\)/);
   assert.match(html, /刷怪编辑器/);
   assert.match(html, /id="showSpawnRange"/);
   assert.match(html, /type:'updateNpc'/);
@@ -113,7 +123,10 @@ function main() {
   assert.match(provider, /type: 'markerDeleted'/);
   assert.match(provider, /encodeTextFile\(updated\.text, decoded\.encoding\)/);
   assert.match(provider, /parseMerchantText[\s\S]*parseMonGenText/);
-  assert.match(provider, /updateMerchantCoordinates/);
+  assert.match(provider, /updateMerchantNpc/);
+  assert.match(provider, /loadNpcIconDetail/);
+  assert.match(provider, /saveNpcIconText/);
+  assert.match(provider, /resolveNpcIconPreviews/);
   assert.match(provider, /updateMonGenFields/);
   assert.match(provider, /resolveMerchantScriptPath/);
   assert.match(provider, /async revealMerchantNpc\([\s\S]*mapEntityMatches\(npc\.mapName, entry\)[\s\S]*type: 'revealMerchantNpc'/);
@@ -144,6 +157,7 @@ function main() {
   vm.runInContext(extractFunction(html, 'layoutEntityNode'), context);
   vm.runInContext(extractFunction(html, 'layoutNpcName'), context);
   vm.runInContext(extractFunction(html, 'applyNpcFrame'), context);
+  vm.runInContext(extractFunction(html, 'applyNpcIconFrame'), context);
   vm.runInContext(extractFunction(html, 'clampViewOffset'), context);
   vm.runInContext(extractFunction(html, 'centerWorldPoint'), context);
   const spriteStyle = { setProperty() {} };
@@ -154,7 +168,7 @@ function main() {
   });
   assert.equal(spriteStyle.left, '339.5px');
   assert.equal(spriteStyle.top, '494px');
-  const nameStyle = {};
+  const nameStyle = { setProperty() {} };
   context.layoutNpcName({ dataset: { line: '3' }, style: nameStyle });
   assert.equal(nameStyle.left, '352px');
   assert.equal(nameStyle.top, '514.5px', 'the game-calibrated NPC name offset must scale with the map');
@@ -183,6 +197,44 @@ function main() {
   assert.equal(animatedStyle.width, '65px');
   assert.equal(animatedStyle.height, '81px');
 
+  const iconImage = { hidden: true, naturalWidth: 100, naturalHeight: 40 };
+  const iconStyle = { setProperty() {} };
+  const iconNode = {
+    dataset: { entityType: 'npc', line: '3' },
+    classList: { contains: value => value === 'offset-positioned' },
+    querySelectorAll: () => [iconImage],
+    style: iconStyle,
+  };
+  context.applyNpcIconFrame(
+    iconNode,
+    iconImage,
+    { width: 100, height: 40, offsetX: -10, offsetY: -20, usesOffsets: true },
+    { x: 5, y: -30 }
+  );
+  assert.equal(iconNode.dataset.frameOffsetX, '-31');
+  assert.equal(iconNode.dataset.frameOffsetY, '-69');
+  assert.equal(iconStyle.left, '324.5px');
+  assert.equal(iconStyle.top, '485.5px');
+
+  context.applyNpcIconFrame(
+    iconNode,
+    iconImage,
+    {
+      width: 100,
+      height: 40,
+      offsetX: -10,
+      offsetY: -20,
+      usesOffsets: true,
+      placementX: 13,
+      placementY: -77,
+    },
+    { x: 999, y: 999 }
+  );
+  assert.equal(iconNode.dataset.frameOffsetX, '13');
+  assert.equal(iconNode.dataset.frameOffsetY, '-77');
+  assert.equal(iconStyle.left, '346.5px');
+  assert.equal(iconStyle.top, '481.5px');
+
   context.state.offsetX = 0;
   context.state.offsetY = 0;
   context.state.scale = 1;
@@ -191,8 +243,8 @@ function main() {
     [2, { x: 138, y: 185 }],
   ]);
   context.entityBy = (_type, line) => merchantRows.get(line);
-  const firstName = { dataset: { line: '1' }, style: {} };
-  const secondName = { dataset: { line: '2' }, style: {} };
+  const firstName = { dataset: { line: '1' }, style: { setProperty() {} } };
+  const secondName = { dataset: { line: '2' }, style: { setProperty() {} } };
   context.layoutNpcName(firstName);
   context.layoutNpcName(secondName);
   assert.equal(parseFloat(secondName.style.left) - parseFloat(firstName.style.left), 22 * 48);

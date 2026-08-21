@@ -74,6 +74,7 @@ import {
   findEnvirDirectory,
   findMir200Directory,
   mapEntityMatches,
+  formatNpcDisplayName,
   merchantColumns,
   MerchantNpc,
   monGenColumns,
@@ -84,9 +85,16 @@ import {
   parseMonGenText,
   resolveMerchantScriptPath,
   selectCustomNpcArchive,
-  updateMerchantCoordinates,
+  updateMerchantNpc,
   updateMonGenFields,
 } from '../utils/map-entities';
+import { buildMonsterIconPreviews } from '../utils/database-detail';
+import {
+  loadNpcIconDetail,
+  NpcIconConfig,
+  saveNpcIconText,
+  validateNpcIconText,
+} from '../utils/npc-icons';
 import {
   officialNpcArchiveBaseName,
   resolveOfficialNpcAnimationPlan,
@@ -114,6 +122,8 @@ interface MapPreviewMessage {
     lineNumber?: number;
     x?: number;
     y?: number;
+    appearance?: number;
+    iconText?: string;
   };
   spawn?: {
     lineNumber?: number;
@@ -128,14 +138,45 @@ interface ResolvedNpcFrame {
   offsetX: number;
   offsetY: number;
   usesOffsets: boolean;
+  placementX?: number;
+  placementY?: number;
 }
 
 interface ResolvedMapNpc extends MerchantNpc {
   nameColor: string;
+  displayLabel: string;
   frames: ResolvedNpcFrame[];
   frameInterval: number;
   appearanceLabel: string;
+  iconText: string;
+  iconFileName: string;
+  iconExists: boolean;
+  icons: ResolvedNpcIcon[];
   scriptAvailable: boolean;
+}
+
+interface ResolvedNpcIcon extends NpcIconConfig {
+  frames: ResolvedNpcFrame[];
+  previewTruncated: boolean;
+}
+
+interface NpcResolutionContext {
+  envirDirectory: string;
+  engine: EngineId;
+  nameColor: string;
+  resourceRoots: Set<string>;
+  clientLayout: ClientResourceLayout | undefined;
+  patchPaks: CachedPatchPak[];
+  officialArchiveFiles: string[];
+  effectImageArchives: { name: string; willIdx: number; extension?: string }[];
+  customAnimations: Map<number, ResolvedNpcAnimation>;
+  officialAnimations: Map<number, ResolvedNpcAnimation>;
+}
+
+interface ResolvedNpcAnimation {
+  frames: ResolvedNpcFrame[];
+  interval: number;
+  label: string;
 }
 
 interface OriginalMapSession {
@@ -585,73 +626,161 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     if (merchantText === undefined) warnings.push('未找到 Merchant.txt');
     if (monGenText === undefined) warnings.push('未找到 MonGen.txt');
 
-    const nameColor = engineColor(parseMerchantNameColor(setupText || ''));
-    const clientLayout = this.clientResourceLayout(engine);
-    const patchPaks = this.activePatchPaks(engine, clientLayout);
-    const officialArchiveFiles = this.officialNpcArchiveFiles(clientLayout);
     clearPakCache();
-    const effectImageArchives = loadPakIndex(workspaceRoot)?.pakList || [];
-    const customAnimations = new Map<number, {
-      frames: ResolvedNpcFrame[];
-      interval: number;
-      label: string;
-    }>();
-    const officialAnimations = new Map<number, {
-      frames: ResolvedNpcFrame[];
-      interval: number;
-      label: string;
-    }>();
+    const context = this.createNpcResolutionContext(
+      workspaceRoot,
+      envirDirectory,
+      engine,
+      engineColor(parseMerchantNameColor(setupText || '')),
+      resourceRoots
+    );
     const npcs = (merchantText === undefined ? [] : parseMerchantText(merchantText))
       .filter(npc => mapEntityMatches(npc.mapName, map))
-      .map(npc => {
-        let frames: ResolvedNpcFrame[] = [];
-        let frameInterval = 0;
-        let appearanceLabel = `官方外观 ${npc.appearance}`;
-        if (npc.appearance < 10000) {
-          let cached = officialAnimations.get(npc.appearance);
-          if (!cached) {
-            cached = this.resolveOfficialNpcAnimation(
-              npc.appearance,
-              engine,
-              resourceRoots,
-              clientLayout,
-              officialArchiveFiles,
-              patchPaks
-            );
-            officialAnimations.set(npc.appearance, cached);
-          }
-          frames = cached.frames;
-          frameInterval = cached.interval;
-          appearanceLabel = cached.label;
-        } else {
-          let cached = customAnimations.get(npc.appearance);
-          if (!cached) {
-            cached = this.resolveCustomNpcAnimation(
-              envirDirectory,
-              npc.appearance,
-              engine,
-              patchPaks,
-              effectImageArchives,
-              resourceRoots
-            );
-            customAnimations.set(npc.appearance, cached);
-          }
-          frames = cached.frames;
-          frameInterval = cached.interval;
-          appearanceLabel = cached.label;
-        }
-        return {
-          ...npc,
-          nameColor,
-          frames,
-          frameInterval,
-          appearanceLabel,
-          scriptAvailable: Boolean(resolveMerchantScriptPath(envirDirectory, npc)),
-        };
-      });
+      .map(npc => this.resolveMapNpc(npc, context));
     const spawns = (monGenText === undefined ? [] : parseMonGenText(monGenText))
       .filter(spawn => mapEntityMatches(spawn.mapName, map));
     return { npcs, spawns, resourceRoots: [...resourceRoots], warnings };
+  }
+
+  private createNpcResolutionContext(
+    workspaceRoot: string,
+    envirDirectory: string,
+    engine: EngineId,
+    nameColor: string,
+    resourceRoots = new Set<string>()
+  ): NpcResolutionContext {
+    const clientLayout = this.clientResourceLayout(engine);
+    return {
+      envirDirectory,
+      engine,
+      nameColor,
+      resourceRoots,
+      clientLayout,
+      patchPaks: this.activePatchPaks(engine, clientLayout),
+      officialArchiveFiles: this.officialNpcArchiveFiles(clientLayout),
+      effectImageArchives: loadPakIndex(workspaceRoot)?.pakList || [],
+      customAnimations: new Map<number, ResolvedNpcAnimation>(),
+      officialAnimations: new Map<number, ResolvedNpcAnimation>(),
+    };
+  }
+
+  private resolveMapNpc(npc: MerchantNpc, context: NpcResolutionContext): ResolvedMapNpc {
+    const cache = npc.appearance < 10000
+      ? context.officialAnimations
+      : context.customAnimations;
+    let animation = cache.get(npc.appearance);
+    if (!animation) {
+      animation = npc.appearance < 10000
+        ? this.resolveOfficialNpcAnimation(
+          npc.appearance,
+          context.engine,
+          context.resourceRoots,
+          context.clientLayout,
+          context.officialArchiveFiles,
+          context.patchPaks
+        )
+        : this.resolveCustomNpcAnimation(
+          context.envirDirectory,
+          npc.appearance,
+          context.engine,
+          context.patchPaks,
+          context.effectImageArchives,
+          context.resourceRoots
+        );
+      cache.set(npc.appearance, animation);
+    }
+
+    const iconDetail = loadNpcIconDetail(context.envirDirectory, npc, context.engine);
+    return {
+      ...npc,
+      nameColor: context.nameColor,
+      displayLabel: formatNpcDisplayName(npc.displayName) || npc.displayName || 'NPC',
+      frames: animation.frames,
+      frameInterval: animation.interval,
+      appearanceLabel: animation.label,
+      iconText: iconDetail.text,
+      iconFileName: iconDetail.fileName,
+      iconExists: iconDetail.exists,
+      icons: this.resolveNpcIconPreviews(iconDetail.icons, context),
+      scriptAvailable: Boolean(resolveMerchantScriptPath(context.envirDirectory, npc)),
+    };
+  }
+
+  private resolveNpcIconPreviews(
+    icons: NpcIconConfig[],
+    context: NpcResolutionContext
+  ): ResolvedNpcIcon[] {
+    const archiveByWill = new Map<number, CachedPatchPak | undefined>();
+    const tableByArchive = new Map<string, CachedPatchAssetTable | undefined>();
+    const preview = buildMonsterIconPreviews(icons, (wilIndex, imageIndex) => {
+      let pak = archiveByWill.get(wilIndex);
+      if (!archiveByWill.has(wilIndex)) {
+        pak = selectCustomNpcArchive(
+          wilIndex,
+          context.effectImageArchives,
+          context.patchPaks
+        ).archive;
+        archiveByWill.set(wilIndex, pak);
+      }
+      if (!pak || !this.panel || imageIndex < 0 || imageIndex >= pak.slotCount) return { url: '' };
+
+      const archiveKey = path.resolve(pak.pakPath).toLocaleLowerCase();
+      let table = tableByArchive.get(archiveKey);
+      if (!tableByArchive.has(archiveKey)) {
+        try {
+          table = this.originalAssetTable(pak);
+        } catch (error) {
+          console.warn('[BOO] NPC 顶戴素材索引读取失败:', error instanceof Error ? error.message : String(error));
+          table = undefined;
+        }
+        tableByArchive.set(archiveKey, table);
+      }
+      const imagePath = patchImagePath(pak, imageIndex);
+      if (!pak.archiveId && !isFile(imagePath)) return { url: '' };
+      if (!pak.archiveId) context.resourceRoots.add(pak.cacheDir);
+      const hasMetadata = Boolean(
+        table
+        && imageIndex < table.slotCount
+        && table.present[imageIndex]
+        && table.width[imageIndex] > 0
+        && table.height[imageIndex] > 0
+      );
+      return {
+        url: this.panel.webview.asWebviewUri(
+          pak.archiveId
+            ? archiveResourceUri(pak.archiveId, imageIndex)
+            : vscode.Uri.file(imagePath)
+        ).toString(),
+        width: hasMetadata ? table!.width[imageIndex] : 0,
+        height: hasMetadata ? table!.height[imageIndex] : 0,
+        offsetX: hasMetadata ? table!.offsetX[imageIndex] : 0,
+        offsetY: hasMetadata ? table!.offsetY[imageIndex] : 0,
+      };
+    });
+    return preview.icons.map(icon => ({
+      lineNumber: icon.lineNumber,
+      raw: icon.raw,
+      wilIndex: icon.wilIndex,
+      imageIndex: icon.imageIndex,
+      frameCount: icon.frameCount,
+      x: icon.x,
+      y: icon.y,
+      effect: icon.effect,
+      speedMs: icon.speedMs,
+      playCount: icon.playCount,
+      layer: icon.layer,
+      frames: icon.frameAssets.map(asset => ({
+        url: asset.url,
+        width: Math.max(0, Math.trunc(Number(asset.width) || 0)),
+        height: Math.max(0, Math.trunc(Number(asset.height) || 0)),
+        offsetX: Math.trunc(Number(asset.offsetX) || 0),
+        offsetY: Math.trunc(Number(asset.offsetY) || 0),
+        usesOffsets: Number(asset.width) > 0 && Number(asset.height) > 0,
+        placementX: Number.isFinite(Number(asset.placementX)) ? Number(asset.placementX) : undefined,
+        placementY: Number.isFinite(Number(asset.placementY)) ? Number(asset.placementY) : undefined,
+      })),
+      previewTruncated: icon.previewTruncated,
+    }));
   }
 
   private activePatchPaks(
@@ -981,17 +1110,41 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         const envirDirectory = workspaceRoot ? findEnvirDirectory(workspaceRoot) : undefined;
         const merchantPath = envirDirectory ? path.join(envirDirectory, 'Merchant.txt') : '';
-        if (!merchantPath || !isFile(merchantPath)) throw new Error('未找到 Merchant.txt');
+        if (!workspaceRoot || !envirDirectory || !merchantPath || !isFile(merchantPath)) {
+          throw new Error('未找到 Merchant.txt');
+        }
         const lineNumber = Number(message.npc?.lineNumber);
         const x = Number(message.npc?.x);
         const y = Number(message.npc?.y);
+        const appearance = Number(message.npc?.appearance);
+        const iconText = typeof message.npc?.iconText === 'string'
+          ? message.npc.iconText
+          : undefined;
+        const engine = normalizeEngineId(
+          vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+        );
         const decoded = decodeTextFile(fs.readFileSync(merchantPath));
-        const updated = updateMerchantCoordinates(decoded.text, lineNumber, x, y);
+        const updated = updateMerchantNpc(decoded.text, lineNumber, x, y, appearance);
+        if (iconText !== undefined) validateNpcIconText(iconText, engine);
         fs.writeFileSync(merchantPath, encodeTextFile(updated.text, decoded.encoding));
+        if (iconText !== undefined) {
+          saveNpcIconText(envirDirectory, updated.npc, engine, iconText);
+        }
+        const mir200Directory = findMir200Directory(workspaceRoot);
+        const setupText = mir200Directory
+          ? readOptionalText(path.join(mir200Directory, '!Setup.txt'))
+          : undefined;
+        const context = this.createNpcResolutionContext(
+          workspaceRoot,
+          envirDirectory,
+          engine,
+          engineColor(parseMerchantNameColor(setupText || ''))
+        );
+        const resolvedNpc = this.resolveMapNpc(updated.npc, context);
         void this.panel?.webview.postMessage({
           type: 'npcSaved',
           requestId: message.requestId,
-          npc: updated.npc,
+          npc: resolvedNpc,
         });
       } catch (error) {
         this.postEntitySaveError('npc', message, error);

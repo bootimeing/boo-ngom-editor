@@ -1,8 +1,12 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
 function main() {
   const {
     engineColor,
+    formatNpcDisplayName,
     mapEntityMatches,
     monGenColumns,
     parseCustomNpcAnimation,
@@ -12,8 +16,16 @@ function main() {
     parseMonGenText,
     selectCustomNpcArchive,
     updateMerchantCoordinates,
+    updateMerchantNpc,
     updateMonGenFields,
   } = require('../out/utils/map-entities');
+  const {
+    loadNpcIconDetail,
+    npcIconRelativeFileName,
+    parseNpcIconText,
+    saveNpcIconText,
+    validateNpcIconText,
+  } = require('../out/utils/npc-icons');
 
   const merchantText = [
     '; comment',
@@ -43,6 +55,13 @@ function main() {
   assert.equal(moved.npc.x, 400);
   assert.equal(moved.npc.y, 401);
   assert.match(moved.text, /传送\\土城 3 400 401 盟重老兵/);
+  const changedAppearance = updateMerchantNpc(merchantText, 2, 402, 403, 10054);
+  assert.equal(changedAppearance.npc.appearance, 10054);
+  assert.match(changedAppearance.text, /传送\\土城 3 402 403 盟重老兵 0 10054/);
+  assert.equal(
+    formatNpcDisplayName('零六名人堂\\\\[道祖天尊]\\王迪'),
+    '王迪\n[道祖天尊]\n零六名人堂'
+  );
 
   const monGenText = '3 100 101 白野猪 12 2 30 100 249\r\n';
   const spawn = parseMonGenText(monGenText)[0];
@@ -83,6 +102,36 @@ function main() {
   );
   assert.equal(selectedNpcArchive.expectedPakName, 'NPC10');
 
+  const selectedExactArchive = selectCustomNpcArchive(
+    11,
+    [{ name: 'NPC10', willIdx: 11, extension: 'pak' }],
+    [
+      {
+        pakName: 'NPC10',
+        pakPath: 'D:\\客户端\\自定义补丁\\data\\NPC10.pak',
+        storedWillIdx: 99,
+        cachedAt: 100,
+      },
+      {
+        pakName: 'NPC10',
+        pakPath: 'D:\\客户端\\data\\NPC10.wzl',
+        storedWillIdx: 11,
+        cachedAt: 300,
+      },
+      {
+        pakName: 'NPC10',
+        pakPath: 'D:\\客户端\\data\\NPC10.pak',
+        storedWillIdx: 11,
+        cachedAt: 200,
+      },
+    ]
+  );
+  assert.equal(
+    selectedExactArchive.archive?.pakPath,
+    'D:\\客户端\\自定义补丁\\data\\NPC10.pak',
+    'EffectImageList extension and custom-patch order must beat a newer same-name client cache'
+  );
+
   const geeNpc = parseCustomNpcAnimation([
     '[Dir1]',
     'Enabled=1',
@@ -100,6 +149,40 @@ function main() {
   assert.match(monGenColumns('GOM')[9], /QF/);
   assert.match(monGenColumns('GEE')[14], /QF/);
   assert.match(monGenColumns('996PC')[7], /刷新模式/);
+
+  const gomIcon = parseNpcIconText('7 110 16 -12 -40 1 100 3|1', 'GOM')[0];
+  assert.deepEqual(
+    { speedMs: gomIcon.speedMs, playCount: gomIcon.playCount, layer: gomIcon.layer },
+    { speedMs: 100, playCount: 3, layer: 1 }
+  );
+  const pcIcon = parseNpcIconText('7 110 16 -12 -40 1 100 2 1', '996PC')[0];
+  assert.deepEqual(
+    { speedMs: pcIcon.speedMs, playCount: pcIcon.playCount, layer: pcIcon.layer },
+    { speedMs: 100, playCount: 2, layer: 1 }
+  );
+  const geeIcon = parseNpcIconText('3 1 5 0 -30 0 1 150', 'GEE')[0];
+  assert.deepEqual(
+    { speedMs: geeIcon.speedMs, playCount: geeIcon.playCount, layer: geeIcon.layer },
+    { speedMs: 150, playCount: 0, layer: 1 },
+    'GEE stores layer before speed and does not use the GOM play-count column'
+  );
+  assert.throws(() => validateNpcIconText('invalid', 'GOM'), /第 1 行/);
+
+  const npc = { scriptRef: '996m2\\装备回收', mapName: '$3' };
+  assert.equal(npcIconRelativeFileName(npc), 'NpcIcons\\996m2\\装备回收-3.txt');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-npc-icons-'));
+  try {
+    const envir = path.join(tempRoot, 'Mir200', 'Envir');
+    const saved = saveNpcIconText(envir, npc, '996PC', '7 110 16 -12 -40 0 100');
+    assert.equal(saved.fileName, 'NpcIcons\\996m2\\装备回收-3.txt');
+    assert.equal(saved.icons.length, 1);
+    const loaded = loadNpcIconDetail(envir, npc, '996PC');
+    assert.equal(loaded.exists, true);
+    assert.equal(loaded.icons[0].x, -12);
+    assert.equal(loaded.icons[0].y, -40);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
 
   console.log('map-entities.test.js: PASS');
 }

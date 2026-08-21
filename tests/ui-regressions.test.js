@@ -620,6 +620,21 @@ function main() {
     /type: 'save',[\s\S]*engine: activeEngine/,
     'completion editor saves must include the selected engine'
   );
+  assert.match(
+    assistant,
+    /新增自定义[\s\S]*function addCustom\(\)[\s\S]*isCustom: true[\s\S]*delete-custom/,
+    'the completion editor must add and remove user-owned rows without deleting official rows'
+  );
+  assert.match(
+    assistant,
+    /CUSTOM_LANGUAGE_STATE_KEY[\s\S]*globalState\.get[\s\S]*globalState\.update/,
+    'custom language entries must persist in user state and survive extension updates'
+  );
+  assert.match(
+    assistant,
+    /customChanged: customChanged[\s\S]*customEntries: customEntries[\s\S]*replaceCustomLanguageEntries[\s\S]*rebuildLanguageIndex\(\)[\s\S]*rebuildSemanticCommandIndex\(\)/,
+    'custom completion saves must rebuild completion and semantic highlighting immediately'
+  );
   const diagnosticsSource = assistant.slice(
     assistant.indexOf('function computeDiagnostics'),
     assistant.indexOf('const diagnosticTimeouts')

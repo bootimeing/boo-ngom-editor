@@ -7,6 +7,7 @@ const iconv = require('iconv-lite');
 function main() {
   const {
     buildMonsterIconPreviews,
+    calculateActorIconPlacement,
     classifyDatabaseDetail,
     describeMonsterBodyAppearance,
     loadMonsterDatabaseDetail,
@@ -143,7 +144,23 @@ function main() {
       height: 100,
       offsetX: -100,
       offsetY: -160,
+      placementX: -176,
+      placementY: -239,
     });
+    assert.deepEqual(
+      calculateActorIconPlacement(
+        { width: 150, height: 50, offsetX: 0, offsetY: 0 },
+        -6,
+        -30
+      ),
+      { x: -57, y: -59, width: 150, height: 50 },
+      'NpcIcons and MonIcons must share the same actor-cell placement'
+    );
+    assert.equal(
+      calculateActorIconPlacement({ offsetX: 7, offsetY: -9 }, 0, 0),
+      undefined,
+      'natural dimensions are required when archive metadata is unavailable'
+    );
 
     assert.deepEqual(
       describeMonsterBodyAppearance(envir, '白野猪', { Race: 81, Appr: 1120 }, 'GOM'),

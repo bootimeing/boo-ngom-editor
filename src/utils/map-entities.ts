@@ -41,6 +41,7 @@ export interface CustomNpcAnimation {
 
 export interface CachedArchiveIdentity {
   pakName: string;
+  pakPath?: string;
   storedWillIdx: number;
   cachedAt: number;
 }
@@ -48,6 +49,7 @@ export interface CachedArchiveIdentity {
 export interface EffectImageArchiveIdentity {
   name: string;
   willIdx: number;
+  extension?: string;
 }
 
 const MERCHANT_COLUMNS = [
@@ -132,6 +134,19 @@ export function parseMerchantText(text: string): MerchantNpc[] {
   return result;
 }
 
+export function formatNpcDisplayName(value: unknown): string {
+  const source = String(value || '')
+    .replace(/&#x20;|&#32;/gi, ' ')
+    .trim();
+  if (!source) return '';
+  return source
+    .split(/\\+/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .reverse()
+    .join('\n');
+}
+
 export function parseMerchantLine(rawLine: string, lineNumber: number): ParsedMerchantLine | undefined {
   const trimmed = rawLine.trim();
   if (!trimmed || trimmed.startsWith(';') || trimmed.startsWith('//')) return undefined;
@@ -191,14 +206,30 @@ export function updateMerchantCoordinates(
   x: number,
   y: number
 ): { text: string; npc: MerchantNpc } {
+  const npc = parseMerchantText(text).find(item => item.lineNumber === lineNumber);
+  if (!npc) throw new Error(`Merchant.txt 第 ${lineNumber} 行不是有效的 NPC 配置`);
+  return updateMerchantNpc(text, lineNumber, x, y, npc.appearance);
+}
+
+export function updateMerchantNpc(
+  text: string,
+  lineNumber: number,
+  x: number,
+  y: number,
+  appearance: number
+): { text: string; npc: MerchantNpc } {
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) {
     throw new Error('NPC坐标必须是大于等于 0 的整数');
+  }
+  if (!Number.isSafeInteger(appearance) || appearance < 0) {
+    throw new Error('NPC外观编号必须是大于等于 0 的整数');
   }
   const npc = parseMerchantText(text).find(item => item.lineNumber === lineNumber);
   if (!npc) throw new Error(`Merchant.txt 第 ${lineNumber} 行不是有效的 NPC 配置`);
   const fields = [...npc.fields];
   fields[2] = String(x);
   fields[3] = String(y);
+  fields[6] = String(appearance);
   const updatedText = replaceRecordLine(text, lineNumber, fields);
   const updated = parseMerchantText(updatedText).find(item => item.lineNumber === lineNumber);
   if (!updated) throw new Error('修改后的 NPC 配置无效');
@@ -292,11 +323,23 @@ export function selectCustomNpcArchive<T extends CachedArchiveIdentity>(
   cachedArchives: readonly T[]
 ): { archive: T | undefined; expectedPakName: string } {
   const configured = effectImageArchives.find(item => item.willIdx === fileIndex);
-  const candidates = configured
+  const namedCandidates = configured
     ? cachedArchives.filter(item => archiveNameKey(item.pakName) === archiveNameKey(configured.name))
-    : cachedArchives.filter(item => item.storedWillIdx === fileIndex);
+    : [];
+  const candidates = configured?.extension
+    ? namedCandidates.filter(item => {
+      if (!item.pakPath) return true;
+      return path.extname(item.pakPath).slice(1).toLowerCase() === configured.extension!.toLowerCase();
+    })
+    : configured
+      ? namedCandidates
+      : cachedArchives.filter(item => item.storedWillIdx === fileIndex);
   return {
-    archive: [...candidates].sort((left, right) => right.cachedAt - left.cachedAt)[0],
+    // The caller supplies caches in custom-patch/client-root priority order. Preserve that
+    // ordering when EffectImageList identifies the archive instead of letting cache age win.
+    archive: configured
+      ? candidates[0]
+      : [...candidates].sort((left, right) => right.cachedAt - left.cachedAt)[0],
     expectedPakName: configured?.name || '',
   };
 }

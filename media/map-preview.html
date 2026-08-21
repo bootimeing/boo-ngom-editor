@@ -42,12 +42,15 @@ button,input,select{font:inherit}
 .npc-sprite[hidden]{display:none}
 .npc-entity.offset-positioned{display:block;transform:scale(var(--entity-scale,1));transform-origin:0 0}
 .npc-entity.offset-positioned .npc-sprite{width:100%;height:100%;max-width:none;max-height:none;object-fit:fill}
+.npc-icon-entity{position:absolute;display:block;transform:scale(var(--entity-scale,1));transform-origin:0 0;pointer-events:none}
+.npc-icon-sprite{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:fill;image-rendering:pixelated;pointer-events:none}
+.npc-icon-sprite[hidden]{display:none}.npc-icon-entity.effect{mix-blend-mode:screen}
 .npc-placeholder{width:24px;height:34px;border:1px dashed rgba(255,255,255,.35);background:rgba(0,0,0,.35)}
 .entity-name{position:relative;z-index:2;padding:0 2px;font:12px/16px SimSun,"宋体",serif;letter-spacing:0;white-space:nowrap;text-align:center;text-shadow:1px 1px 1px #000,-1px -1px 1px #000,1px -1px 1px #000,-1px 1px 1px #000}
-.npc-map-name{position:absolute;transform:translate(-50%,-50%);pointer-events:none}
+.npc-map-name{position:absolute;z-index:4;transform:translate(-50%,calc(-100% + var(--npc-name-half-line,8px)));white-space:pre;text-align:center;pointer-events:none}
 .spawn-entity{transform:translate(-50%,-50%) scale(var(--entity-scale,1));transform-origin:50% 50%;padding:0 3px;border:1px solid transparent;color:#ff8080;background:rgba(30,0,0,.34)}
-.map-entity:hover,.map-entity.selected{outline:1px solid rgba(255,255,255,.86);outline-offset:2px}
-.map-entity.dragging{outline-color:#ffcf40;background-color:rgba(0,120,212,.32)}
+.spawn-entity:hover,.spawn-entity.selected{outline:1px solid rgba(255,255,255,.86);outline-offset:2px}
+.spawn-entity.dragging{outline-color:#ffcf40;background-color:rgba(0,120,212,.32)}
 .spawn-range{position:absolute;pointer-events:none;border:2px solid rgba(255,74,74,.9);border-radius:50%;background:rgba(255,47,47,.19);transform:translate(-50%,-50%)}
 .coords,.status{position:absolute;z-index:3;background:rgba(0,0,0,.78);padding:4px 7px;font-size:11px;pointer-events:none}
 .coords{top:8px;left:8px;color:#ffcf40}
@@ -73,8 +76,9 @@ button,input,select{font:inherit}
 .marker-form.visible,.entity-form.visible{display:block}
 .field{display:block;margin-bottom:11px}
 .field>span{display:block;margin-bottom:5px;color:#bbb;font-size:11px}
-.field input,.field select{width:100%;height:30px;border:1px solid #4a4a4a;border-radius:2px;outline:none;background:var(--input);color:var(--fg);padding:0 7px}
-.field input:focus,.field select:focus{border-color:var(--accent)}
+.field input,.field select,.field textarea{width:100%;border:1px solid #4a4a4a;border-radius:2px;outline:none;background:var(--input);color:var(--fg);padding:0 7px}
+.field input,.field select{height:30px}.field textarea{min-height:96px;resize:vertical;padding:7px;font:12px/1.55 Consolas,"Microsoft YaHei UI",sans-serif;white-space:pre}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
 .coordinate-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .color-row{display:grid;grid-template-columns:36px minmax(0,1fr);gap:7px}
 .color-row input[type=color]{padding:2px;cursor:pointer}
@@ -189,8 +193,10 @@ button,input,select{font:inherit}
             <label class="field"><span>坐标 X</span><input id="npcX" type="number" min="0" step="1"></label>
             <label class="field"><span>坐标 Y</span><input id="npcY" type="number" min="0" step="1"></label>
           </div>
-          <label class="field"><span>外观编号</span><input id="npcAppearance" readonly></label>
+          <label class="field"><span>外观编号</span><input id="npcAppearance" type="number" min="0" step="1"></label>
           <div class="entity-note" id="npcAppearanceInfo"></div>
+          <label class="field"><span>NPC 顶戴</span><textarea id="npcIconText" spellcheck="false"></textarea></label>
+          <div class="entity-note" id="npcIconInfo"></div>
           <div class="line-number" id="npcLine"></div>
           <button class="command primary" id="openNpcScript" type="button">打开 NPC 文件</button>
         </form>
@@ -279,7 +285,8 @@ const addEditor={
 };
 const npcEditor={
   name:document.getElementById('npcName'),x:document.getElementById('npcX'),y:document.getElementById('npcY'),
-  appearance:document.getElementById('npcAppearance'),info:document.getElementById('npcAppearanceInfo'),line:document.getElementById('npcLine')
+  appearance:document.getElementById('npcAppearance'),info:document.getElementById('npcAppearanceInfo'),
+  iconText:document.getElementById('npcIconText'),iconInfo:document.getElementById('npcIconInfo'),line:document.getElementById('npcLine')
 };
 const state={
   worldW:1,worldH:1,scale:1,offsetX:0,offsetY:0,dragging:false,lastX:0,lastY:0,
@@ -515,7 +522,9 @@ function normalizeNpcFrame(value){
   return{
     url:String(frame.url||''),width,height,
     offsetX:Math.trunc(Number(frame.offsetX)||0),offsetY:Math.trunc(Number(frame.offsetY)||0),
-    usesOffsets:frame.usesOffsets===true&&width>0&&height>0
+    usesOffsets:frame.usesOffsets===true&&width>0&&height>0,
+    placementX:Number.isFinite(Number(frame.placementX))?Number(frame.placementX):null,
+    placementY:Number.isFinite(Number(frame.placementY))?Number(frame.placementY):null
   };
 }
 function applyNpcFrame(node,image,frame){
@@ -543,6 +552,49 @@ function waitNpcFrameImage(image){
     image.addEventListener('error',()=>resolve(false),{once:true});
   });
 }
+function applyNpcIconFrame(node,image,frame,icon){
+  for(const candidate of node.querySelectorAll('.npc-icon-sprite'))candidate.hidden=candidate!==image;
+  const width=Math.max(1,frame.width||image.naturalWidth||1),height=Math.max(1,frame.height||image.naturalHeight||1);
+  const assetOffsetX=frame.usesOffsets?frame.offsetX:0,assetOffsetY=frame.usesOffsets?frame.offsetY:0;
+  const placementX=Number.isFinite(frame.placementX)
+    ?frame.placementX:assetOffsetX+(Number(icon.x)||0)+24-Math.floor(width/2);
+  const placementY=Number.isFinite(frame.placementY)
+    ?frame.placementY:assetOffsetY+(Number(icon.y)||0)+21-height;
+  node.dataset.frameOffsetX=String(placementX);
+  node.dataset.frameOffsetY=String(placementY);
+  node.style.width=width+'px';node.style.height=height+'px';
+  layoutEntityNode(node);
+}
+function appendNpcIcon(npc,icon,iconIndex){
+  const node=document.createElement('div');
+  node.className='npc-icon-entity offset-positioned'+(Number(icon.effect)===1?' effect':'');
+  node.dataset.entityType='npc';node.dataset.line=String(npc.lineNumber);node.dataset.iconIndex=String(iconIndex);
+  node.style.zIndex=Number(icon.layer)===1?'0':'3';
+  const frames=Array.isArray(icon.frames)?icon.frames.map(normalizeNpcFrame).filter(frame=>frame.url):[];
+  const images=[];
+  for(const frame of frames){
+    const image=document.createElement('img');image.className='npc-icon-sprite';image.alt='';image.draggable=false;
+    image.decoding='async';image.hidden=true;image.src=frame.url;node.appendChild(image);images.push(image);
+  }
+  if(!images.length)return;
+  entityLayer.appendChild(node);
+  Promise.all(images.map(waitNpcFrameImage)).then(loaded=>{
+    if(!node.isConnected)return;
+    const ready=loaded.map((ok,index)=>ok?{image:images[index],frame:frames[index]}:null).filter(Boolean);
+    if(!ready.length){node.remove();return}
+    let frameIndex=0,cycles=0;
+    applyNpcIconFrame(node,ready[0].image,ready[0].frame,icon);
+    if(ready.length<2)return;
+    const maxCycles=Math.max(0,Number(icon.playCount)||0);
+    const timer=setInterval(()=>{
+      if(!node.isConnected){clearInterval(timer);return}
+      frameIndex=(frameIndex+1)%ready.length;
+      applyNpcIconFrame(node,ready[frameIndex].image,ready[frameIndex].frame,icon);
+      if(frameIndex===0&&maxCycles>0&&++cycles>=maxCycles)clearInterval(timer);
+    },Math.max(40,Math.min(5000,Number(icon.speedMs)||300)));
+    state.entityAnimationTimers.push(timer);
+  });
+}
 function rebuildEntities(){
   clearEntityAnimationTimers();
   entityLayer.textContent='';
@@ -554,6 +606,7 @@ function rebuildEntities(){
     node.className='map-entity npc-entity'+(isSelected('npc',npc)?' selected':'')+
       (state.entityDragging&&state.entityDragType==='npc'&&state.entityDragLine===npc.lineNumber?' dragging':'');
     node.dataset.entityType='npc';node.dataset.line=String(npc.lineNumber);
+    node.style.zIndex='1';
     const frames=Array.isArray(npc.frames)?npc.frames.map(normalizeNpcFrame).filter(frame=>frame.url):[];
     const images=[];
     if(frames.length){
@@ -584,8 +637,10 @@ function rebuildEntities(){
     node.addEventListener('mousedown',event=>beginEntityDrag(event,'npc',npc));
     node.addEventListener('click',event=>{event.stopPropagation();selectEntity('npc',npc)});
     entityLayer.appendChild(node);
+    const icons=Array.isArray(npc.icons)?npc.icons:[];
+    icons.forEach((icon,index)=>appendNpcIcon(npc,icon,index));
     const name=document.createElement('span');name.className='npc-map-name entity-name';name.dataset.line=String(npc.lineNumber);
-    name.textContent=npc.displayName||npc.scriptRef||'NPC';name.style.color=npc.nameColor||'#fff';entityLayer.appendChild(name);
+    name.textContent=npc.displayLabel||npc.displayName||npc.scriptRef||'NPC';name.style.color=npc.nameColor||'#fff';entityLayer.appendChild(name);
   }
   const spawn=state.selectedEntityType==='spawn'?selectedEntity():null;
   if(spawn&&state.showSpawnRange){
@@ -605,7 +660,7 @@ function rebuildEntities(){
 }
 function layoutEntities(){
   if(!state.original.active)return;
-  for(const node of entityLayer.querySelectorAll('.map-entity'))layoutEntityNode(node);
+  for(const node of entityLayer.querySelectorAll('.map-entity,.npc-icon-entity'))layoutEntityNode(node);
   for(const name of entityLayer.querySelectorAll('.npc-map-name'))layoutNpcName(name);
   const range=entityLayer.querySelector('.spawn-range');
   const spawn=state.selectedEntityType==='spawn'?selectedEntity():null;
@@ -637,6 +692,7 @@ function layoutNpcName(name){
   const fontScale=state.scale;
   name.style.left=sx+'px';name.style.top=sy+'px';
   name.style.fontSize=(12*fontScale)+'px';name.style.lineHeight=(16*fontScale)+'px';
+  name.style.setProperty('--npc-name-half-line',(8*fontScale)+'px');
   name.style.padding='0 '+(2*fontScale)+'px';
   name.style.textShadow=(1*fontScale)+'px '+(1*fontScale)+'px '+(1*fontScale)+'px #000,'+
     (-1*fontScale)+'px '+(-1*fontScale)+'px '+(1*fontScale)+'px #000,'+
@@ -816,6 +872,9 @@ function showSelectedEntityEditor(){
     npcEditor.x.value=String(entity.x);npcEditor.y.value=String(entity.y);
     npcEditor.appearance.value=String(entity.appearance);
     npcEditor.info.textContent=entity.appearanceLabel||'';
+    npcEditor.iconText.value=entity.iconText||'';
+    npcEditor.iconInfo.textContent=(entity.iconFileName||'未定位顶戴文件')+
+      (entity.iconExists?' · '+((entity.icons||[]).length)+' 组':' · 尚未创建');
     npcEditor.line.textContent='Merchant.txt 第 '+entity.lineNumber+' 行 · '+state.engine;
     document.getElementById('openNpcScript').disabled=!entity.scriptAvailable;
   }else{
@@ -839,12 +898,20 @@ function buildSpawnFields(spawn){
     input.addEventListener('input',handleSpawnEditorInput);label.appendChild(input);spawnFields.appendChild(label);
   }
 }
-function handleNpcEditorInput(){
+function handleNpcEditorInput(event){
   if(state.formSync||state.selectedEntityType!=='npc')return;
   const npc=selectedEntity(),x=Number(npcEditor.x.value),y=Number(npcEditor.y.value);
+  const appearanceText=npcEditor.appearance.value.trim(),appearance=Number(appearanceText);
   if(!npc||!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0){setSaveState('坐标必须是整数','error');return}
+  if(!appearanceText||!Number.isSafeInteger(appearance)||appearance<0){setSaveState('外观编号必须是整数','error');return}
   const point=clampMapPoint({x,y});
   setEntityCoordinates('npc',npc,point);
+  if(npc.appearance!==appearance){
+    npc.appearance=appearance;npc.appearanceLabel='正在重新读取外观 '+appearance;
+    npcEditor.info.textContent=npc.appearanceLabel;
+  }
+  npc.iconText=npcEditor.iconText.value;
+  if(event&&event.target===npcEditor.iconText)npc.iconDirty=true;
   scheduleEntitySave('npc',npc);
 }
 function handleSpawnEditorInput(){
@@ -892,7 +959,11 @@ function scheduleEntitySave(type,entity,immediate=false){
 function postEntitySave(type,entity){
   if(!entity)return;
   const requestId=++state.entityRequest;state.entityPendingRequest=requestId;setSaveState('保存中','saving');
-  if(type==='npc')vscode.postMessage({type:'updateNpc',requestId,npc:{lineNumber:entity.lineNumber,x:entity.x,y:entity.y}});
+  if(type==='npc'){
+    const npc={lineNumber:entity.lineNumber,x:entity.x,y:entity.y,appearance:entity.appearance};
+    if(entity.iconDirty===true)npc.iconText=entity.iconText||'';
+    vscode.postMessage({type:'updateNpc',requestId,npc});
+  }
   else vscode.postMessage({type:'updateSpawn',requestId,spawn:{lineNumber:entity.lineNumber,fields:entity.fields}});
 }
 function beginEntityDrag(event,type,entity){
@@ -1234,6 +1305,8 @@ for(const input of [editor.mapName,editor.x,editor.y,editor.text,editor.color]){
 }
 npcEditor.x.addEventListener('input',handleNpcEditorInput);
 npcEditor.y.addEventListener('input',handleNpcEditorInput);
+npcEditor.appearance.addEventListener('input',handleNpcEditorInput);
+npcEditor.iconText.addEventListener('input',handleNpcEditorInput);
 document.getElementById('showSpawnRange').addEventListener('change',event=>{
   state.showSpawnRange=event.target.checked;rebuildEntities();
 });
@@ -1424,7 +1497,18 @@ window.addEventListener('message',event=>{
     return;
   }
   if(data.type==='npcSaved'||data.type==='spawnSaved'){
-    if(data.requestId===state.entityPendingRequest)setSaveState('已保存','saved');
+    if(data.type==='npcSaved'&&data.npc){
+      const index=state.npcs.findIndex(item=>item.lineNumber===Number(data.npc.lineNumber));
+      if(index>=0){
+        state.npcs[index]=data.npc;rebuildEntities();updateNpcJumpBar();
+        if(data.requestId===state.entityPendingRequest&&state.selectedEntityType==='npc'&&state.selectedEntityLine===Number(data.npc.lineNumber)){
+          showSelectedEntityEditor();
+        }
+      }
+    }
+    if(data.requestId===state.entityPendingRequest){
+      setSaveState('已保存','saved');
+    }
     return;
   }
   if(data.type==='entitySaveError'){

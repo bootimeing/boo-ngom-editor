@@ -177,6 +177,15 @@ import {
   findMapCodeRangesInText,
   isOffsetInTextRanges,
 } from './utils/map-code-context';
+import {
+  createEmptyCustomLanguageData,
+  customLanguageEntries,
+  CustomLanguageCategory,
+  CustomLanguageData,
+  CUSTOM_LANGUAGE_STATE_KEY,
+  replaceCustomLanguageEntries,
+  sanitizeCustomLanguageData,
+} from './utils/custom-language';
 
 function createEmptyEngineFunctionCatalog(): EngineFunctionCatalog {
   const catalog = {} as EngineFunctionCatalog;
@@ -202,6 +211,7 @@ let commandsData: CommandsData | null = null;
 let variablesData: VariablesData | null = null;
 let engineFunctionCatalog: EngineFunctionCatalog = createEmptyEngineFunctionCatalog();
 let engineConstantCatalog: EngineConstantCatalog = createEmptyEngineConstantCatalog();
+let customLanguageData: CustomLanguageData = createEmptyCustomLanguageData();
 let staticLanguageData: StaticLanguageData = EMPTY_STATIC_LANGUAGE_DATA;
 let isCurrentEngineDefaultScriptLabel = (_labelKey: string) => false;
 let languageIndex: LanguageIndex = buildLanguageIndex(
@@ -209,7 +219,8 @@ let languageIndex: LanguageIndex = buildLanguageIndex(
   variablesData,
   engineFunctionCatalog,
   'GOM',
-  engineConstantCatalog
+  engineConstantCatalog,
+  customLanguageData
 );
 isCurrentEngineDefaultScriptLabel = buildDefaultScriptLabelMatcher(languageIndex);
 
@@ -330,6 +341,9 @@ export function activateAssistant(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('BOO脚本助手');
   outputChannel.appendLine('BOO脚本助手正在激活...');
   const log = (msg: string) => outputChannel.appendLine(msg);
+  customLanguageData = sanitizeCustomLanguageData(
+    context.globalState.get<CustomLanguageData>(CUSTOM_LANGUAGE_STATE_KEY)
+  );
 
   // 路径补全文件夹展开: 延迟触发补全
   context.subscriptions.push(
@@ -346,6 +360,18 @@ export function activateAssistant(context: vscode.ExtensionContext) {
   const blockCache = new BlockStackCache();
   const pendingMissingFileCreations = new Map<string, Promise<vscode.Uri | undefined>>();
   const mapCodeCache = new Map<string, { stamp: string; codes: Set<string> }>();
+  const completionEditorSaveState = { pending: false };
+  const beginCompletionEditorSave = (): boolean => {
+    if (completionEditorSaveState.pending) return false;
+    completionEditorSaveState.pending = true;
+    return true;
+  };
+  const endCompletionEditorSave = (): void => {
+    completionEditorSaveState.pending = false;
+  };
+  const replaceActiveCustomLanguageData = (next: CustomLanguageData): void => {
+    customLanguageData = next;
+  };
 
   function commandLookupKeys(typedName: string): string[] {
     const result: string[] = [];
@@ -472,7 +498,8 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       variablesData,
       engineFunctionCatalog,
       engine,
-      engineConstantCatalog
+      engineConstantCatalog,
+      customLanguageData
     );
     isCurrentEngineDefaultScriptLabel = buildDefaultScriptLabelMatcher(languageIndex);
     vscode.commands.executeCommand('setContext', 'boo.currentEngine', engine);
@@ -4293,6 +4320,8 @@ el.textContent=e.data.text||'扫描完成';
         desc: string;
         params: string;
         sourceIndex?: number;
+        customId?: string;
+        isCustom?: boolean;
       };
       const commandRows = (
         entries: CommandEntry[],
@@ -4385,6 +4414,20 @@ el.textContent=e.data.text||'扫描完成';
         params: constant.scope || '',
         sourceIndex,
       }));
+      const customRows = (
+        category: CustomLanguageCategory,
+        engine: EngineId,
+        storage: CompletionEditorStorage
+      ): CompletionEditorRow[] => customLanguageEntries(customLanguageData, engine, category).map(entry => ({
+        name: entry.name,
+        engineId: engine,
+        storage,
+        syntax: entry.syntax,
+        desc: entry.description,
+        params: entry.params.join(' '),
+        customId: entry.id,
+        isCustom: true,
+      }));
 
       const mergeRows = (...groups: CompletionEditorRow[][]): CompletionEditorRow[] => {
         const rows = new Map<string, CompletionEditorRow>();
@@ -4401,34 +4444,43 @@ el.textContent=e.data.text||'扫描完成';
         {
           id: 'check',
           label: '检测命令',
-          data: ENGINE_DEFINITIONS.flatMap(definition => mergeRows(
-            commandRows(commandsAll?.commands || [], definition.id, 'command-check'),
-            functionRows(editorFunctionCatalog.get(definition.id) || {}, definition.id, true)
-          )),
+          data: ENGINE_DEFINITIONS.flatMap(definition => [
+            ...mergeRows(
+              commandRows(commandsAll?.commands || [], definition.id, 'command-check'),
+              functionRows(editorFunctionCatalog.get(definition.id) || {}, definition.id, true)
+            ),
+            ...customRows('check', definition.id, 'command-check'),
+          ]),
         },
         {
           id: 'exec',
           label: '执行命令',
-          data: ENGINE_DEFINITIONS.flatMap(definition => mergeRows(
-            commandRows(commandsAll?.execCommands || [], definition.id, 'command-exec'),
-            functionRows(editorFunctionCatalog.get(definition.id) || {}, definition.id, false)
-          )),
+          data: ENGINE_DEFINITIONS.flatMap(definition => [
+            ...mergeRows(
+              commandRows(commandsAll?.execCommands || [], definition.id, 'command-exec'),
+              functionRows(editorFunctionCatalog.get(definition.id) || {}, definition.id, false)
+            ),
+            ...customRows('action', definition.id, 'command-exec'),
+          ]),
         },
         {
           id: 'func',
           label: '引擎函数',
-          data: ENGINE_DEFINITIONS.flatMap(definition => triggerRows(
-            commandsAll?.triggers || [],
-            definition.id
-          )),
+          data: ENGINE_DEFINITIONS.flatMap(definition => [
+            ...triggerRows(commandsAll?.triggers || [], definition.id),
+            ...customRows('function', definition.id, 'trigger'),
+          ]),
         },
         {
           id: 'constant',
           label: '系统常量',
-          data: ENGINE_DEFINITIONS.flatMap(definition => mergeRows(
-            variableRows(varsAll?.variables || [], definition.id),
-            constantRows(editorConstantCatalog.get(definition.id) || [], definition.id)
-          )),
+          data: ENGINE_DEFINITIONS.flatMap(definition => [
+            ...mergeRows(
+              variableRows(varsAll?.variables || [], definition.id),
+              constantRows(editorConstantCatalog.get(definition.id) || [], definition.id)
+            ),
+            ...customRows('constant', definition.id, 'constant'),
+          ]),
         },
       ];
       const initialEngine = normalizeEngineId(
@@ -4438,6 +4490,10 @@ el.textContent=e.data.text||'扫描完成';
       function esc(s: string): string {
         return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       }
+      const scriptJson = (value: unknown): string => JSON.stringify(value)
+        .replace(/</g, '\\u003c')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
 
       panel.webview.html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -4449,6 +4505,8 @@ body{background:#1e1e1e;color:#d4d4d4;font-family:'Microsoft YaHei',monospace;di
 .toolbar input:focus{border-color:#0e639c}
 .toolbar button{padding:6px 14px;background:#0e639c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px}
 .toolbar button:hover{background:#1177bb}
+.toolbar button.secondary{background:#3a3d41}
+.toolbar button.secondary:hover{background:#50545a}
 .toolbar button.danger{background:#8b0000}
 .toolbar button.danger:hover{background:#a00}
 .toolbar .count{color:#888;font-size:12px;margin-left:auto}
@@ -4465,7 +4523,7 @@ body{background:#1e1e1e;color:#d4d4d4;font-family:'Microsoft YaHei',monospace;di
 table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 thead{position:sticky;top:0;z-index:2}
 th{background:#2a2a2a;color:#ff8c00;padding:8px 10px;text-align:left;border-bottom:2px solid #444;font-weight:600;white-space:nowrap}
-th.col-name{width:170px} th.col-syntax{width:280px} th.col-desc{width:auto} th.col-params{width:210px}
+th.col-name{width:170px} th.col-syntax{width:280px} th.col-desc{width:auto} th.col-params{width:210px} th.col-actions{width:52px;text-align:center}
 td{padding:6px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top}
 td.name{color:#9cdcfe;font-weight:600}
 td.syntax{color:#ceb194} td.desc{color:#aaa} td.params{color:#8b9dbb}
@@ -4475,7 +4533,12 @@ td[contenteditable]{outline:none;border-radius:2px}
 td[contenteditable]:focus{background:#333;color:#fff;box-shadow:inset 0 0 0 1px #0e639c}
 td[contenteditable].dirty{box-shadow:inset 0 0 0 2px #f59e0b}
 .empty{text-align:center;color:#555;padding:40px;font-size:14px}
-.row-num{color:#555;width:40px;text-align:right;padding-right:8px;font-size:11px}
+.row-num{color:#555;width:86px;text-align:right;padding-right:8px;font-size:11px}
+.custom-row td{background:rgba(14,99,156,.08)}
+.custom-badge{display:inline-block;margin-left:5px;padding:1px 4px;border:1px solid #0e639c;color:#7dcfff;font-size:10px;line-height:14px}
+.row-action{text-align:center}
+.icon-btn{width:26px;height:24px;padding:0;border:0;background:transparent;color:#aaa;cursor:pointer;font-size:18px;line-height:24px}
+.icon-btn:hover{color:#fff;background:#8b0000}
 </style></head>
 <body>
 <div class="engine-tabs">
@@ -4487,23 +4550,36 @@ td[contenteditable].dirty{box-shadow:inset 0 0 0 2px #f59e0b}
 <div class="tabs">${tabs.map((t, i) => `<div class="tab${i===0?' active':''}" data-tab="${t.id}">${esc(t.label)}</div>`).join('')}</div>
 <div class="toolbar">
   <input type="text" id="search" placeholder="搜索关键词...">
-  <button onclick="saveCurrent()">保存到文件</button>
+  <button class="secondary" onclick="addCustom()">新增自定义</button>
+  <button onclick="saveCurrent()">保存修改</button>
   <span class="count" id="rowCount"></span>
 </div>
 <div class="table-wrap">
 <table id="tbl">
-<thead><tr><th class="row-num">#</th><th class="col-name">名称</th><th class="col-syntax">实际语法</th><th class="col-desc">描述</th><th class="col-params">参数</th></tr></thead>
+<thead><tr><th class="row-num">#</th><th class="col-name">名称</th><th class="col-syntax">实际语法</th><th class="col-desc">描述</th><th class="col-params">参数</th><th class="col-actions">操作</th></tr></thead>
 <tbody id="tbody"></tbody>
 </table>
 </div>
 <script>
-const allData = ${JSON.stringify(tabs)};
-const engineDefinitions = ${JSON.stringify(ENGINE_DEFINITIONS)};
+const allData = ${scriptJson(tabs)};
+const engineDefinitions = ${scriptJson(ENGINE_DEFINITIONS)};
 let activeEngine = '${initialEngine}';
 let activeTab = '${tabs[0].id}';
 let dirty = {};
+let customDirty = {};
 
 function escHtml(s) { var d=document.createElement('div'); d.textContent=(s||''); return d.innerHTML; }
+function customScopeKey() { return activeEngine+':'+activeTab; }
+function markCustomDirty() { customDirty[customScopeKey()] = true; }
+function customStorageForTab() {
+  if (activeTab==='check') return 'command-check';
+  if (activeTab==='exec') return 'command-exec';
+  if (activeTab==='func') return 'trigger';
+  return 'constant';
+}
+function newCustomId() {
+  return 'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+}
 
 function render(filter) {
   var tab = allData.find(function(t){return t.id===activeTab});
@@ -4519,16 +4595,46 @@ function render(filter) {
     var r=data[i].row;
     var sourceIndex=data[i].sourceIndex;
     var storage=data[i].storage;
-    var dkey = activeEngine+':'+storage+':'+sourceIndex;
-    html+='<tr data-tab="'+activeTab+'" data-engine="'+activeEngine+'" data-storage="'+storage+'" data-idx="'+sourceIndex+'"><td class="row-num">'+(i+1)+'</td>';
+    var dkey = r.isCustom
+      ? activeEngine+':custom:'+r.customId
+      : activeEngine+':'+storage+':'+sourceIndex;
+    var rowAttributes = r.isCustom
+      ? 'data-tab="'+activeTab+'" data-engine="'+activeEngine+'" data-storage="'+storage+'" data-custom-id="'+r.customId+'"'
+      : 'data-tab="'+activeTab+'" data-engine="'+activeEngine+'" data-storage="'+storage+'" data-idx="'+sourceIndex+'"';
+    html+='<tr '+rowAttributes+(r.isCustom?' class="custom-row"':'')+'><td class="row-num">'+(i+1)+(r.isCustom?'<span class="custom-badge">自定义</span>':'')+'</td>';
     html+='<td class="name" contenteditable="true" data-field="name" data-key="'+dkey+'">'+escHtml(r.name)+'</td>';
     html+='<td class="syntax" contenteditable="true" data-field="syntax" data-key="'+dkey+'">'+escHtml(r.syntax)+'</td>';
     html+='<td class="desc" contenteditable="true" data-field="desc" data-key="'+dkey+'">'+escHtml(r.desc)+'</td>';
     html+='<td class="params" contenteditable="true" data-field="params" data-key="'+dkey+'">'+escHtml(r.params)+'</td>';
+    html+='<td class="row-action">'+(r.isCustom?'<button class="icon-btn" data-action="delete-custom" title="删除自定义项目">×</button>':'')+'</td>';
     html+='</tr>';
   }
-  document.getElementById('tbody').innerHTML = html || '<tr><td colspan="5" class="empty">无匹配数据</td></tr>';
-  document.getElementById('rowCount').textContent = kw ? (data.length+' / '+engineRows.length) : (engineRows.length+' 条');
+  document.getElementById('tbody').innerHTML = html || '<tr><td colspan="6" class="empty">无匹配数据</td></tr>';
+  var customCount = engineRows.filter(function(row){return row.isCustom}).length;
+  document.getElementById('rowCount').textContent = kw
+    ? (data.length+' / '+engineRows.length)
+    : (engineRows.length+' 条'+(customCount?'，自定义 '+customCount+' 条':''));
+}
+
+function addCustom() {
+  var tab = allData.find(function(item){return item.id===activeTab});
+  if (!tab) return;
+  var row = {
+    name: '',
+    engineId: activeEngine,
+    storage: customStorageForTab(),
+    syntax: '',
+    desc: '',
+    params: '',
+    customId: newCustomId(),
+    isCustom: true
+  };
+  tab.data.push(row);
+  markCustomDirty();
+  document.getElementById('search').value = '';
+  render('');
+  var target = document.querySelector('tr[data-custom-id="'+row.customId+'"] td.name');
+  if (target) target.focus();
 }
 
 document.getElementById('search').addEventListener('input', function(e){ render(e.target.value); });
@@ -4560,13 +4666,30 @@ document.getElementById('tbody').addEventListener('input', function(e){
   var tr = td.closest('tr');
   var tab = allData.find(function(item){return item.id===activeTab});
   var sourceIndex = parseInt(tr.dataset.idx);
+  var customId = tr.dataset.customId;
   var storage = tr.dataset.storage;
   var row = tab && tab.data.find(function(item){
-    return item.engineId===activeEngine && item.storage===storage && item.sourceIndex===sourceIndex;
+    if (item.engineId!==activeEngine || item.storage!==storage) return false;
+    return customId ? item.customId===customId : item.sourceIndex===sourceIndex;
   });
   if (row) row[td.dataset.field] = td.textContent || '';
+  if (row && row.isCustom) markCustomDirty();
+  else dirty[td.dataset.key] = true;
   td.classList.add('dirty');
-  dirty[td.dataset.key] = true;
+});
+
+document.getElementById('tbody').addEventListener('click', function(e){
+  var button = e.target.closest('[data-action="delete-custom"]');
+  if (!button) return;
+  var tr = button.closest('tr');
+  var customId = tr && tr.dataset.customId;
+  var tab = allData.find(function(item){return item.id===activeTab});
+  if (!customId || !tab) return;
+  tab.data = tab.data.filter(function(row){
+    return !(row.engineId===activeEngine && row.customId===customId);
+  });
+  markCustomDirty();
+  render(document.getElementById('search').value);
 });
 
 // 键盘快捷键
@@ -4590,6 +4713,7 @@ function saveCurrent() {
   var engineRows = tab.data.filter(function(row){return row.engineId===activeEngine});
   var changes = [];
   engineRows.forEach(function(row){
+    if (row.isCustom) return;
     var key = activeEngine+':'+row.storage+':'+row.sourceIndex;
     if (dirty[key]) {
       changes.push({
@@ -4600,20 +4724,35 @@ function saveCurrent() {
       dirty[key] = false;
     }
   });
-  if (changes.length===0) { alert('没有修改'); return; }
+  var customChanged = !!customDirty[customScopeKey()];
+  var customEntries = engineRows.filter(function(row){return row.isCustom}).map(function(row){
+    return {
+      id: row.customId,
+      name: row.name,
+      syntax: row.syntax,
+      description: row.desc,
+      params: row.params
+    };
+  });
+  if (changes.length===0 && !customChanged) { alert('没有修改'); return; }
   document.querySelectorAll('#tbody td.dirty').forEach(function(td){td.classList.remove('dirty')});
   vscode.postMessage({
     type: 'save',
     tabId: activeTab,
     engine: activeEngine,
     changes: changes,
+    customChanged: customChanged,
+    customEntries: customEntries,
     allData: engineRows
   });
 }
 
 var vscode = acquireVsCodeApi();
 window.addEventListener('message', function(e){
-  if (e.data.type==='saved') { alert(e.data.ok?'保存成功！已写入 '+e.data.file:'保存失败: '+e.data.error); }
+  if (e.data.type==='saved') {
+    if (e.data.ok) customDirty[e.data.engine+':'+e.data.tabId] = false;
+    alert(e.data.ok?'保存成功！已写入 '+e.data.file:'保存失败: '+e.data.error);
+  }
   if (e.data.type==='activeEngineChanged') {
     var nextEngine = e.data.engine;
     var nextTab = document.querySelector('.engine-tab[data-engine="'+nextEngine+'"]');
@@ -4648,6 +4787,16 @@ render('');
       panel.webview.onDidReceiveMessage(async msg => {
         if (msg.type === 'save') {
           const engine = normalizeEngineId(msg.engine as string);
+          if (!beginCompletionEditorSave()) {
+            panel.webview.postMessage({
+              type: 'saved',
+              ok: false,
+              error: '另一项补全修改正在保存，请稍后重试',
+              engine,
+              tabId: msg.tabId,
+            });
+            return;
+          }
           const changes = msg.changes as {
             storage: CompletionEditorStorage;
             sourceIndex: number;
@@ -4791,22 +4940,64 @@ render('');
                 constantData.generated = new Date().toISOString();
             }
 
-            if (changedFiles.size > 0) {
-              const writtenFiles: string[] = [];
-              for (const [filePath, jsonData] of changedFiles) {
+            const customCategoryByTab: Record<string, CustomLanguageCategory> = {
+              check: 'check',
+              exec: 'action',
+              func: 'function',
+              constant: 'constant',
+            };
+            const customChanged = msg.customChanged === true;
+            const customCategory = customCategoryByTab[String(msg.tabId || '')];
+            if (customChanged && !customCategory) {
+              throw new Error('无法识别自定义补全类型');
+            }
+            const nextCustomLanguageData = customChanged
+              ? replaceCustomLanguageEntries(
+                  customLanguageData,
+                  engine,
+                  customCategory,
+                  msg.customEntries
+                )
+              : customLanguageData;
+
+            const writtenFiles: string[] = [];
+            for (const [filePath, jsonData] of changedFiles) {
               fs.writeFileSync(filePath, `${JSON.stringify(jsonData, null, 2)}\n`, 'utf-8');
-                writtenFiles.push(path.basename(filePath));
-              }
+              writtenFiles.push(path.basename(filePath));
+            }
+            if (customChanged) {
+              await context.globalState.update(
+                CUSTOM_LANGUAGE_STATE_KEY,
+                nextCustomLanguageData
+              );
+              replaceActiveCustomLanguageData(nextCustomLanguageData);
+              writtenFiles.push('用户自定义目录');
+            }
+            if (changedFiles.size > 0 || customChanged) {
               commandsData = loadCommandsData(extPath, (line: string) => outputChannel.appendLine(line));
               variablesData = loadVariablesData(extPath, (line: string) => outputChannel.appendLine(line));
               engineFunctionCatalog = loadEngineFunctionCatalog(extPath, (line: string) => outputChannel.appendLine(line));
               engineConstantCatalog = loadEngineConstantCatalog(extPath, (line: string) => outputChannel.appendLine(line));
               rebuildLanguageIndex();
               rebuildSemanticCommandIndex();
-              panel.webview.postMessage({ type: 'saved', ok: true, file: writtenFiles.join('、') });
+              panel.webview.postMessage({
+                type: 'saved',
+                ok: true,
+                file: writtenFiles.join('、'),
+                engine,
+                tabId: msg.tabId,
+              });
             }
           } catch (e: unknown) {
-            panel.webview.postMessage({ type: 'saved', ok: false, error: e instanceof Error ? e.message : String(e) });
+            panel.webview.postMessage({
+              type: 'saved',
+              ok: false,
+              error: e instanceof Error ? e.message : String(e),
+              engine,
+              tabId: msg.tabId,
+            });
+          } finally {
+            endCompletionEditorSave();
           }
         }
       });
