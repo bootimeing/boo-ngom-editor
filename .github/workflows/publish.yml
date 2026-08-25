@@ -21,8 +21,16 @@ jobs:
         with:
           node-version: "20"
 
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: 安装 npm 依赖
         run: npm ci
+
+      - name: 安装 Python 测试依赖
+        run: python -m pip install --disable-pip-version-check -r requirements-test.txt
 
       - name: 构建 M2Reloader
         shell: pwsh

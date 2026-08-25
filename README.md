@@ -292,6 +292,7 @@ MDB 当前只支持查看。SQLite 与 996PC XLS 需要写入权限，并且不�
 
 ```powershell
 npm ci
+python -m pip install -r requirements-test.txt
 npm run compile
 npm run lint
 npm run test:all

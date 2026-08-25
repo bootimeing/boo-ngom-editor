@@ -13,6 +13,10 @@ BOO 自有源代码按根目录 `LICENSE` 中的 MIT License 发布。下列第�
 
 这些组件的直接及传递依赖由 `package-lock.json` 固定。VSIX 只打入运行所需文件，并保留相应包内许可证文件。
 
+## 测试依赖
+
+`requirements-test.txt` 固定 PyCryptodome 3.23.0，仅用于 PAK 密钥派生源码回归和 GitHub Actions，不进入 VSIX。该项目按其上游 BSD / Public Domain 声明使用。
+
 ## Webview 组件
 
 `media/vendor/tabulator/` 使用 Tabulator 6.5.2，版权归 Oli Folkerd 及其贡献者所有，按该目录中的 MIT License 使用。

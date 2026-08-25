@@ -135,6 +135,7 @@ SQLite、MDB、CSV 和 BIFF8 XLS 使用独立 Provider。数据库与普通表�
 | 完整回归 | `npm run test:all` 通过 |
 | Edge 页面冒烟 | 通过：表格 30 行/660 单元格；数据库 20 行；NPC 面板 12 个 DOM 控件并使用真实缓存素材 |
 | npm 安全审计 | 0 个已知漏洞 |
+| Python 源码测试依赖 | `requirements-test.txt` 固定 PyCryptodome 3.23.0；GitHub Actions 使用 Python 3.12 安装 |
 | PAK 自包含运行时 | 通过 |
 | 自定义引擎语言 | 解包 VSIX 实测：自定义检测命令与界面语句进入当前引擎索引，参数悬停有效且不混入其他引擎 |
 | 变量与个人标识候选 | 解包 VSIX 实测：已确认编号被排除；动态引用不再清空 U 类或个人标识候选；结果保持升序 |
@@ -170,9 +171,9 @@ npm run verify:packaged-dependencies -- "<解包后的 extension 目录>"
 当前正式发布包：
 
 - 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.3.vsix`
-- 大小：21,356,316 字节
+- 大小：21,356,359 字节
 - 压缩包条目：1,623
-- SHA-256：`303A2DA1D6E929169428D43A66E566C81D504429ED2916D37F316833D37E0A45`
+- SHA-256：`3AECA44DF19AEFFCD7247D5EE07A9F5A281600F82347EE6F5B6CB6B3510AAC33`
 
 上一版回滚包：
 
