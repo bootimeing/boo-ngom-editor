@@ -77,6 +77,16 @@ export interface NestedListDataResult {
   complete: boolean;
 }
 
+export interface NestedDatabaseFieldRequest {
+  itemName: string;
+  field: string;
+}
+
+export interface NestedDatabaseFieldResult {
+  value: string;
+  complete: boolean;
+}
+
 export interface NestedVariableAnalysisOptions {
   resolveConfigValues?: (
     request: NestedConfigValueRequest,
@@ -87,6 +97,9 @@ export interface NestedVariableAnalysisOptions {
   resolveListData?: (
     request: NestedListDataRequest,
   ) => NestedListDataResult | undefined;
+  resolveDatabaseField?: (
+    request: NestedDatabaseFieldRequest,
+  ) => NestedDatabaseFieldResult | undefined;
 }
 
 export interface ScriptValueExpressionRequest {

@@ -23,6 +23,7 @@ GOM_PASSWORD_SALT = 0x8F
 GEE_SET_PASSWORD_ENTRY = 0x007FC848
 GEE_EXPAND_ENTRY = 0x00807BDC
 GEE_FINALIZE_ENTRY = 0x008072FC
+GEE_CRYPT_ENTRY = 0x0081ECC0
 GEE_OBJECT_SIZE = 0x8A4
 GEE_INDEX_KEY_OFFSET = 0x2A0
 GEE_GLOBAL_KEY_OFFSET = 0x3A0
@@ -339,6 +340,39 @@ class GEEKeyVM:
         self._run(emulator, GEE_FINALIZE_ENTRY, 20_000_000)
         return bytes(emulator.mem_read(VM_OUTPUT, 256))
 
+    def alternate_global_key(self, password: str) -> bytes:
+        """Derive the finalized key used by the alternate GEE global header."""
+        from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX
+
+        material = derive_password_material(password, GEE_PASSWORD_SALT)
+        emulator = self._new_emulator()
+        emulator.mem_write(VM_INPUT_A, material.des_schedule)
+        emulator.mem_write(VM_INPUT_B, material.seed20)
+        emulator.mem_write(VM_OUTPUT, bytes(256))
+        self._set_common_registers(emulator, (VM_SENTINEL, 1))
+        emulator.reg_write(UC_X86_REG_EAX, VM_INPUT_A)
+        emulator.reg_write(UC_X86_REG_EDX, VM_INPUT_B)
+        emulator.reg_write(UC_X86_REG_ECX, VM_OUTPUT)
+        self._run(emulator, GEE_EXPAND_ENTRY, 80_000_000)
+        return self.finalize(bytes(emulator.mem_read(VM_OUTPUT, 256)))
+
+    def crypt_alternate_global_header(self, data: bytes, password: str) -> bytes:
+        """Apply the symmetric transform used by an alternate GEE global header."""
+        from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX
+
+        if len(data) != 256:
+            raise ValueError("GEE encrypted global header must be exactly 256 bytes")
+        final_key = self.alternate_global_key(password)
+        emulator = self._new_emulator()
+        emulator.mem_write(VM_INPUT_A, final_key)
+        emulator.mem_write(VM_OUTPUT, data)
+        self._set_common_registers(emulator, (VM_SENTINEL,))
+        emulator.reg_write(UC_X86_REG_EAX, VM_OUTPUT)
+        emulator.reg_write(UC_X86_REG_EDX, VM_INPUT_A)
+        emulator.reg_write(UC_X86_REG_ECX, len(data))
+        self._run(emulator, GEE_CRYPT_ENTRY, 40_000_000)
+        return bytes(emulator.mem_read(VM_OUTPUT, len(data)))
+
     def set_password(self, material: PasswordMaterial) -> bytes:
         from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX
 
@@ -415,3 +449,12 @@ def default_gee_vm() -> GEEKeyVM:
 @lru_cache(maxsize=64)
 def derive_gee_keys(password: str) -> GEEKeys:
     return default_gee_vm().derive(password)
+
+
+@lru_cache(maxsize=64)
+def derive_gee_alternate_global_key(password: str) -> bytes:
+    return default_gee_vm().alternate_global_key(password)
+
+
+def decrypt_gee_alternate_global_header(data: bytes, password: str) -> bytes:
+    return default_gee_vm().crypt_alternate_global_header(data, password)

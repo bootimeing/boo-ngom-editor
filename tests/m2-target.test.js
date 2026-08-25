@@ -7,6 +7,7 @@ function main() {
   const {
     buildReloadPathCommand,
     findM2PathFromLocation,
+    isM2ReloadScriptPath,
   } = require('../out/utils/m2-target');
   const {
     getReloadOptions,
@@ -24,6 +25,19 @@ function main() {
     assert.equal(findM2PathFromLocation(path.dirname(scriptPath)), m2Path);
     assert.equal(findM2PathFromLocation(path.join(root, 'missing.txt')), m2Path);
     assert.equal(findM2PathFromLocation(os.tmpdir()), null);
+    assert.equal(
+      isM2ReloadScriptPath(path.join(root, 'Mir200', 'Envir', 'QuestDiary', '记标功能.TXT')),
+      true
+    );
+    assert.equal(
+      isM2ReloadScriptPath(path.join(root, 'Mir200', 'Envir', 'QuestDiary', '功能.InI')),
+      true
+    );
+    assert.equal(
+      isM2ReloadScriptPath(path.join(root, 'Mir200', 'Envir', 'QuestDiary', '说明.md')),
+      false
+    );
+    assert.equal(isM2ReloadScriptPath(path.join(root, '记标功能.TXT')), false);
     assert.equal(
       buildReloadPathCommand(m2Path, ['所有NPC']),
       `reloadpath:${m2Path}|所有NPC`

@@ -526,15 +526,22 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
           onProgress,
         });
       }
-      const checksumNote = result.recoveredChecksumCount
-        ? `，兼容修复 ${result.recoveredChecksumCount} 张校验异常图片`
+      const compatibilityNotes: string[] = [];
+      if (result.recoveredChecksumCount) {
+        compatibilityNotes.push(`兼容修复 ${result.recoveredChecksumCount} 张校验异常图片`);
+      }
+      if (result.skippedMalformedCount) {
+        compatibilityNotes.push(`跳过 ${result.skippedMalformedCount} 张无法解码的异常素材，序号已保留`);
+      }
+      const compatibilityNote = compatibilityNotes.length > 0
+        ? `，${compatibilityNotes.join('，')}`
         : '';
       entry.status = 'cached';
       entry.message = result.fromCache
-        ? `资源已就绪，共 ${result.slotCount} 项${checksumNote}`
+        ? `资源已就绪，共 ${result.slotCount} 项${compatibilityNote}`
         : result.storageMode === 'direct'
-          ? `索引完成，共 ${result.slotCount} 项${checksumNote}`
-          : `兼容缓存完成，共 ${result.slotCount} 项${checksumNote}`;
+          ? `索引完成，共 ${result.slotCount} 项${compatibilityNote}`
+          : `兼容缓存完成，共 ${result.slotCount} 项${compatibilityNote}`;
       entry.progress = 100;
       if (
         configuredPassword
@@ -553,11 +560,11 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
 
   private setEntryError(entry: PatchEntry, error: unknown): void {
     const passwordErrorKind = classifyPakPasswordError(error);
-    entry.status = passwordErrorKind === 'none' ? 'error' : 'password-error';
+    entry.status = passwordErrorKind === 'confirmed' ? 'password-error' : 'error';
     entry.message = passwordErrorKind === 'confirmed'
       ? '密码错误'
       : passwordErrorKind === 'ambiguous'
-        ? '密码或资源格式不匹配'
+        ? `资源校验失败，无法确认是否为密码问题：${truncate(errorText(error), 120)}`
         : truncate(errorText(error), 180);
     entry.progress = 0;
     this.postEntry(entry);

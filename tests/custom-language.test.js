@@ -8,9 +8,14 @@ function readJson(file) {
 function main() {
   const {
     createEmptyCustomLanguageData,
+    customSayMarkupEntries,
     replaceCustomLanguageEntries,
     sanitizeCustomLanguageData,
   } = require('../out/utils/custom-language');
+  const {
+    buildSayMarkupIndex,
+    findSayMarkupParameterAt,
+  } = require('../out/utils/say-markup');
   const { buildLanguageIndex } = require('../out/utils/command-index');
   const {
     buildSemanticCommandIndex,
@@ -46,6 +51,13 @@ function main() {
     description: '自定义系统常量',
     params: ['人物'],
   }]);
+  custom = replaceCustomLanguageEntries(custom, 'GOM', 'say', [{
+    id: 'gom-say-1',
+    name: '<BooPanel|text=文字|x=X|link=@标签>',
+    syntax: '<BooPanel|text=默认文字|x=0|link=@main>',
+    description: '自定义界面语句',
+    params: ['text：显示文字', 'x：坐标X', 'link：触发标签'],
+  }]);
 
   const commands = readJson('data/commands.json');
   const variables = readJson('data/variables.json');
@@ -72,6 +84,17 @@ function main() {
   assert.equal(gee.commandByName.has('CHECKBOOCUSTOM'), false);
   assert.equal(gee.triggerByName.has('BOOCUSTOM'), false);
   assert.equal(gee.constantByName.has('BOOCUSTOM'), false);
+
+  const customSay = customSayMarkupEntries(custom, 'GOM');
+  const customSayIndex = buildSayMarkupIndex(customSay);
+  assert.equal(customSay.length, 1);
+  assert.match(customSay[0].snippet, /\$\{1:显示文字\}/);
+  const customSayLine = '<BooPanel|link=@下一页|x=15|text=测试>';
+  assert.equal(
+    findSayMarkupParameterAt(customSayLine, customSayLine.indexOf('x=15'), customSayIndex)?.meaning,
+    '坐标X'
+  );
+  assert.equal(customSayMarkupEntries(custom, 'GEE').length, 0);
 
   const semantic = buildSemanticCommandIndex(gom);
   assert.equal(classifySemanticCommand(semantic, 'CHECKBOOCUSTOM'), 'check');
@@ -116,6 +139,7 @@ function main() {
   assert.equal(recovered.engines.GOM.checks.length, 1);
   assert.deepEqual(recovered.engines.GEE.actions, []);
   assert.deepEqual(recovered.engines['996PC'].constants, []);
+  assert.deepEqual(recovered.engines.GOM.says, []);
 
   console.log('custom-language.test.js: PASS');
 }

@@ -101,6 +101,12 @@ button,input,select{font:inherit}
 .command.danger:hover{background:#512929}
 .command:disabled{cursor:default;opacity:.55}
 .entity-note{margin:-3px 0 11px;color:#888;font-size:10px;line-height:1.5;word-break:break-all}
+.map-transfer-row{display:grid;grid-template-columns:minmax(0,1fr) 82px;gap:7px;align-items:start}
+.map-combobox{position:relative;min-width:0}
+.map-choice-list{position:absolute;z-index:12;left:0;right:0;top:32px;max-height:190px;overflow:auto;border:1px solid #555;background:#202020;box-shadow:0 7px 18px rgba(0,0,0,.48)}
+.map-choice-list[hidden]{display:none}.map-choice{display:block;width:100%;min-height:34px;padding:5px 7px;border:0;border-bottom:1px solid #343434;background:transparent;color:#ddd;text-align:left;cursor:pointer;overflow:hidden}
+.map-choice:last-child{border-bottom:0}.map-choice:hover,.map-choice.active{background:#154b73}.map-choice-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.map-choice-code{display:block;margin-top:2px;color:#999;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.map-transfer{height:30px;border:1px solid #4a4a4a;border-radius:2px;background:#2d2d2d;color:#ddd;cursor:pointer}.map-transfer:hover{background:#363636}.map-transfer:disabled{cursor:default;opacity:.55}
 .spawn-fields{display:grid;gap:0}
 .hidden{display:none!important}
 @media(max-width:760px){
@@ -195,6 +201,16 @@ button,input,select{font:inherit}
           </div>
           <label class="field"><span>外观编号</span><input id="npcAppearance" type="number" min="0" step="1"></label>
           <div class="entity-note" id="npcAppearanceInfo"></div>
+          <div class="field">
+            <span>切换到地图</span>
+            <div class="map-transfer-row">
+              <div class="map-combobox">
+                <input id="npcTargetMap" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="输入地图名字或编号">
+                <div class="map-choice-list" id="npcMapChoices" role="listbox" hidden></div>
+              </div>
+              <button class="map-transfer" id="moveNpcToMap" type="button">切换地图</button>
+            </div>
+          </div>
           <label class="field"><span>NPC 顶戴</span><textarea id="npcIconText" spellcheck="false"></textarea></label>
           <div class="entity-note" id="npcIconInfo"></div>
           <div class="line-number" id="npcLine"></div>
@@ -286,6 +302,8 @@ const addEditor={
 const npcEditor={
   name:document.getElementById('npcName'),x:document.getElementById('npcX'),y:document.getElementById('npcY'),
   appearance:document.getElementById('npcAppearance'),info:document.getElementById('npcAppearanceInfo'),
+  targetMap:document.getElementById('npcTargetMap'),mapChoices:document.getElementById('npcMapChoices'),
+  moveButton:document.getElementById('moveNpcToMap'),
   iconText:document.getElementById('npcIconText'),iconInfo:document.getElementById('npcIconInfo'),line:document.getElementById('npcLine')
 };
 const state={
@@ -295,10 +313,11 @@ const state={
   editVersion:0,requestVersions:new Map(),markerFile:'',addRequest:0,pendingAddRequest:0,
   panMoved:false,pointerDownX:0,pointerDownY:0,markerDragging:false,markerDragLine:0,
   markerDragMoved:false,markerStartX:0,markerStartY:0,deleteRequest:0,pendingDeleteRequest:0,
-  npcs:[],spawns:[],merchantColumns:[],monGenColumns:[],engine:'GOM',entityWarnings:[],
+  maps:[],npcs:[],spawns:[],safeZones:[],merchantColumns:[],monGenColumns:[],engine:'GOM',entityWarnings:[],
   selectedEntityType:'',selectedEntityLine:0,entityDragging:false,entityDragType:'',entityDragLine:0,
   entityDragMoved:false,entityStartX:0,entityStartY:0,entitySaveTimer:0,entityRequest:0,entityPendingRequest:0,
-  entityAnimationTimers:[],showSpawnRange:false,
+  entityAnimationTimers:[],safeZoneAnimationTimer:0,safeZoneFrame:0,showSpawnRange:false,
+  npcTargetMapKey:'',npcMoveRequest:0,pendingNpcMoveRequest:0,
   pendingNpcReveal:null,navigatorDragging:false,navigatorGeometry:null,
   original:{active:false,ready:false,requestId:0,layer:null,imageCache:new Map(),warning:'',
     fileName:'',format:'',pixelWidth:0,pixelHeight:0}
@@ -358,6 +377,65 @@ function drawOriginalMap(){
   draw(layer.tiles,'tile');
   draw(layer.smTiles,'smTile');
   draw(layer.objects,'object');
+  drawSafeZones();
+}
+function safeZoneScreenPoint(x,y){
+  return{x:state.offsetX+(x*48+24)*state.scale,y:state.offsetY+(y*32+16)*state.scale};
+}
+function safeZoneColor(type){
+  const colors=['#65d46e','#b5d95d','#74b9ff','#d5a85a','#67d8ff','#ff785f','#c99b72','#ffb347','#ff6f61','#ffca62','#b792ff','#64d8cb'];
+  return colors[Math.abs(Number(type)||0)%colors.length];
+}
+function drawSafeZoneFrame(zone,x,y){
+  const frames=Array.isArray(zone.frames)?zone.frames:[];if(!frames.length)return;
+  const meta=normalizeNpcFrame(frames[state.safeZoneFrame%frames.length]);if(!meta.url)return;
+  const record=originalImage(meta),image=record.image;if(record.failed||!image.complete||!image.naturalWidth)return;
+  const point=safeZoneScreenPoint(x,y);
+  const width=Math.max(1,(meta.width||image.naturalWidth)*state.scale),height=Math.max(1,(meta.height||image.naturalHeight)*state.scale);
+  const left=meta.usesOffsets?point.x+meta.offsetX*state.scale:point.x-width/2;
+  const top=meta.usesOffsets?point.y+meta.offsetY*state.scale:point.y-height;
+  ctx.save();ctx.globalAlpha=zone.transparentDraw?.78:1;
+  if(zone.transparentDraw)ctx.globalCompositeOperation='screen';
+  ctx.imageSmoothingEnabled=false;ctx.drawImage(image,left,top,width,height);ctx.restore();
+}
+function safeZoneEffectPoints(zone){
+  if(zone.shape==='point')return[[zone.x,zone.y]];
+  if(zone.shape==='line'){
+    const dx=(Number(zone.endX)||0)-zone.x,dy=(Number(zone.endY)||0)-zone.y,steps=Math.max(1,Math.max(Math.abs(dx),Math.abs(dy)));
+    const stride=Math.max(1,Math.ceil(steps/120)),result=[];
+    for(let step=0;step<=steps;step+=stride)result.push([zone.x+dx*step/steps,zone.y+dy*step/steps]);
+    return result;
+  }
+  if(zone.shape==='ellipse'){
+    const width=Math.max(1,Number(zone.width)||1),height=Math.max(1,Number(zone.height)||1),result=[];
+    for(let step=0;step<64;step++){const angle=step*Math.PI*2/64;result.push([zone.x+width/2+Math.cos(angle)*width/2,zone.y+height/2+Math.sin(angle)*height/2])}
+    return result;
+  }
+  const range=Math.max(0,Number(zone.range)||0),left=zone.x-range,right=zone.x+range,top=zone.y-range,bottom=zone.y+range;
+  const perimeter=Math.max(1,(right-left+bottom-top)*2),stride=Math.max(1,Math.ceil(perimeter/160)),result=[];
+  for(let x=left;x<=right;x+=stride){result.push([x,top]);if(bottom!==top)result.push([x,bottom])}
+  for(let y=top+stride;y<bottom;y+=stride){result.push([left,y]);if(right!==left)result.push([right,y])}
+  return result;
+}
+function drawSafeZones(){
+  if(!state.original.active||!Array.isArray(state.safeZones)||!state.safeZones.length)return;
+  for(const zone of state.safeZones){
+    const color=safeZoneColor(zone.haloType);ctx.save();ctx.lineWidth=Math.max(1,2*state.scale);ctx.strokeStyle=color;ctx.fillStyle=color+'2E';
+    if(zone.shape==='line'){
+      const start=safeZoneScreenPoint(zone.x,zone.y),end=safeZoneScreenPoint(zone.endX,zone.endY);ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();
+    }else if(zone.shape==='ellipse'){
+      const left=state.offsetX+zone.x*48*state.scale,top=state.offsetY+zone.y*32*state.scale;
+      const width=Math.max(1,(Number(zone.width)||1)*48*state.scale),height=Math.max(1,(Number(zone.height)||1)*32*state.scale);
+      ctx.beginPath();ctx.ellipse(left+width/2,top+height/2,width/2,height/2,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    }else if(zone.shape==='point'){
+      const left=state.offsetX+zone.x*48*state.scale,top=state.offsetY+zone.y*32*state.scale;ctx.fillRect(left,top,48*state.scale,32*state.scale);ctx.strokeRect(left,top,48*state.scale,32*state.scale);
+    }else{
+      const range=Math.max(0,Number(zone.range)||0),left=state.offsetX+(zone.x-range)*48*state.scale,top=state.offsetY+(zone.y-range)*32*state.scale;
+      const width=(range*2+1)*48*state.scale,height=(range*2+1)*32*state.scale;ctx.fillRect(left,top,width,height);ctx.strokeRect(left,top,width,height);
+    }
+    ctx.restore();
+    for(const point of safeZoneEffectPoints(zone))drawSafeZoneFrame(zone,point[0],point[1]);
+  }
 }
 function clampViewOffset(offset,viewportSize,contentSize){
   if(contentSize<=viewportSize)return Math.round((viewportSize-contentSize)/2);
@@ -506,6 +584,23 @@ function renderMarkers(){
 function clearEntityAnimationTimers(){
   for(const timer of state.entityAnimationTimers)clearInterval(timer);
   state.entityAnimationTimers=[];
+}
+function clearSafeZoneAnimation(){
+  if(state.safeZoneAnimationTimer)clearInterval(state.safeZoneAnimationTimer);
+  state.safeZoneAnimationTimer=0;state.safeZoneFrame=0;
+}
+function prepareSafeZoneFrames(){
+  clearSafeZoneAnimation();
+  let animated=false,minInterval=5000;
+  for(const zone of state.safeZones||[]){
+    const frames=Array.isArray(zone.frames)?zone.frames:[];
+    if(frames.length>1){animated=true;minInterval=Math.min(minInterval,Math.max(40,Number(zone.frameInterval)||120))}
+    for(const frame of frames){
+      const meta=normalizeNpcFrame(frame);if(!meta.url)continue;
+      originalImage(meta).promise.then(()=>{if(state.original.active)render()});
+    }
+  }
+  if(animated)state.safeZoneAnimationTimer=setInterval(()=>{state.safeZoneFrame++;if(state.original.active)render()},minInterval);
 }
 function entityBy(type,lineNumber){
   const list=type==='npc'?state.npcs:type==='spawn'?state.spawns:[];
@@ -710,11 +805,13 @@ function zoom(factor,cx,cy){
 function updateMap(data){
   vscode.postMessage({type:'cancelOriginalMap'});
   state.map=data.map;
+  state.maps=data.maps||[];
   state.worldW=data.map.width||1;
   state.worldH=data.map.height||1;
   state.markers=data.markers||[];
   state.npcs=data.npcs||[];
   state.spawns=data.spawns||[];
+  state.safeZones=data.safeZones||[];
   state.merchantColumns=data.merchantColumns||[];
   state.monGenColumns=data.monGenColumns||[];
   state.engine=data.engine||'GOM';
@@ -728,12 +825,14 @@ function updateMap(data){
   state.original.ready=false;
   state.original.layer=null;
   state.original.imageCache.clear();
+  prepareSafeZoneFrames();
   state.original.warning='';
   state.original.pixelWidth=0;
   state.original.pixelHeight=0;
   state.original.requestId++;
   state.selectedEntityType='';
   state.selectedEntityLine=0;
+  state.npcTargetMapKey='';state.pendingNpcMoveRequest=0;
   state.showSpawnRange=false;
   clearEntityAnimationTimers();
   mapLayerToggle.textContent='原始地图';
@@ -771,7 +870,7 @@ function updateStatus(){
   const warning=state.original.active?state.original.warning:state.warning;
   const entityWarning=state.original.active&&state.entityWarnings.length?' · '+state.entityWarnings.join('；'):'';
   status.textContent=state.original.active
-    ? layerText+' · NPC '+state.npcs.length+' · 刷怪 '+state.spawns.length+(warning?' · '+warning:'')+entityWarning
+    ? layerText+' · NPC '+state.npcs.length+' · 刷怪 '+state.spawns.length+' · 安全区 '+state.safeZones.length+(warning?' · '+warning:'')+entityWarning
     : layerText+' · '+(state.markerFile||'未导入标识文件')+' · 标识 '+state.markers.length+(warning?' · '+warning:'');
   status.classList.toggle('warning',Boolean(warning)||Boolean(entityWarning));
 }
@@ -851,6 +950,43 @@ function revealMerchantNpc(target){
   if(!state.original.active){switchToOriginalMap();return}
   applyPendingNpcReveal(Boolean(state.original.ready&&state.original.layer));
 }
+function npcMapDisplay(map){
+  if(!map)return'';
+  const codes=[map.mapId,map.originalMapId].filter((value,index,list)=>value&&list.indexOf(value)===index).join(' / ');
+  return map.name+(codes?' · '+codes:'');
+}
+function selectedNpcTargetMap(){
+  return state.maps.find(map=>map.key===state.npcTargetMapKey)||null;
+}
+function updateNpcMoveButton(){
+  const target=selectedNpcTargetMap();
+  npcEditor.moveButton.disabled=!target||!state.map||target.key===state.map.key||Boolean(state.pendingNpcMoveRequest);
+}
+function chooseNpcTargetMap(map){
+  state.npcTargetMapKey=map?map.key:'';
+  npcEditor.targetMap.value=map?npcMapDisplay(map):'';
+  npcEditor.mapChoices.hidden=true;npcEditor.targetMap.setAttribute('aria-expanded','false');
+  updateNpcMoveButton();
+}
+function matchingNpcMaps(query){
+  const normalized=String(query||'').trim().toLowerCase();
+  return (state.maps||[]).filter(map=>!normalized||[map.name,map.mapId,map.originalMapId].some(value=>String(value||'').toLowerCase().includes(normalized)))
+    .sort((left,right)=>{
+      const leftName=String(left.name||'').toLowerCase(),rightName=String(right.name||'').toLowerCase();
+      const leftExact=leftName===normalized?0:leftName.startsWith(normalized)?1:2,rightExact=rightName===normalized?0:rightName.startsWith(normalized)?1:2;
+      return leftExact-rightExact||leftName.localeCompare(rightName,'zh-CN');
+    });
+}
+function renderNpcMapChoices(query){
+  const maps=matchingNpcMaps(query).slice(0,100);npcEditor.mapChoices.textContent='';
+  for(const map of maps){
+    const button=document.createElement('button');button.type='button';button.className='map-choice'+(map.key===state.npcTargetMapKey?' active':'');button.dataset.key=map.key;
+    const name=document.createElement('span');name.className='map-choice-name';name.textContent=map.name;button.appendChild(name);
+    const code=document.createElement('span');code.className='map-choice-code';code.textContent=[map.mapId,map.originalMapId].filter((value,index,list)=>value&&list.indexOf(value)===index).join(' / ');button.appendChild(code);
+    button.addEventListener('mousedown',event=>{event.preventDefault();chooseNpcTargetMap(map)});npcEditor.mapChoices.appendChild(button);
+  }
+  npcEditor.mapChoices.hidden=maps.length===0;npcEditor.targetMap.setAttribute('aria-expanded',String(maps.length>0));
+}
 function showSelectedEntityEditor(){
   npcForm.classList.remove('visible');spawnForm.classList.remove('visible');
   const entity=selectedEntity();
@@ -872,6 +1008,7 @@ function showSelectedEntityEditor(){
     npcEditor.x.value=String(entity.x);npcEditor.y.value=String(entity.y);
     npcEditor.appearance.value=String(entity.appearance);
     npcEditor.info.textContent=entity.appearanceLabel||'';
+    chooseNpcTargetMap(state.maps.find(map=>map.key===state.map.key)||null);
     npcEditor.iconText.value=entity.iconText||'';
     npcEditor.iconInfo.textContent=(entity.iconFileName||'未定位顶戴文件')+
       (entity.iconExists?' · '+((entity.icons||[]).length)+' 组':' · 尚未创建');
@@ -1307,6 +1444,29 @@ npcEditor.x.addEventListener('input',handleNpcEditorInput);
 npcEditor.y.addEventListener('input',handleNpcEditorInput);
 npcEditor.appearance.addEventListener('input',handleNpcEditorInput);
 npcEditor.iconText.addEventListener('input',handleNpcEditorInput);
+npcEditor.targetMap.addEventListener('focus',()=>renderNpcMapChoices(npcEditor.targetMap.value));
+npcEditor.targetMap.addEventListener('input',()=>{
+  const value=npcEditor.targetMap.value.trim().toLowerCase();
+  const exact=(state.maps||[]).find(map=>npcMapDisplay(map).toLowerCase()===value||String(map.name||'').toLowerCase()===value||String(map.mapId||'').toLowerCase()===value||String(map.originalMapId||'').toLowerCase()===value);
+  state.npcTargetMapKey=exact?exact.key:'';renderNpcMapChoices(npcEditor.targetMap.value);updateNpcMoveButton();
+});
+npcEditor.targetMap.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){npcEditor.mapChoices.hidden=true;npcEditor.targetMap.setAttribute('aria-expanded','false');return}
+  if(event.key==='Enter'){
+    const first=matchingNpcMaps(npcEditor.targetMap.value)[0];if(first){event.preventDefault();chooseNpcTargetMap(first)}
+  }
+});
+npcEditor.targetMap.addEventListener('blur',()=>setTimeout(()=>{npcEditor.mapChoices.hidden=true;npcEditor.targetMap.setAttribute('aria-expanded','false')},80));
+npcEditor.moveButton.addEventListener('click',()=>{
+  const npc=state.selectedEntityType==='npc'?selectedEntity():null,target=selectedNpcTargetMap();
+  if(!npc||!target||!state.map)return;
+  if(target.key===state.map.key){setSaveState('NPC 已在当前地图','error');return}
+  clearTimeout(state.entitySaveTimer);state.entitySaveTimer=0;
+  const requestId=++state.npcMoveRequest;state.pendingNpcMoveRequest=requestId;updateNpcMoveButton();setSaveState('正在切换地图','saving');
+  vscode.postMessage({type:'moveNpcToMap',requestId,npc:{
+    lineNumber:npc.lineNumber,x:npc.x,y:npc.y,appearance:npc.appearance,iconText:npc.iconText||'',targetMapKey:target.key
+  }});
+});
 document.getElementById('showSpawnRange').addEventListener('change',event=>{
   state.showSpawnRange=event.target.checked;rebuildEntities();
 });
@@ -1513,6 +1673,12 @@ window.addEventListener('message',event=>{
   }
   if(data.type==='entitySaveError'){
     if(data.requestId===state.entityPendingRequest)setSaveState(data.message||'保存失败','error');
+    return;
+  }
+  if(data.type==='npcMoveError'){
+    if(data.requestId===state.pendingNpcMoveRequest){
+      state.pendingNpcMoveRequest=0;updateNpcMoveButton();setSaveState(data.message||'切换地图失败','error');
+    }
     return;
   }
   if(data.type==='markerSaved'){

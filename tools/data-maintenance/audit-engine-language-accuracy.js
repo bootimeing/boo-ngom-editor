@@ -753,8 +753,6 @@ const staticEvidenceToken = {
   'progress-bar': 'PROGRESSBAR',
   'time-tips': 'TIMETIPS',
   'item-box': 'ITEMBOX',
-  'human-variable': 'HUMAN',
-  'guild-variable': 'GUILD',
 };
 
 function resolvedStaticLanguageAudit(data, corpora) {

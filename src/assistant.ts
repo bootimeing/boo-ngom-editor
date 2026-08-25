@@ -168,6 +168,15 @@ import {
 import { BatchNumberOperation, transformBatchNumbers } from './utils/number-transform';
 import { collectVariableWrapEdits } from './utils/variable-wrap';
 import {
+  CandidateUsage,
+  CandidateVariableFamily,
+  collectCandidateUsage,
+  createCandidateUsage,
+  mergeCandidateUsage,
+  unusedPersonalFlagCandidates,
+  unusedVariableCandidates,
+} from './utils/variable-candidates';
+import {
   findScriptCommandArgumentAt,
   formatCommandParameterMeaning,
 } from './utils/command-arguments';
@@ -180,6 +189,7 @@ import {
 import {
   createEmptyCustomLanguageData,
   customLanguageEntries,
+  customSayMarkupEntries,
   CustomLanguageCategory,
   CustomLanguageData,
   CUSTOM_LANGUAGE_STATE_KEY,
@@ -360,6 +370,8 @@ export function activateAssistant(context: vscode.ExtensionContext) {
   const blockCache = new BlockStackCache();
   const pendingMissingFileCreations = new Map<string, Promise<vscode.Uri | undefined>>();
   const mapCodeCache = new Map<string, { stamp: string; codes: Set<string> }>();
+  let candidateUsageCache: { workspaceKey: string; usage: CandidateUsage } | undefined;
+  let candidateUsageGeneration = 0;
   const completionEditorSaveState = { pending: false };
   const beginCompletionEditorSave = (): boolean => {
     if (completionEditorSaveState.pending) return false;
@@ -441,6 +453,150 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       ? collectConfiguredMapCodes(openMapInfo.getText())
       : configuredMapCodesForFile(document.fileName);
   }
+
+  function invalidateCandidateUsage(): void {
+    candidateUsageCache = undefined;
+    candidateUsageGeneration++;
+  }
+
+  async function scanCandidateUsage(): Promise<CandidateUsage | undefined> {
+    const folders = vscode.workspace.workspaceFolders || [];
+    if (folders.length === 0) {
+      void vscode.window.showWarningMessage('请先打开传奇服务端工作区');
+      return undefined;
+    }
+    const workspaceKey = folders.map(folder => folder.uri.toString()).join('|');
+    if (candidateUsageCache?.workspaceKey === workspaceKey) return candidateUsageCache.usage;
+    const scanGeneration = candidateUsageGeneration;
+
+    return vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: 'BOO 正在扫描未使用变量与个人标识',
+      cancellable: true,
+    }, async (progress, cancellation) => {
+      const directories = ['MapQuest_Def', 'Market_Def', 'QuestDiary', 'Robot_def', 'Npc_Def'];
+      const searches: Thenable<vscode.Uri[]>[] = [];
+      for (const folder of folders) {
+        for (const directory of directories) {
+          for (const extension of ['txt', 'ini']) {
+            searches.push(vscode.workspace.findFiles(
+              new vscode.RelativePattern(folder, `**/Envir/${directory}/**/*.${extension}`),
+              '**/{node_modules,.git}/**'
+            ));
+            searches.push(vscode.workspace.findFiles(
+              new vscode.RelativePattern(folder, `${directory}/**/*.${extension}`),
+              '**/{node_modules,.git}/**'
+            ));
+          }
+        }
+      }
+      const discovered = (await Promise.all(searches)).flat();
+      const files = [...new Map(discovered.map(uri => [uri.toString().toLowerCase(), uri])).values()]
+        .sort((left, right) => left.fsPath.localeCompare(right.fsPath, 'zh-CN'));
+      const openDocuments = new Map(
+        vscode.workspace.textDocuments.map(document => [document.uri.toString().toLowerCase(), document])
+      );
+      const usage = createCandidateUsage();
+      for (let index = 0; index < files.length; index++) {
+        if (cancellation.isCancellationRequested) return undefined;
+        const uri = files[index];
+        try {
+          const openDocument = openDocuments.get(uri.toString().toLowerCase());
+          const text = openDocument?.getText()
+            ?? readFileGBK(await vscode.workspace.fs.readFile(uri));
+          const excludedRanges = findMapCodeRangesInText(
+            text,
+            uri.fsPath,
+            configuredMapCodesForFile(uri.fsPath),
+            resolveIndexedCommandToken
+          );
+          mergeCandidateUsage(usage, collectCandidateUsage(text, {
+            excludedRanges,
+            resolveConfigValues: request => resolveNestedConfigValues(uri.fsPath, request),
+            resolveTableData: request => resolveNestedTableData(uri.fsPath, request),
+            resolveListData: request => resolveNestedListData(uri.fsPath, request),
+          }));
+        } catch (error) {
+          log(`候选变量扫描跳过 ${uri.fsPath}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        if (index === files.length - 1 || index % 25 === 0) {
+          progress.report({
+            message: `${index + 1}/${files.length}`,
+            increment: files.length ? 2500 / files.length : 100,
+          });
+        }
+      }
+      if (scanGeneration !== candidateUsageGeneration) {
+        return scanCandidateUsage();
+      }
+      candidateUsageCache = { workspaceKey, usage };
+      return usage;
+    });
+  }
+
+  async function pickUnusedScriptCandidate(args: {
+    kind?: 'variable' | 'personalFlag';
+    family?: CandidateVariableFamily;
+    uri?: string;
+    line?: number;
+    start?: number;
+    end?: number;
+    expected?: string;
+  }): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !args.uri || editor.document.uri.toString() !== args.uri) {
+      void vscode.window.showWarningMessage('候选插入位置已经失效，请回到原脚本重新选择');
+      return;
+    }
+    const usage = await scanCandidateUsage();
+    if (!usage) return;
+    const family = args.family;
+    const values = args.kind === 'variable' && family
+      ? unusedVariableCandidates(family, usage)
+      : unusedPersonalFlagCandidates(usage);
+    if (values.length === 0) {
+      void vscode.window.showInformationMessage(
+        args.kind === 'variable' && family
+          ? `${family} 类变量已经全部使用`
+          : '个人标识 1-1024 已经全部使用'
+      );
+      return;
+    }
+    const pick = await vscode.window.showQuickPick(
+      values.map(value => ({
+        label: args.kind === 'variable' && family ? `${family}${value}` : `[${value}]`,
+        description: '未使用',
+        value,
+      })),
+      {
+        title: args.kind === 'variable' && family ? `选择未使用的 ${family} 类变量` : '选择未使用的个人标识',
+        placeHolder: '可输入编号进行模糊筛选',
+        matchOnDescription: true,
+      }
+    );
+    if (!pick) return;
+    const line = Number(args.line);
+    const start = Number(args.start);
+    const end = Number(args.end);
+    if (![line, start, end].every(Number.isInteger) || line < 0 || start < 0 || end < start) return;
+    const range = new vscode.Range(line, start, line, end);
+    if (editor.document.getText(range) !== String(args.expected || '')) {
+      void vscode.window.showWarningMessage('候选插入位置的文字已经变化，请重新选择');
+      return;
+    }
+    const replacement = args.kind === 'variable' && family ? `${family}${pick.value}` : `[${pick.value}]`;
+    const applied = await editor.edit(edit => edit.replace(range, replacement));
+    if (!applied) return;
+    const cursor = new vscode.Position(line, start + replacement.length);
+    editor.selection = new vscode.Selection(cursor, cursor);
+  }
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('boo.pickUnusedScriptCandidate', pickUnusedScriptCandidate),
+    vscode.workspace.onDidChangeTextDocument(invalidateCandidateUsage),
+    vscode.workspace.onDidSaveTextDocument(invalidateCandidateUsage),
+    vscode.workspace.onDidChangeWorkspaceFolders(invalidateCandidateUsage)
+  );
 
   // 自动识别引擎类型
   async function autoDetectEngine() {
@@ -597,6 +753,64 @@ export function activateAssistant(context: vscode.ExtensionContext) {
           if (!(inSay && variablePrefix === '<')) return items;
         }
 
+        // ---- 未使用变量/个人标识候选 ----
+        const numberedCandidate = /([UTAG])$/i.exec(linePrefix);
+        if (numberedCandidate) {
+          const start = position.character - numberedCandidate[1].length;
+          const previous = start > 0 ? linePrefix.charAt(start - 1) : '';
+          if (!previous || !/[A-Za-z0-9_$]/.test(previous)) {
+            const family = numberedCandidate[1].toUpperCase() as CandidateVariableFamily;
+            const expected = numberedCandidate[1];
+            const item = new vscode.CompletionItem('候选变量', vscode.CompletionItemKind.Variable);
+            item.detail = `选择当前统计中未使用的 ${family} 类变量`;
+            item.documentation = new vscode.MarkdownString('复用当前变量统计结果，按编号顺序列出尚未使用的变量。');
+            item.insertText = expected;
+            item.filterText = expected;
+            item.range = new vscode.Range(position.line, start, position.line, position.character);
+            item.sortText = '0000';
+            item.preselect = true;
+            item.command = {
+              command: 'boo.pickUnusedScriptCandidate',
+              title: '选择未使用变量',
+              arguments: [{
+                kind: 'variable',
+                family,
+                uri: document.uri.toString(),
+                line: position.line,
+                start,
+                end: position.character,
+                expected,
+              }],
+            };
+            items.push(item);
+          }
+        }
+        const bracketStart = position.character - 1;
+        const flagCommandContext = /(?:^|\s)(?:CHECK|SET|RESET)\s+\[$/i.test(linePrefix);
+        if (bracketStart >= 0 && linePrefix.endsWith('[') && (linePrefix.trim() === '[' || flagCommandContext)) {
+          const item = new vscode.CompletionItem('候选标识', vscode.CompletionItemKind.Value);
+          item.detail = '选择当前统计中未使用的个人标识';
+          item.documentation = new vscode.MarkdownString('复用当前个人标识统计结果，按编号顺序列出尚未使用的标识。');
+          item.insertText = '[';
+          item.filterText = '[';
+          item.range = new vscode.Range(position.line, bracketStart, position.line, position.character);
+          item.sortText = '0000';
+          item.preselect = true;
+          item.command = {
+            command: 'boo.pickUnusedScriptCandidate',
+            title: '选择未使用个人标识',
+            arguments: [{
+              kind: 'personalFlag',
+              uri: document.uri.toString(),
+              line: position.line,
+              start: bracketStart,
+              end: position.character,
+              expected: '[',
+            }],
+          };
+          items.push(item);
+        }
+
         // ---- 标签补全: <@ 或 /@ 触发 ----
         const sectionReplaceStart = findSectionLabelReplacementStart(linePrefix);
         const tagReplaceStart = findAtLabelReplacementStart(linePrefix);
@@ -705,10 +919,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         } else if (inSay) {
           // #SAY块: 界面命令模板
           for (const cmd of languageIndex.sayNameCompletions) addCmdItem(cmd, '', '[界面]', '1');
-          for (const entry of activeStaticLanguageEntries(
-            staticLanguageData.saySnippets,
-            languageIndex.engine
-          )) {
+          for (const entry of activeSayMarkupEntries(languageIndex.engine)) {
             const engineLabel = formatEntryEngineCategory(entry.engines);
             const kind = entry.id.endsWith('-variable')
               ? vscode.CompletionItemKind.Variable
@@ -4311,7 +4522,8 @@ el.textContent=e.data.text||'扫描完成';
         | 'variable'
         | 'function'
         | 'trigger'
-        | 'constant';
+        | 'constant'
+        | 'static-say';
       type CompletionEditorRow = {
         name: string;
         engineId: EngineId;
@@ -4414,6 +4626,28 @@ el.textContent=e.data.text||'扫描完成';
         params: constant.scope || '',
         sourceIndex,
       }));
+      const sayRows = (
+        entries: StaticLanguageData['saySnippets'],
+        engine: EngineId
+      ): CompletionEditorRow[] => entries.flatMap((entry, sourceIndex) => {
+        const variant = entry.engineVariants?.[engine];
+        if (!variant?.label) return [];
+        const activeEntry = { ...variant, id: entry.id, engines: [engine] };
+        const params = variant.parameters?.map(parameter => (
+          parameter.key
+            ? `${parameter.key}：${parameter.description}`
+            : parameter.description
+        )) || sayMarkupParameterMeanings(activeEntry);
+        return [{
+          name: variant.label,
+          engineId: engine,
+          storage: 'static-say',
+          syntax: variant.snippet || variant.label,
+          desc: variant.description || '',
+          params: params.join('；'),
+          sourceIndex,
+        }];
+      });
       const customRows = (
         category: CustomLanguageCategory,
         engine: EngineId,
@@ -4424,7 +4658,7 @@ el.textContent=e.data.text||'扫描完成';
         storage,
         syntax: entry.syntax,
         desc: entry.description,
-        params: entry.params.join(' '),
+        params: entry.params.join(category === 'say' ? '；' : ' '),
         customId: entry.id,
         isCustom: true,
       }));
@@ -4461,6 +4695,14 @@ el.textContent=e.data.text||'扫描完成';
               functionRows(editorFunctionCatalog.get(definition.id) || {}, definition.id, false)
             ),
             ...customRows('action', definition.id, 'command-exec'),
+          ]),
+        },
+        {
+          id: 'say',
+          label: '界面语句',
+          data: ENGINE_DEFINITIONS.flatMap(definition => [
+            ...sayRows(staticLanguageData.saySnippets, definition.id),
+            ...customRows('say', definition.id, 'static-say'),
           ]),
         },
         {
@@ -4575,6 +4817,7 @@ function customStorageForTab() {
   if (activeTab==='check') return 'command-check';
   if (activeTab==='exec') return 'command-exec';
   if (activeTab==='func') return 'trigger';
+  if (activeTab==='say') return 'static-say';
   return 'constant';
 }
 function newCustomId() {
@@ -4940,11 +5183,47 @@ render('');
                 constantData.generated = new Date().toISOString();
             }
 
+            const staticSayChanges = changesFor('static-say');
+            if (staticSayChanges.length > 0) {
+              const staticData = readForUpdate('static-language.json');
+              for (const change of staticSayChanges) {
+                const entry = staticData.saySnippets?.[change.sourceIndex];
+                const previous = entry?.engineVariants?.[engine];
+                if (!entry || !previous) continue;
+                const target = { ...previous };
+                if (change.obj.name !== undefined) target.label = change.obj.name;
+                if (change.obj.syntax !== undefined) target.snippet = change.obj.syntax;
+                if (change.obj.desc !== undefined) target.description = change.obj.desc;
+                if (change.obj.params !== undefined) {
+                  const values = change.obj.params
+                    .split(/\s*(?:\||[;；]|\r?\n)\s*/)
+                    .map(value => value.trim())
+                    .filter(Boolean);
+                  target.parameters = values.map((value, index) => {
+                    const explicit = /^([A-Za-z_][A-Za-z0-9_]*)\s*(?:=|:|：)\s*(.+)$/.exec(value);
+                    const oldParameter = previous.parameters?.[index];
+                    return {
+                      ...(oldParameter?.aliases?.length ? { aliases: oldParameter.aliases } : {}),
+                      ...(explicit?.[1] || oldParameter?.key
+                        ? { key: explicit?.[1] || oldParameter.key }
+                        : {}),
+                      description: (explicit?.[2] || value).trim(),
+                    };
+                  });
+                }
+                entry.engineVariants = {
+                  ...(entry.engineVariants || {}),
+                  [engine]: target,
+                };
+              }
+            }
+
             const customCategoryByTab: Record<string, CustomLanguageCategory> = {
               check: 'check',
               exec: 'action',
               func: 'function',
               constant: 'constant',
+              say: 'say',
             };
             const customChanged = msg.customChanged === true;
             const customCategory = customCategoryByTab[String(msg.tabId || '')];
@@ -4978,6 +5257,8 @@ render('');
               variablesData = loadVariablesData(extPath, (line: string) => outputChannel.appendLine(line));
               engineFunctionCatalog = loadEngineFunctionCatalog(extPath, (line: string) => outputChannel.appendLine(line));
               engineConstantCatalog = loadEngineConstantCatalog(extPath, (line: string) => outputChannel.appendLine(line));
+              staticLanguageData = loadStaticLanguageData(extPath, (line: string) => outputChannel.appendLine(line))
+                || EMPTY_STATIC_LANGUAGE_DATA;
               rebuildLanguageIndex();
               rebuildSemanticCommandIndex();
               panel.webview.postMessage({
@@ -5146,7 +5427,15 @@ function activeMapInfoParams(engine: EngineId) {
 }
 
 function activeSayMarkupEntries(engine: EngineId) {
-  return activeStaticLanguageEntries(staticLanguageData.saySnippets, engine);
+  const rows = new Map<string, ReturnType<typeof activeStaticLanguageEntries>[number]>();
+  for (const entry of customSayMarkupEntries(customLanguageData, engine)) {
+    rows.set(entry.label.toUpperCase(), entry);
+  }
+  for (const entry of activeStaticLanguageEntries(staticLanguageData.saySnippets, engine)) {
+    const key = entry.label.toUpperCase();
+    if (!rows.has(key)) rows.set(key, entry);
+  }
+  return [...rows.values()];
 }
 
 function escapeStaticHtml(value: string): string {

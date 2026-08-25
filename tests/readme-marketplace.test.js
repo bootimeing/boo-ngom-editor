@@ -53,6 +53,7 @@ function main() {
   }
   assert.match(script, /GOM、翎风或 996PC/);
   assert.match(script, /命令、变量、标签、路径、系统常量和引擎函数智能补全/);
+  assert.match(script, /自定义检测命令、执行命令、界面语句、引擎函数和系统常量/);
   assert.match(script, /CHECKTEXTLIST/);
   assert.match(script, /AutoRunRobot\.txt/);
   assert.match(script, /实时语法检查/);
@@ -61,9 +62,15 @@ function main() {
   assert.match(script, /检测命令、执行命令和 `#SAY` 界面指令分别高亮/);
   assert.match(script, /`<TEXT`、`<&TEXT` 等界面指令支持补全，指令名和每个参数都可悬停查看说明/);
 
+  const variables = section(readme, featureHeadings[1], featureHeadings[2]);
+  assert.match(variables, /候选变量\/候选标识/);
+  assert.match(variables, /动态编号不会导致整个候选列表不可用/);
+
   const ui = section(readme, featureHeadings[2], featureHeadings[3]);
   assert.match(ui, /PAK、JPK、WIL、WZL/);
   assert.match(ui, /WIL\/WZL 当前提供只读预览/);
+  assert.match(ui, /`Ctrl\+F12`/);
+  assert.match(ui, /与原 UI 编辑器互不影响/);
 
   const patches = section(readme, featureHeadings[3], featureHeadings[4]);
   assert.match(patches, /传奇客户端目录/);
@@ -78,9 +85,14 @@ function main() {
   assert.match(synchronization, /“快捷工具”中提供独立“脚本同步”入口/);
   assert.doesNotMatch(readme, /最下方[^\n]*脚本同步|脚本同步[^\n]*最下方/);
 
+  const reload = section(readme, featureHeadings[7], featureHeadings[8]);
+  assert.match(reload, /连续保存请求会自动合并/);
+  assert.match(reload, /等待当前菜单命令完成/);
+
   assert.match(readme, /按工作区添加或移除 Mir200 相对路径/);
   assert.match(readme, /选择“添加自定义文件”后输入相对于 `Mir200` 的路径/);
   assert.match(readme, /悬停在某个参数值上只显示该参数的含义/);
+  assert.match(readme, /\| `Ctrl\+F12` \| 打开当前 `\[@函数]` 的独立 NPC 界面可视化面板 \|/);
 
   console.log('README Marketplace structure test passed.');
 }

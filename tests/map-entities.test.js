@@ -14,6 +14,7 @@ function main() {
     parseMerchantLine,
     parseMerchantText,
     parseMonGenText,
+    parseStartPointText,
     selectCustomNpcArchive,
     updateMerchantCoordinates,
     updateMerchantNpc,
@@ -58,6 +59,9 @@ function main() {
   const changedAppearance = updateMerchantNpc(merchantText, 2, 402, 403, 10054);
   assert.equal(changedAppearance.npc.appearance, 10054);
   assert.match(changedAppearance.text, /传送\\土城 3 402 403 盟重老兵 0 10054/);
+  const changedMap = updateMerchantNpc(merchantText, 2, 120, 121, 8, 'NEW_N3');
+  assert.equal(changedMap.npc.mapName, 'NEW_N3');
+  assert.match(changedMap.text, /传送\\土城 NEW_N3 120 121 盟重老兵/);
   assert.equal(
     formatNpcDisplayName('零六名人堂\\\\[道祖天尊]\\王迪'),
     '王迪\n[道祖天尊]\n零六名人堂'
@@ -73,6 +77,30 @@ function main() {
   assert.equal(changed.spawn.x, 110);
   assert.equal(changed.spawn.range, 20);
   assert.match(changed.text, /^3 110 111 白野猪 20/);
+
+  const safeZones = parseStartPointText([
+    '3 330 331 0 10 4 0 0',
+    '3 140:113 159:132 0 -1 11 0 0',
+    '3 315 343 0 -2 4 0 0',
+    '3 321:321 10:10 0 -3 4 1 0',
+  ].join('\n'), 'GOM');
+  assert.deepEqual(
+    safeZones.map(zone => ({ shape: zone.shape, x: zone.x, y: zone.y })),
+    [
+      { shape: 'area', x: 330, y: 331 },
+      { shape: 'line', x: 140, y: 113 },
+      { shape: 'point', x: 315, y: 343 },
+      { shape: 'ellipse', x: 321, y: 321 },
+    ]
+  );
+  assert.equal(safeZones[1].endX, 159);
+  assert.equal(safeZones[1].endY, 132);
+  assert.equal(safeZones[3].width, 10);
+  assert.equal(safeZones[3].height, 10);
+  assert.equal(safeZones[0].styleLabel, '困魔光效果');
+  const geeCustomZone = parseStartPointText('3 100 101 0 10 21 0 0', 'GEE')[0];
+  assert.equal(geeCustomZone.customResource, true);
+  assert.equal(geeCustomZone.styleLabel, 'SafePointEffect 10-19 (透明绘制)');
 
   const gomNpc = parseCustomNpcAnimation([
     '[Setup]',

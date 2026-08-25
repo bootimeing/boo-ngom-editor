@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+export function isM2ReloadScriptPath(filePath: string): boolean {
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension !== '.txt' && extension !== '.ini') return false;
+  return /[\/\\](?:Mir200[\/\\])?Envir[\/\\]/i.test(filePath);
+}
+
 export function findM2PathFromLocation(location: string): string | null {
   let current = path.resolve(location);
   try {

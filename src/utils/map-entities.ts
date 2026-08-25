@@ -31,6 +31,29 @@ export interface MonsterSpawn {
   range: number;
 }
 
+export type SafeZoneShape = 'area' | 'point' | 'line' | 'ellipse';
+
+export interface MapSafeZone {
+  lineNumber: number;
+  fields: string[];
+  mapName: string;
+  shape: SafeZoneShape;
+  x: number;
+  y: number;
+  endX?: number;
+  endY?: number;
+  width?: number;
+  height?: number;
+  silence: number;
+  range: number;
+  haloType: number;
+  pkZone: number;
+  pkFire: number;
+  styleLabel: string;
+  customResource: boolean;
+  transparentDraw: boolean;
+}
+
 export interface CustomNpcAnimation {
   fileIndex: number;
   direction: number;
@@ -195,6 +218,85 @@ export function parseMonGenText(text: string): MonsterSpawn[] {
   return result;
 }
 
+export function parseStartPointText(text: string, engine: EngineId): MapSafeZone[] {
+  const result: MapSafeZone[] = [];
+  for (const [index, rawLine] of text.split(/\r?\n|\r/).entries()) {
+    const fields = parseFields(rawLine);
+    if (fields.length < 6) continue;
+    const first = parseSafeZoneCoordinate(fields[1]);
+    const second = parseSafeZoneCoordinate(fields[2]);
+    const silence = Number(fields[3]);
+    const range = Number(fields[4]);
+    const haloType = Number(fields[5]);
+    const pkZone = Number(fields[6] || 0);
+    const pkFire = Number(fields[7] || 0);
+    if (
+      !first || !second
+      || ![silence, range, haloType, pkZone, pkFire].every(Number.isFinite)
+    ) continue;
+
+    let shape: SafeZoneShape;
+    let endX: number | undefined;
+    let endY: number | undefined;
+    let width: number | undefined;
+    let height: number | undefined;
+    if (range < 0 && first.pair && second.pair && pkZone === 1 && engine === 'GOM') {
+      shape = 'ellipse';
+      width = Math.max(0, second.x);
+      height = Math.max(0, second.y);
+    } else if (range < 0 && first.pair && second.pair) {
+      shape = 'line';
+      endX = second.x;
+      endY = second.y;
+    } else if (range < 0) {
+      shape = 'point';
+    } else {
+      shape = 'area';
+    }
+    result.push({
+      lineNumber: index + 1,
+      fields,
+      mapName: fields[0],
+      shape,
+      x: first.x,
+      y: first.pair ? first.y : second.x,
+      endX,
+      endY,
+      width,
+      height,
+      silence,
+      range,
+      haloType,
+      pkZone,
+      pkFire,
+      styleLabel: safeZoneStyleLabel(engine, haloType),
+      customResource: engine === 'GEE' && haloType >= 20 && haloType <= 75,
+      transparentDraw: engine === 'GEE' && haloType >= 20 && haloType <= 55,
+    });
+  }
+  return result;
+}
+
+export function safeZoneStyleLabel(engine: EngineId, haloType: number): string {
+  if (engine === 'GEE' && haloType >= 20 && haloType <= 75) {
+    const start = (haloType - 20) * 10;
+    const blend = haloType <= 55 ? '透明绘制' : '普通绘制';
+    return `SafePointEffect ${start}-${start + 9} (${blend})`;
+  }
+  const documented: Record<number, string> = {
+    0: '不显示边界效果',
+    1: '僵尸钻洞效果',
+    3: '石块效果',
+    4: '困魔光效果',
+    5: '火墙效果',
+    6: '祖玛教主裂石效果',
+    7: '火墙效果 7',
+    8: '火墙效果 8',
+    9: '火墙效果 9',
+  };
+  return documented[haloType] || `内置安全区效果 ${haloType}`;
+}
+
 export function mapEntityMatches(entryMapName: string, map: MapInfoEntry): boolean {
   const key = normalizeMapKey(entryMapName);
   return [map.mapId, map.originalMapId, map.name].some(value => normalizeMapKey(value) === key);
@@ -216,7 +318,8 @@ export function updateMerchantNpc(
   lineNumber: number,
   x: number,
   y: number,
-  appearance: number
+  appearance: number,
+  mapName?: string,
 ): { text: string; npc: MerchantNpc } {
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) {
     throw new Error('NPC坐标必须是大于等于 0 的整数');
@@ -226,7 +329,12 @@ export function updateMerchantNpc(
   }
   const npc = parseMerchantText(text).find(item => item.lineNumber === lineNumber);
   if (!npc) throw new Error(`Merchant.txt 第 ${lineNumber} 行不是有效的 NPC 配置`);
+  const normalizedMapName = mapName === undefined ? npc.mapName : String(mapName).trim();
+  if (!normalizedMapName || /\s/.test(normalizedMapName)) {
+    throw new Error('NPC地图编号不能为空或包含空格');
+  }
   const fields = [...npc.fields];
+  fields[1] = normalizedMapName;
   fields[2] = String(x);
   fields[3] = String(y);
   fields[6] = String(appearance);
@@ -234,6 +342,14 @@ export function updateMerchantNpc(
   const updated = parseMerchantText(updatedText).find(item => item.lineNumber === lineNumber);
   if (!updated) throw new Error('修改后的 NPC 配置无效');
   return { text: updatedText, npc: updated };
+}
+
+function parseSafeZoneCoordinate(value: string): { x: number; y: number; pair: boolean } | undefined {
+  const source = String(value || '').trim();
+  const pair = /^(\d+):(\d+)$/.exec(source);
+  if (pair) return { x: Number(pair[1]), y: Number(pair[2]), pair: true };
+  if (!/^\d+$/.test(source)) return undefined;
+  return { x: Number(source), y: Number(source), pair: false };
 }
 
 export function updateMonGenFields(

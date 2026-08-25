@@ -127,6 +127,14 @@ export interface StaticLanguageVariant {
   source: HelpSource;
   snippet?: string;
   evidenceToken?: string;
+  parameters?: StaticLanguageParameter[];
+  markupAliases?: string[];
+}
+
+export interface StaticLanguageParameter {
+  description: string;
+  key?: string;
+  aliases?: string[];
 }
 
 export interface StaticLanguageEntry {

@@ -26,6 +26,7 @@ namespace {
 constexpr UINT kWmCommand = 0x0111;
 constexpr UINT kMenuByPosition = 0x0400;
 constexpr int kMaxMenuText = 256;
+constexpr UINT kReloadTimeoutMs = 15000;
 
 struct MenuWindowCandidate {
 	HWND hwnd;
@@ -37,6 +38,13 @@ struct EnumWindowContext {
 	const std::unordered_set<DWORD>* processIds;
 	std::vector<MenuWindowCandidate>* candidates;
 	std::unordered_set<HWND>* seen;
+};
+
+struct ReloadSendResult {
+	bool success;
+	int failedId;
+	DWORD error;
+	ULONGLONG elapsedMs;
 };
 
 void WriteBytes(HANDLE handle, const std::string& value) {
@@ -438,10 +446,40 @@ int MenuFindId(HMENU menu, const std::wstring& name, int depth = 0) {
 	return -1;
 }
 
-void SendReloadIds(HWND hwnd, const std::vector<int>& reloadIds) {
+ReloadSendResult SendReloadIds(HWND hwnd, const std::vector<int>& reloadIds) {
+	const ULONGLONG startedAt = GetTickCount64();
 	for (int id : reloadIds) {
-		PostMessageW(hwnd, kWmCommand, static_cast<WPARAM>(id), 0);
+		if (!IsWindow(hwnd)) {
+			return { false, id, ERROR_INVALID_WINDOW_HANDLE, GetTickCount64() - startedAt };
+		}
+
+		DWORD_PTR messageResult = 0;
+		SetLastError(ERROR_SUCCESS);
+		const LRESULT sent = SendMessageTimeoutW(
+			hwnd,
+			kWmCommand,
+			static_cast<WPARAM>(id),
+			0,
+			SMTO_ABORTIFHUNG | SMTO_BLOCK,
+			kReloadTimeoutMs,
+			&messageResult);
+		if (sent == 0) {
+			DWORD error = GetLastError();
+			if (error == ERROR_SUCCESS) error = ERROR_TIMEOUT;
+			return { false, id, error, GetTickCount64() - startedAt };
+		}
 	}
+	return { true, 0, ERROR_SUCCESS, GetTickCount64() - startedAt };
+}
+
+std::string FormatReloadFailure(const ReloadSendResult& sendResult) {
+	if (sendResult.error == ERROR_TIMEOUT) {
+		return u8"ERR:M2重载处理超时，菜单ID=" + std::to_string(sendResult.failedId) +
+			u8"，已等待=" + std::to_string(sendResult.elapsedMs) + "ms";
+	}
+	return u8"ERR:M2重载命令失败，菜单ID=" + std::to_string(sendResult.failedId) +
+		u8"，Win32=" + std::to_string(sendResult.error) +
+		u8"，耗时=" + std::to_string(sendResult.elapsedMs) + "ms";
 }
 
 std::string DoReload(const std::vector<int>& reloadIds) {
@@ -449,9 +487,13 @@ std::string DoReload(const std::vector<int>& reloadIds) {
 	if (hwnd == nullptr) {
 		return u8"ERR:未找到 M2Server 窗口，请确认服务端已启动";
 	}
-	SendReloadIds(hwnd, reloadIds);
+	const ReloadSendResult sendResult = SendReloadIds(hwnd, reloadIds);
+	if (!sendResult.success) {
+		return FormatReloadFailure(sendResult);
+	}
 	return "OK_PID=" + std::to_string(GetWindowProcessId(hwnd)) +
-		" HWND=" + WindowHandleToString(hwnd);
+		" HWND=" + WindowHandleToString(hwnd) +
+		" ELAPSED_MS=" + std::to_string(sendResult.elapsedMs);
 }
 
 std::string DoScanWindow(HWND hwnd) {
@@ -550,13 +592,18 @@ std::string ReloadMenuNames(HWND hwnd, const std::string& requestedItems) {
 		return u8"ERR:无有效重载项";
 	}
 
-	SendReloadIds(hwnd, reloadIds);
+	const ReloadSendResult sendResult = SendReloadIds(hwnd, reloadIds);
+	if (!sendResult.success) {
+		return FormatReloadFailure(sendResult);
+	}
 	const DWORD processId = GetWindowProcessId(hwnd);
 	WriteStderr("[daemon] reload names=[" + requestedItems + "] IDs=[" +
 		JoinInts(reloadIds) + "] pid=" + std::to_string(processId) +
-		" hwnd=" + WindowHandleToString(hwnd));
+		" hwnd=" + WindowHandleToString(hwnd) +
+		" elapsed_ms=" + std::to_string(sendResult.elapsedMs));
 	std::string result = "OK_PID=" + std::to_string(processId) +
-		" HWND=" + WindowHandleToString(hwnd);
+		" HWND=" + WindowHandleToString(hwnd) +
+		" ELAPSED_MS=" + std::to_string(sendResult.elapsedMs);
 	if (!notFound.empty()) {
 		result += u8" | 部分未找到: " + JoinStrings(notFound, ", ");
 	}
@@ -679,8 +726,10 @@ int wmain(int argc, wchar_t* argv[]) {
 	if (mode == L"hwnd" && argc > 3) {
 		HWND hwnd = nullptr;
 		if (TryParseWindowHandle(argv[3], hwnd) && IsWindow(hwnd)) {
-			SendReloadIds(hwnd, ids);
-			WriteStdout("OK");
+			const ReloadSendResult sendResult = SendReloadIds(hwnd, ids);
+			WriteStdout(sendResult.success
+				? "OK ELAPSED_MS=" + std::to_string(sendResult.elapsedMs)
+				: FormatReloadFailure(sendResult));
 		} else {
 			WriteStdout("ERR:HWND_INVALID");
 		}

@@ -47,7 +47,14 @@ function main() {
   assert.match(provider, /patchPasswordSecretKey/, 'manual passwords must use VS Code secure storage');
   assert.match(provider, /status = 'password-error'/, 'password failures must have a dedicated row state');
   assert.match(provider, /isConfirmedPakPasswordError\(error\)/, 'ambiguous format failures must still try the compatibility reader');
-  assert.match(provider, /密码或资源格式不匹配/, 'ambiguous failures must not be reported as a definite wrong password');
+  assert.match(provider, /资源校验失败，无法确认是否为密码问题/, 'ambiguous failures must not be reported as a definite wrong password');
+  assert.match(provider, /passwordErrorKind === 'confirmed' \? 'password-error' : 'error'/, 'only confirmed password failures may use the password-error state');
+  assert.match(
+    provider,
+    /跳过 \$\{result\.skippedMalformedCount\} 张无法解码的异常素材，序号已保留/,
+    'a tolerated malformed image must be reported without shifting later logical indices'
+  );
+  assert.match(pakReader, /skippedMalformedIndices/, 'legacy caches must persist tolerated malformed logical indices');
   assert.match(patchDiscovery, /findNearbyPakPasswordFile/);
   assert.match(provider, /findWorkspacePatchPasswordFile/);
   assert.doesNotMatch(provider, /findWorkspacePatchDataDirectory/, 'a workspace must not silently select a client');
@@ -107,9 +114,12 @@ function main() {
 
   assert.match(
     extension,
-    /listCalledClientArchives[\s\S]*matchPakFile[\s\S]*willIdx/,
-    'UI resource choices must come from the current EffectImageList'
+    /listCalledClientArchives[\s\S]{0,5000}pakIndex\.pakList[\s\S]{0,1000}willIdx: entry\.willIdx/,
+    'UI resource choices must include every supported row from the current EffectImageList'
   );
+  assert.match(extension, /description: cacheReady[\s\S]{0,500}: '未缓存'/);
+  assert.match(extension, /new vscode\.ThemeColor\('problemsErrorIcon\.foreground'\)/);
+  assert.match(extension, /if \(!selected\.cachedPak\)[\s\S]{0,300}quickPick\.selectedItems = \[\]/);
   assert.match(extension, /context\.workspaceState\.get<PakHistoryEntry\[]>\(PAK_HISTORY_STATE_KEY/);
   assert.match(extension, /calledPaths\.has\(normalizePakPath\(entry\.path\)\)/);
 

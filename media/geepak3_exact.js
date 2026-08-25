@@ -74,7 +74,7 @@
 
   function validGlobal(fields, fileSize) {
     return (fields.title === 'www.gameofmir.com' || fields.title === 'www.gameofmir2.com') &&
-      fields.headerSize === HEADER_SIZE && fields.version === 2 &&
+      (fields.headerSize === HEADER_SIZE || fields.headerSize === HEADER_SIZE + 3) && fields.version === 2 &&
       fields.indexOffset === HEADER_SIZE && fields.count <= 1000000 &&
       fields.indexOffset + fields.count * 4 <= fileSize;
   }
@@ -129,6 +129,17 @@
       globalKey: decodeProfileBytes(profile.globalHeaderKey, 'globalHeaderKey', 256),
       imageKey: decodeProfileBytes(profile.imageHeaderKey, 'imageHeaderKey', 1024),
     };
+  }
+
+  function alternateGlobalFields(profile, fileSize) {
+    if (!profile || profile.alternateGlobalHeader == null) return null;
+    const plaintext = decodeProfileBytes(
+      profile.alternateGlobalHeader,
+      'alternateGlobalHeader',
+      256
+    );
+    const fields = globalFields(plaintext);
+    return validGlobal(fields, fileSize) ? fields : null;
   }
 
   function parseGee2FromReader(fileSize, read, profile, prefix = null) {
@@ -245,7 +256,16 @@
       fields = globalFields(plain);
       family = 'legacy';
     }
-    if (!validGlobal(fields, bytes.length)) throw new Error('GEE 全局头解密失败或密码错误');
+    if (!validGlobal(fields, bytes.length)) {
+      const alternate = alternateGlobalFields(profile, bytes.length);
+      if (alternate) {
+        fields = alternate;
+        family = 'alternate-global';
+      }
+    }
+    if (!validGlobal(fields, bytes.length)) {
+      throw new Error('GEE 全局头校验失败：密码不正确或属于尚未支持的加密变体');
+    }
 
     const offsets = new Uint32Array(fields.count);
     const indexKey = family === 'legacy' ? LEGACY_INDEX_KEY : keys.indexKey;
@@ -335,7 +355,16 @@
       fields = globalFields(plain);
       family = 'legacy';
     }
-    if (!validGlobal(fields, fileSize)) throw new Error('GEE 全局头解密失败或密码错误');
+    if (!validGlobal(fields, fileSize)) {
+      const alternate = alternateGlobalFields(profile, fileSize);
+      if (alternate) {
+        fields = alternate;
+        family = 'alternate-global';
+      }
+    }
+    if (!validGlobal(fields, fileSize)) {
+      throw new Error('GEE 全局头校验失败：密码不正确或属于尚未支持的加密变体');
+    }
 
     const encryptedIndex = read(fields.indexOffset, fields.count * 4);
     const offsets = new Uint32Array(fields.count);

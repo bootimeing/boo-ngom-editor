@@ -79,14 +79,26 @@ class GOMBlock:
         }
 
 
-def derive_gee_profile(password: str) -> dict[str, str]:
+def derive_gee_profile(
+    password: str,
+    encrypted_global_header: bytes | None = None,
+) -> dict[str, str]:
     keys = offline.derive_gee_keys(password)
-    return {
+    profile = {
         "indexKey": base64.b64encode(keys.index_key).decode("ascii"),
         "globalHeaderKey": base64.b64encode(keys.global_header_key).decode("ascii"),
         "imageHeaderKey": base64.b64encode(keys.image_header_key).decode("ascii"),
         "engine": "offline",
     }
+    if encrypted_global_header is not None:
+        if len(encrypted_global_header) != 256:
+            raise OfflineBridgeError("GEE encrypted global header must be exactly 256 bytes")
+        alternate = offline.decrypt_gee_alternate_global_header(
+            encrypted_global_header,
+            password,
+        )
+        profile["alternateGlobalHeader"] = base64.b64encode(alternate).decode("ascii")
+    return profile
 
 
 def derive_gee2_header_profile(
@@ -132,9 +144,9 @@ def parse_gom_blocks(
     header_key: bytes,
     index_end: int | None = None,
     family: str = "GAMEOFMIR2",
-) -> tuple[GOMBlock, ...]:
-    blocks: list[GOMBlock] = []
+) -> tuple[tuple[GOMBlock, ...], tuple[int, ...]]:
     seen_offsets: set[int] = set()
+    entries: list[tuple[int, int]] = []
     if index_end is None:
         index_end = len(GOM_SIGNATURE) + 256 + len(offsets) * 4
     for logical_index, header_offset in enumerate(offsets):
@@ -149,57 +161,109 @@ def parse_gom_blocks(
             raise OfflineBridgeError(
                 f"{family} image {logical_index} header is outside the file"
             )
-        plaintext = bytes(
-            encrypted ^ key
-            for encrypted, key in zip(
-                data[header_offset : header_offset + 16], header_key
-            )
-        )
-        image_type, _unknown1, _unknown2, flags = plaintext[:4]
-        width, height, x, y, compressed_size = struct.unpack_from(
-            "<HHhhI", plaintext, 4
-        )
-        if not (1 <= width <= 4096 and 1 <= height <= 4096):
-            raise OfflineBridgeError(
-                f"{family} image {logical_index} has invalid dimensions "
-                f"{width}x{height}"
-            )
+        entries.append((logical_index, header_offset))
+
+    blocks: list[GOMBlock] = []
+    skipped: list[int] = []
+    for logical_index, header_offset in entries:
         try:
-            raw_size = gee.raw_image_size(image_type, flags, width, height)
-            gee.image_format_name(image_type, flags)
-        except gee.GEEPak3Error as exc:
-            raise OfflineBridgeError(
-                f"{family} image {logical_index}: {exc}"
-            ) from exc
-        payload_size = compressed_size or raw_size
-        payload_offset = header_offset + 16
-        if payload_size <= 0 or payload_offset + payload_size > len(data):
-            raise OfflineBridgeError(
-                f"{family} image {logical_index} payload is outside the file"
-            )
-        if compressed_size:
-            cmf, flg = data[payload_offset : payload_offset + 2]
-            if (cmf & 0x0F) != 8 or ((cmf << 8) + flg) % 31 != 0:
-                raise OfflineBridgeError(
-                    f"{family} image {logical_index} has an invalid zlib header"
+            blocks.append(
+                parse_gom_block(
+                    data,
+                    logical_index,
+                    header_offset,
+                    header_key,
+                    family,
                 )
-        blocks.append(
-            GOMBlock(
-                logical_index,
-                header_offset,
-                payload_offset,
-                compressed_size,
-                payload_size,
-                raw_size,
-                image_type,
-                flags,
-                width,
-                height,
-                x,
-                y,
             )
+        except OfflineBridgeError:
+            skipped.append(logical_index)
+
+    assert_malformed_block_tolerance(
+        len(entries),
+        len(blocks),
+        skipped,
+        family,
+    )
+    return tuple(blocks), tuple(skipped)
+
+
+def parse_gom_block(
+    data: bytes,
+    logical_index: int,
+    header_offset: int,
+    header_key: bytes,
+    family: str,
+) -> GOMBlock:
+    plaintext = bytes(
+        encrypted ^ key
+        for encrypted, key in zip(
+            data[header_offset : header_offset + 16], header_key
         )
-    return tuple(blocks)
+    )
+    image_type, _unknown1, _unknown2, flags = plaintext[:4]
+    width, height, x, y, compressed_size = struct.unpack_from(
+        "<HHhhI", plaintext, 4
+    )
+    if not (1 <= width <= 4096 and 1 <= height <= 4096):
+        raise OfflineBridgeError(
+            f"{family} image {logical_index} has invalid dimensions "
+            f"{width}x{height}"
+        )
+    try:
+        raw_size = gee.raw_image_size(image_type, flags, width, height)
+        gee.image_format_name(image_type, flags)
+    except gee.GEEPak3Error as exc:
+        raise OfflineBridgeError(
+            f"{family} image {logical_index}: {exc}"
+        ) from exc
+    payload_size = compressed_size or raw_size
+    payload_offset = header_offset + 16
+    if payload_size <= 0 or payload_offset + payload_size > len(data):
+        raise OfflineBridgeError(
+            f"{family} image {logical_index} payload is outside the file"
+        )
+    if compressed_size:
+        if compressed_size < 2:
+            raise OfflineBridgeError(
+                f"{family} image {logical_index} compressed payload is too short"
+            )
+        cmf, flg = data[payload_offset : payload_offset + 2]
+        if (cmf & 0x0F) != 8 or ((cmf << 8) + flg) % 31 != 0:
+            raise OfflineBridgeError(
+                f"{family} image {logical_index} has an invalid zlib header"
+            )
+    return GOMBlock(
+        logical_index,
+        header_offset,
+        payload_offset,
+        compressed_size,
+        payload_size,
+        raw_size,
+        image_type,
+        flags,
+        width,
+        height,
+        x,
+        y,
+    )
+
+
+def assert_malformed_block_tolerance(
+    nonempty_count: int,
+    valid_count: int,
+    skipped: list[int],
+    family: str,
+) -> None:
+    if not skipped:
+        return
+    allowed = min(8, nonempty_count // 1000)
+    if valid_count < 1000 or len(skipped) > allowed:
+        preview = ", ".join(str(index) for index in skipped[:8])
+        suffix = f" (indices {preview})" if preview else ""
+        raise OfflineBridgeError(
+            f"{family} has {len(skipped)} malformed image blocks{suffix}"
+        )
 
 
 def derive_gom_profile(password: str, data: bytes) -> dict[str, object]:
@@ -253,7 +317,7 @@ def derive_gom_profile(password: str, data: bytes) -> dict[str, object]:
         else ()
     )
     try:
-        blocks = parse_gom_blocks(
+        blocks, skipped = parse_gom_blocks(
             data,
             offsets,
             offline.gom_image_header_key(password),
@@ -269,6 +333,7 @@ def derive_gom_profile(password: str, data: bytes) -> dict[str, object]:
         "family": family,
         "slotCount": slot_count,
         "blocks": [block.public_dict() for block in blocks],
+        "skippedMalformedIndices": list(skipped),
         "engine": "offline",
     }
 
@@ -277,9 +342,13 @@ class BridgeState:
     def __init__(self) -> None:
         self.lock = threading.Lock()
 
-    def gee_profile(self, password: str) -> dict[str, str]:
+    def gee_profile(
+        self,
+        password: str,
+        encrypted_global_header: bytes | None = None,
+    ) -> dict[str, str]:
         with self.lock:
-            return derive_gee_profile(password)
+            return derive_gee_profile(password, encrypted_global_header)
 
     def gom_profile(self, password: str, data: bytes) -> dict[str, object]:
         with self.lock:
@@ -407,9 +476,23 @@ def make_handler(state: BridgeState) -> type[BaseHTTPRequestHandler]:
             password = request.get("password")
             if not isinstance(password, str):
                 raise OfflineBridgeError("password must be a string")
+            encrypted_global_header = request.get("encryptedGlobalHeader")
+            if encrypted_global_header is not None:
+                if not isinstance(encrypted_global_header, str):
+                    raise OfflineBridgeError("encryptedGlobalHeader must be base64 text")
+                try:
+                    encrypted_global_header = base64.b64decode(
+                        encrypted_global_header.encode("ascii"),
+                        validate=True,
+                    )
+                except (UnicodeError, ValueError) as exc:
+                    raise OfflineBridgeError("encryptedGlobalHeader is invalid base64") from exc
             self.send_json(
                 200,
-                {"ok": True, "profile": state.gee_profile(password)},
+                {
+                    "ok": True,
+                    "profile": state.gee_profile(password, encrypted_global_header),
+                },
             )
 
         def password_from_header(self) -> str:

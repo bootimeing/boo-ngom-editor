@@ -1,8 +1,8 @@
 /**
  * M2自动重载 — 守护进程版
  *
- * 架构：VS Code → stdin/stdout → M2Reloader(常驻守护进程) → PostMessage → M2Server
- * 每次命令即时枚举窗口，零缓存，零失效。
+ * 架构：VS Code → stdin/stdout → M2Reloader(常驻守护进程) → WM_COMMAND → M2Server
+ * 每次命令即时枚举窗口，并等待 M2 完成本次菜单命令。
  */
 import { refreshVariableTree } from './assistant';
 import * as cp from 'child_process';
@@ -12,8 +12,9 @@ import * as vscode from 'vscode';
 import { secureWebviewHtml } from './utils/webview-security';
 import { getEngineDefinition } from './utils/engine-registry';
 import { resolveEngineRoot } from './utils/engine-detect';
-import { buildReloadPathCommand, findM2PathFromLocation } from './utils/m2-target';
+import { buildReloadPathCommand, findM2PathFromLocation, isM2ReloadScriptPath } from './utils/m2-target';
 import { normalizeReloadSelection } from './utils/reload-options';
+import { CoalescingReloadQueue } from './utils/reload-queue';
 
 let outputChannel: vscode.OutputChannel;
 let exePath: string | null = null;
@@ -22,8 +23,12 @@ let extContext: vscode.ExtensionContext | null = null;
 /** 命令队列 */
 let cmdSeq = Promise.resolve();
 let daemonStarting = false;
+let reloadQueue: CoalescingReloadQueue | null = null;
+let lastAutoReloadError = '';
 
 const RELOAD_DEBOUNCE_MS = 500;
+const RELOAD_SETTLE_MS = 750;
+const DAEMON_COMMAND_TIMEOUT_MS = 60_000;
 
 function getReloadItems(): string[] {
   const engine = vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM');
@@ -54,10 +59,6 @@ function getExePath(extPath: string): string | null {
     if (fs.existsSync(p)) return p;
   }
   return null;
-}
-
-function isM2ScriptPath(filePath: string): boolean {
-  return /[\/\\](?:Mir200[\/\\])?Envir[\/\\]/i.test(filePath);
 }
 
 function getTargetM2Path(documentPath?: string): string | null {
@@ -149,7 +150,7 @@ function sendDaemonCommand(cmd: string): Promise<string> {
     const timeout = setTimeout(() => {
       cleanup();
       resolve(buffer.trim() || 'ERR:timeout');
-    }, 10000);
+    }, DAEMON_COMMAND_TIMEOUT_MS);
 
     const onData = (data: Buffer) => {
       buffer += data.toString();
@@ -183,6 +184,7 @@ function killDaemon() {
 
 export function activateReload(context: vscode.ExtensionContext) {
   extContext = context;
+  lastAutoReloadError = '';
   exePath = getExePath(context.extensionPath);
   if (!exePath) {
     vscode.window.showWarningMessage('BOO M2自动重载不可用：未找到 M2Reloader.exe，请重新安装扩展。');
@@ -191,7 +193,19 @@ export function activateReload(context: vscode.ExtensionContext) {
 
   outputChannel = vscode.window.createOutputChannel('BOO M2重载');
   outputChannel.appendLine(`M2守护进程路径: ${exePath}`);
-  outputChannel.appendLine('守护进程模式已激活 — 按工作区 M2 路径与菜单名称双重匹配');
+  outputChannel.appendLine('守护进程模式已激活 — 按工作区 M2 路径与菜单名称双重匹配，并等待 M2 完成处理');
+
+  reloadQueue = new CoalescingReloadQueue(async (targetPath, items) => {
+    const command = buildReloadPathCommand(targetPath, [...items]);
+    return command.startsWith('ERR:') ? command : sendDaemonCommand(command);
+  }, {
+    settleMs: RELOAD_SETTLE_MS,
+    onCoalesced: (targetPath, requestCount, items) => {
+      outputChannel.appendLine(
+        `[重载] M2 正在处理，已将 ${requestCount} 次请求合并为一次: ${items.join(', ')} -> ${targetPath}`
+      );
+    }
+  });
 
   // 预启动守护进程
   getDaemon();
@@ -202,10 +216,17 @@ export function activateReload(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(async (doc) => {
-      if (!doc.fileName.endsWith('.txt') && !doc.fileName.endsWith('.ini')) return;
-      if (!isM2ScriptPath(doc.fileName)) return;
+      const extension = path.extname(doc.fileName).toLowerCase();
+      if (extension !== '.txt' && extension !== '.ini') return;
+      if (!isM2ReloadScriptPath(doc.fileName)) {
+        outputChannel.appendLine(`[保存] 文件不在 Mir200\\Envir 范围，已跳过: ${doc.fileName}`);
+        return;
+      }
       const autoReload = context.workspaceState.get('boo.autoReload', true);
-      if (!autoReload) return;
+      if (!autoReload) {
+        outputChannel.appendLine(`[保存] 已检测到脚本保存，但 M2 自动重载处于关闭状态: ${doc.fileName}`);
+        return;
+      }
 
       const targetPath = getTargetM2Path(doc.fileName);
       if (!targetPath) {
@@ -232,14 +253,18 @@ export function activateReload(context: vscode.ExtensionContext) {
             const savedNames = [...savedSet];
             const label = savedNames.length === 1 ? savedNames[0] : `${savedNames.length} 个文件`;
             outputChannel.appendLine(`[保存] ${label} -> ${m2Path}`);
-            const command = buildReloadPathCommand(m2Path, items);
-            const result = command.startsWith('ERR:')
-              ? command
-              : await sendDaemonCommand(command);
+            const result = await reloadQueue!.enqueue(m2Path, items);
             outputChannel.appendLine('[重载] ' + result);
-            if (result.startsWith('ERR'))
+            if (result.startsWith('ERR')) {
               vscode.window.setStatusBarMessage('M2重载失败', 5000);
-            else try { refreshVariableTree(); } catch { /* ignore */ }
+              if (result !== lastAutoReloadError) {
+                lastAutoReloadError = result;
+                vscode.window.showWarningMessage('M2自动重载失败: ' + result.substring(4));
+              }
+            } else {
+              lastAutoReloadError = '';
+              try { refreshVariableTree(); } catch { /* ignore */ }
+            }
           }
         })().catch(error => {
           const message = error instanceof Error ? error.message : String(error);
@@ -262,14 +287,11 @@ export function activateReload(context: vscode.ExtensionContext) {
         vscode.window.showWarningMessage('M2重载失败：当前工作区内未找到 Mir200\\M2Server.exe。');
         return;
       }
-      const command = buildReloadPathCommand(targetPath, items);
-      const result = command.startsWith('ERR:')
-        ? command
-        : await sendDaemonCommand(command);
+      const result = await reloadQueue!.enqueue(targetPath, items);
       if (result.startsWith('ERR'))
         vscode.window.showWarningMessage('M2重载失败: ' + result.substring(4));
       else {
-        vscode.window.setStatusBarMessage('M2重载已发送', 3000);
+        vscode.window.setStatusBarMessage('M2重载已完成', 3000);
         try { refreshVariableTree(); } catch { /* ignore */ }
       }
     })
@@ -297,6 +319,7 @@ export function activateReload(context: vscode.ExtensionContext) {
 }
 
 export function deactivateReload() {
+  reloadQueue = null;
   killDaemon();
 }
 

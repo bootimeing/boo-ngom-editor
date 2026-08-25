@@ -28,6 +28,7 @@ export function classifyPakPasswordError(error: unknown): PakPasswordErrorKind {
   if (
     errorName === 'JpkPasswordError'
     || /密码错误\s*[，,、/]?\s*或/i.test(message)
+    || /密码(?:不正确|错误)[^\r\n]{0,32}或[^\r\n]{0,48}(?:不支持|变体|格式|损坏)/i.test(message)
     || /密码(?:未通过验证|可能错误)|密码或(?:资源|文件|格式|索引)/i.test(message)
     || /password[^\r\n]{0,32}\bor\b[^\r\n]{0,32}(?:format|file|index)/i.test(message)
   ) {
@@ -76,7 +77,7 @@ export function readPakPasswordRecords(configPath: string): PakPasswordRecord[] 
         passwordField = passwordField.slice(0, lastSeparator);
       }
     }
-    const password = unquote(passwordField);
+    const password = unquotePassword(passwordField);
     if (!configuredPath || !password || !/\.(?:pak|jpk)$/i.test(configuredPath)) continue;
     records.push({ configuredPath, password, configPath, option });
   }
@@ -235,6 +236,17 @@ function escapeRegExp(value: string): string {
 
 function unquote(value: string): string {
   return value.trim().replace(/^["']|["']$/g, '');
+}
+
+function unquotePassword(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length >= 2) {
+    const quote = trimmed[0];
+    if ((quote === '"' || quote === "'") && trimmed[trimmed.length - 1] === quote) {
+      return trimmed.slice(1, -1);
+    }
+  }
+  return trimmed;
 }
 
 function decodePakPasswordFile(raw: Buffer): string {

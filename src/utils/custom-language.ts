@@ -1,9 +1,10 @@
 import { EngineId } from '../types';
 import { ENGINE_IDS } from './engine-registry';
+import { ActiveStaticLanguageEntry } from './static-language';
 
 export const CUSTOM_LANGUAGE_STATE_KEY = 'boo.customLanguageCatalog';
 
-export type CustomLanguageCategory = 'check' | 'action' | 'function' | 'constant';
+export type CustomLanguageCategory = 'check' | 'action' | 'function' | 'constant' | 'say';
 
 export interface CustomLanguageEntry {
   id: string;
@@ -18,6 +19,7 @@ export interface CustomEngineLanguageData {
   actions: CustomLanguageEntry[];
   functions: CustomLanguageEntry[];
   constants: CustomLanguageEntry[];
+  says: CustomLanguageEntry[];
 }
 
 export interface CustomLanguageData {
@@ -30,10 +32,11 @@ const CATEGORY_KEYS: Record<CustomLanguageCategory, keyof CustomEngineLanguageDa
   action: 'actions',
   function: 'functions',
   constant: 'constants',
+  say: 'says',
 };
 
 function emptyEngineData(): CustomEngineLanguageData {
-  return { checks: [], actions: [], functions: [], constants: [] };
+  return { checks: [], actions: [], functions: [], constants: [], says: [] };
 }
 
 export function createEmptyCustomLanguageData(): CustomLanguageData {
@@ -46,11 +49,11 @@ function stringValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function parameterValues(value: unknown): string[] {
+function parameterValues(value: unknown, category: CustomLanguageCategory): string[] {
   const values = Array.isArray(value)
     ? value
     : typeof value === 'string'
-      ? value.split(/\s+/)
+      ? value.split(category === 'say' ? /\s*(?:\||[;；]|\r?\n)\s*/ : /\s+/)
       : [];
   return values.map(stringValue).filter(Boolean);
 }
@@ -73,6 +76,10 @@ function constantName(value: string): string {
   return value.trim().replace(/^<\$/, '').replace(/^\$/, '').replace(/>$/, '').trim();
 }
 
+function sayMarkupName(value: string): string {
+  return /^(<&?[A-Za-z_][A-Za-z0-9_.]*)/.exec(value.trim())?.[1] || '';
+}
+
 function normalizeEntry(
   category: CustomLanguageCategory,
   value: unknown,
@@ -86,7 +93,7 @@ function normalizeEntry(
   const inputName = stringValue(source.name);
   const inputSyntax = stringValue(source.syntax);
   const description = stringValue(source.description ?? source.desc);
-  const params = parameterValues(source.params);
+  const params = parameterValues(source.params, category);
   let name = inputName;
   let syntax = inputSyntax;
 
@@ -106,7 +113,7 @@ function normalizeEntry(
     }
     name = `[@${token}]`;
     syntax = token;
-  } else {
+  } else if (category === 'constant') {
     const token = constantName(inputSyntax || inputName);
     if (!token || !/^[A-Za-z0-9_.$\u3400-\u9fff]+$/.test(token)) {
       if (strict) throw new Error('系统常量名称格式无效');
@@ -114,6 +121,15 @@ function normalizeEntry(
     }
     name = `<$${token}>`;
     syntax = token;
+  } else {
+    const suppliedSyntax = inputSyntax || inputName;
+    const token = sayMarkupName(inputName || suppliedSyntax);
+    if (!token || !suppliedSyntax.startsWith('<') || !suppliedSyntax.endsWith('>') || /[\r\n]/.test(suppliedSyntax)) {
+      if (strict) throw new Error('界面语句必须使用完整的 <语句...> 格式，且不能包含换行');
+      return undefined;
+    }
+    name = inputName || token;
+    syntax = suppliedSyntax;
   }
 
   return {
@@ -163,6 +179,7 @@ export function sanitizeCustomLanguageData(value: unknown): CustomLanguageData {
       actions: normalizeEntries('action', record.actions, false),
       functions: normalizeEntries('function', record.functions, false),
       constants: normalizeEntries('constant', record.constants, false),
+      says: normalizeEntries('say', record.says, false),
     };
   }
   return result;
@@ -185,4 +202,64 @@ export function replaceCustomLanguageEntries(
   const current = sanitizeCustomLanguageData(data);
   current.engines[engine][CATEGORY_KEYS[category]] = normalizeEntries(category, entries, true);
   return current;
+}
+
+interface CustomSayParameter {
+  key?: string;
+  description: string;
+}
+
+function customSayParameters(entry: CustomLanguageEntry): CustomSayParameter[] {
+  const syntaxKeys = [...entry.syntax.matchAll(/\|\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/g)]
+    .map(match => match[1]);
+  return entry.params.map((raw, index) => {
+    const explicit = /^([A-Za-z_][A-Za-z0-9_]*)\s*(?:=|:|：)\s*(.+)$/.exec(raw);
+    return {
+      key: explicit?.[1] || syntaxKeys[index],
+      description: (explicit?.[2] || raw).trim(),
+    };
+  }).filter(parameter => Boolean(parameter.description));
+}
+
+function customSaySnippet(
+  entry: CustomLanguageEntry,
+  parameters: readonly CustomSayParameter[]
+): string {
+  if (/\$\{\d+:[^}]+\}/.test(entry.syntax)) return entry.syntax;
+  const meanings = new Map(
+    parameters
+      .filter(parameter => parameter.key)
+      .map((parameter, index) => [parameter.key!.toUpperCase(), { ...parameter, index: index + 1 }])
+  );
+  if (meanings.size === 0) return entry.syntax;
+  return entry.syntax.replace(
+    /(\|\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*)([^|>]*)/g,
+    (whole, prefix: string, rawKey: string, rawValue: string) => {
+      const parameter = meanings.get(rawKey.toUpperCase());
+      if (!parameter) return whole;
+      const value = rawValue.trim();
+      const atPrefix = value.startsWith('@') ? '@' : '';
+      const braceWrapped = value.startsWith('{') && value.endsWith('}');
+      const placeholder = `\${${parameter.index}:${parameter.description}}`;
+      return `${prefix}${atPrefix}${braceWrapped ? `{${placeholder}}` : placeholder}`;
+    }
+  );
+}
+
+export function customSayMarkupEntries(
+  data: CustomLanguageData | undefined,
+  engine: EngineId
+): ActiveStaticLanguageEntry[] {
+  return customLanguageEntries(data, engine, 'say').map(entry => {
+    const parameters = customSayParameters(entry);
+    return {
+      id: entry.id,
+      label: entry.name,
+      snippet: customSaySnippet(entry, parameters),
+      description: entry.description,
+      source: { revision: 'custom', page: 'user-custom' },
+      engines: [engine],
+      parameters,
+    };
+  });
 }

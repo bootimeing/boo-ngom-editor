@@ -43,6 +43,7 @@ import { TableEditorProvider } from './providers/table-editor';
 import { PatchManagerProvider } from './providers/patch-manager';
 import { MapPreviewProvider } from './providers/map-preview';
 import { MerchantMapLinkProvider } from './providers/merchant-map-link';
+import { registerNpcDialogVisualEditor } from './providers/npc-dialog-visual';
 import {
   DeepSeekViewProvider,
   openDeepSeekInBrowser,
@@ -98,6 +99,7 @@ import {
   ClientResourceLayout,
   isPathInsideAny,
   scanClientArchiveFiles,
+  selectPreferredArchiveFile,
 } from './utils/client-resources';
 import { registerZoneSyncCommand } from './commands/zone-sync';
 import { registerQuickFileCommands } from './commands/quick-files';
@@ -163,6 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
   activateAssistant(context);
   context.subscriptions.push(registerZoneSyncCommand(context));
   context.subscriptions.push(registerQuickFileCommands(context));
+  context.subscriptions.push(registerNpcDialogVisualEditor(context));
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(event => {
       if (!event.affectsConfiguration('boo.engine')) return;
@@ -952,54 +955,60 @@ async function handleOpenPakFiles(panel: vscode.WebviewPanel, context: vscode.Ex
   const archiveLabel = uiEditorArchiveLabel(selectionEngine);
   const layout = getClientResourceLayoutForEngine(context, selectionEngine);
   const calledArchives = await listCalledClientArchives(context, selectionEngine, layout);
-  const cachedPatchPaks = calledArchives.map(({ pakPath, willIdx }) => {
-    const cachedPak = findCachedPatchPakByPath(
-      getPatchCacheRoot(context),
-      pakPath,
-      layout?.dataRoots || [],
-      isPairedArchiveExtension(path.extname(pakPath).slice(1).toLowerCase())
-        ? 'direct'
-        : archivePreviewMode()
-    );
-    return cachedPak && isPatchCacheCurrent(cachedPak)
-      ? { cachedPak, willIdx }
-      : undefined;
-  }).filter((item): item is { cachedPak: CachedPatchPak; willIdx: number } => !!item);
-  const opened = new Set([...loadedPakResults.values()].map(item => normalizePakPath(item.pakPath)));
-  const picks: PakSourceQuickPickItem[] = [
-    {
-      label: `$(folder-opened) 打开新的 ${archiveLabel}...`,
-      description: `从磁盘选择一个或多个 ${archiveLabel} 文件`,
-      alwaysShow: true,
-      action: 'new',
-    },
-  ];
-  if (cachedPatchPaks.length > 0) {
-    picks.push({
-      label: `已经缓存的补丁 ${archiveLabel}`,
-      kind: vscode.QuickPickItemKind.Separator,
-    });
-    for (const { cachedPak, willIdx } of cachedPatchPaks) {
-      picks.push({
-        label: path.basename(cachedPak.pakPath),
-        description: opened.has(normalizePakPath(cachedPak.pakPath))
-          ? '已打开'
-          : `WIL ${willIdx}，${cachedPak.slotCount} 项`,
-        detail: cachedPak.pakPath,
-        cachedPak,
-      });
-    }
-  }
-  const selected = await vscode.window.showQuickPick(picks, {
-    placeHolder: `打开新的 ${archiveLabel}，或选择已经缓存的补丁 ${archiveLabel}`,
-    matchOnDescription: true,
-    matchOnDetail: true,
-  });
-  if (!selected || loadedPakEngine !== selectionEngine || currentPanel !== panel) return;
-  if (selected.action === 'new') {
-    await selectNewPakFiles(panel, context);
+  if (calledArchives.length === 0) {
+    vscode.window.showWarningMessage('EffectImageList.txt 不存在或没有可用的资源配置');
     return;
   }
+  const configuredPreviewMode = archivePreviewMode();
+  const patchCacheRoot = getPatchCacheRoot(context);
+  const opened = new Set([...loadedPakResults.values()].map(item => normalizePakPath(item.pakPath)));
+  const picks = calledArchives.map<PakSourceQuickPickItem>(calledArchive => {
+    const extension = calledArchive.pakPath
+      ? path.extname(calledArchive.pakPath).slice(1).toLowerCase() as ArchiveExtension
+      : calledArchive.extension;
+    const storageMode = extension && isPairedArchiveExtension(extension)
+      ? 'direct'
+      : configuredPreviewMode;
+    const cachedPak = calledArchive.pakPath
+      ? findCachedPatchPakByPath(
+          patchCacheRoot,
+          calledArchive.pakPath,
+          layout?.dataRoots || [],
+          storageMode
+        )
+      : undefined;
+    const cacheReady = !!(
+      cachedPak
+      && cachedPak.storageMode === storageMode
+      && isPatchCacheCurrent(cachedPak)
+    );
+    const isOpened = !!(
+      cacheReady
+      && calledArchive.pakPath
+      && opened.has(normalizePakPath(calledArchive.pakPath))
+    );
+    return {
+      label: calledArchive.displayName,
+      description: cacheReady
+        ? isOpened
+          ? '已打开'
+          : `已缓存 · WIL ${calledArchive.willIdx} · ${cachedPak!.slotCount} 项`
+        : '未缓存',
+      detail: calledArchive.pakPath
+        ? calledArchive.pakPath
+        : `EffectImageList.txt 第 ${calledArchive.willIdx + 1} 行 · 客户端未找到对应资源文件`,
+      iconPath: cacheReady
+        ? new vscode.ThemeIcon('archive')
+        : new vscode.ThemeIcon(
+            'error',
+            new vscode.ThemeColor('problemsErrorIcon.foreground')
+          ),
+      cachedPak: cacheReady ? cachedPak : undefined,
+      willIdx: calledArchive.willIdx,
+    };
+  });
+  const selected = await showCalledArchiveQuickPick(picks, archiveLabel);
+  if (!selected || loadedPakEngine !== selectionEngine || currentPanel !== panel) return;
   if (!selected.cachedPak) return;
   const pakPaths = [
     ...[...loadedPakResults.values()].map(item => item.pakPath),
@@ -1013,37 +1022,54 @@ async function handleOpenPakFiles(panel: vscode.WebviewPanel, context: vscode.Ex
 }
 
 interface PakSourceQuickPickItem extends vscode.QuickPickItem {
-  action?: 'new';
   cachedPak?: CachedPatchPak;
+  willIdx: number;
 }
 
-async function selectNewPakFiles(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
-  const selectionEngine = loadedPakEngine;
-  const definition = getEngineDefinition(selectionEngine);
-  const extensions = uiEditorArchiveExtensions(selectionEngine);
-  const label = uiEditorArchiveLabel(selectionEngine);
-  const result = await vscode.window.showOpenDialog({
-    canSelectFiles: true,
-    canSelectFolders: false,
-    canSelectMany: true,
-    openLabel: `打开 ${label} 文件`,
-    filters: { [`${definition.label}资源文件`]: extensions },
+function showCalledArchiveQuickPick(
+  picks: PakSourceQuickPickItem[],
+  archiveLabel: string
+): Promise<PakSourceQuickPickItem | undefined> {
+  return new Promise(resolve => {
+    const quickPick = vscode.window.createQuickPick<PakSourceQuickPickItem>();
+    const defaultPrompt = '仅显示 EffectImageList.txt 已调用资源；红色项目未缓存，需先在补丁管理中读取';
+    const disposables: vscode.Disposable[] = [];
+    let settled = false;
+    const finish = (item?: PakSourceQuickPickItem) => {
+      if (settled) return;
+      settled = true;
+      resolve(item);
+      quickPick.hide();
+      for (const disposable of disposables) disposable.dispose();
+      quickPick.dispose();
+    };
+
+    quickPick.title = `打开资源包 (${archiveLabel})`;
+    quickPick.placeholder = '选择已经缓存的资源包';
+    quickPick.prompt = defaultPrompt;
+    quickPick.items = picks;
+    quickPick.matchOnDescription = true;
+    quickPick.matchOnDetail = true;
+    quickPick.ignoreFocusOut = true;
+    disposables.push(quickPick.onDidChangeActive(items => {
+      const item = items[0];
+      quickPick.prompt = item && !item.cachedPak
+        ? `${item.label} 未缓存，无法选择；请先在补丁管理中读取需求资源`
+        : defaultPrompt;
+    }));
+    disposables.push(quickPick.onDidAccept(() => {
+      const selected = quickPick.selectedItems[0] || quickPick.activeItems[0];
+      if (!selected) return;
+      if (!selected.cachedPak) {
+        quickPick.prompt = `${selected.label} 未缓存，无法选择；请先在补丁管理中读取需求资源`;
+        quickPick.selectedItems = [];
+        return;
+      }
+      finish(selected);
+    }));
+    disposables.push(quickPick.onDidHide(() => finish()));
+    quickPick.show();
   });
-  if (
-    !result ||
-    result.length === 0 ||
-    loadedPakEngine !== selectionEngine ||
-    currentPanel !== panel
-  ) return;
-  const pakPaths = [
-    ...[...loadedPakResults.values()].map(item => item.pakPath),
-    ...result.map(uri => uri.fsPath),
-  ];
-  try {
-    await loadPakFiles(panel, context, pakPaths);
-  } catch (error) {
-    vscode.window.showErrorMessage(`加载 ${label} 失败: ` + (error instanceof Error ? error.message : String(error)));
-  }
 }
 
 function getPatchManagerStateForEngine(
@@ -1064,26 +1090,51 @@ function getClientResourceLayoutForEngine(
   return clientResourceLayoutFromState(getPatchManagerStateForEngine(context, engine));
 }
 
+interface CalledClientArchive {
+  name: string;
+  displayName: string;
+  extension?: ArchiveExtension;
+  pakPath?: string;
+  willIdx: number;
+}
+
 async function listCalledClientArchives(
   _context: vscode.ExtensionContext,
   engine: EngineId,
   layout: ClientResourceLayout | undefined
-): Promise<Array<{ pakPath: string; willIdx: number }>> {
-  if (!layout) return [];
+): Promise<CalledClientArchive[]> {
   clearPakCache();
-  const archivePaths = await scanClientArchiveFiles(
-    layout.dataRoots,
-    uiEditorArchiveExtensions(engine)
-  );
-  const called = archivePaths.map(pakPath => {
-    const pakIndex = findPakIndexNearFolder(path.dirname(pakPath));
-    const matched = pakIndex ? matchPakFile(pakPath, pakIndex.pakList) : undefined;
-    return matched ? { pakPath, willIdx: matched.willIdx } : undefined;
-  }).filter((item): item is { pakPath: string; willIdx: number } => !!item);
-  return called.sort((left, right) => (
-    left.willIdx - right.willIdx
-    || left.pakPath.localeCompare(right.pakPath, 'zh-CN', { numeric: true, sensitivity: 'base' })
-  ));
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const pakIndex = workspaceRoot ? loadPakIndex(workspaceRoot) : null;
+  if (!pakIndex) return [];
+  const supportedExtensions = uiEditorArchiveExtensions(engine);
+  const archivePaths = layout
+    ? await scanClientArchiveFiles(layout.dataRoots, supportedExtensions)
+    : [];
+
+  return pakIndex.pakList
+    .filter(entry => !entry.extension || supportedExtensions.includes(entry.extension))
+    .map(entry => {
+      const entryExtensions = entry.extension ? [entry.extension] : supportedExtensions;
+      const configuredName = entry.extension
+        ? `${entry.name}.${entry.extension}`
+        : entry.name;
+      const pakPath = layout
+        ? selectPreferredArchiveFile(
+            archivePaths,
+            configuredName,
+            layout.dataRoots,
+            entryExtensions
+          )
+        : undefined;
+      return {
+        name: entry.name,
+        displayName: entry.extension ? `${entry.name}.${entry.extension}` : entry.name,
+        extension: entry.extension,
+        pakPath,
+        willIdx: entry.willIdx,
+      };
+    });
 }
 
 interface PakHistoryQuickPickItem extends vscode.QuickPickItem {
@@ -1096,7 +1147,9 @@ async function handleOpenPakHistory(panel: vscode.WebviewPanel, context: vscode.
   const currentPaths = [...loadedPakResults.values()].map(item => item.pakPath);
   const layout = getClientResourceLayoutForEngine(context, selectionEngine);
   const calledArchives = await listCalledClientArchives(context, selectionEngine, layout);
-  const calledPaths = new Set(calledArchives.map(item => normalizePakPath(item.pakPath)));
+  const calledPaths = new Set(calledArchives.flatMap(item => (
+    item.pakPath ? [normalizePakPath(item.pakPath)] : []
+  )));
   const saved = mergePakHistory(
     context.workspaceState.get<PakHistoryEntry[]>(PAK_HISTORY_STATE_KEY, []),
     currentPaths

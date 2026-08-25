@@ -94,6 +94,7 @@ interface StoredPatchManifest {
   willIdx: number;
   slotCount: number;
   assets: DecodedPakAsset[];
+  skippedMalformedIndices?: number[];
 }
 
 export const PATCH_MANAGER_STATE_KEY = 'boo.patchManager.state';
@@ -108,6 +109,7 @@ export const REQUIRED_PATCH_PAK_NAMES = [
   'npc2',
   'npc3',
   'npc4',
+  'safepointeffect',
 ];
 
 let cachedRoot = '';
@@ -405,6 +407,7 @@ export function loadCachedPatchPakResult(item: CachedPatchPak, willIdx: number):
     assets,
     cacheDir: item.cacheDir,
     fromCache: true,
+    skippedMalformedCount: stored.skippedMalformedIndices?.length || 0,
   };
 }
 

@@ -56,6 +56,7 @@ export interface BridgeProfile {
   family?: string;
   slotCount?: number;
   blocks?: PakBlock[];
+  skippedMalformedIndices?: number[];
 }
 
 export type DetectedPakFormat = 'GEE2' | 'GEE' | 'GOM' | 'UNKNOWN';
@@ -89,6 +90,7 @@ export interface DecodedPakResult {
   storageMode?: 'legacy' | 'direct';
   archiveId?: string;
   recoveredChecksumCount?: number;
+  skippedMalformedCount?: number;
 }
 
 export interface DecodePakOptions {
@@ -114,6 +116,7 @@ interface PakCacheManifest {
   slotCount: number;
   assets: DecodedPakAsset[];
   recoveredChecksumIndices?: number[];
+  skippedMalformedIndices?: number[];
 }
 
 export interface PakInflateResult {
@@ -173,6 +176,7 @@ export async function decodePakFully(options: DecodePakOptions): Promise<Decoded
       fromCache: true,
       storageMode: 'legacy',
       recoveredChecksumCount: cached.recoveredChecksumIndices?.length || 0,
+      skippedMalformedCount: cached.skippedMalformedIndices?.length || 0,
     };
   }
   if (options.forceRefresh && fs.existsSync(cacheDir)) {
@@ -186,6 +190,7 @@ export async function decodePakFully(options: DecodePakOptions): Promise<Decoded
     : detectPakFormat(data!);
   let blocks: PakBlock[];
   let slotCount: number;
+  let skippedMalformedIndices: number[] = [];
   const jpkArchive = format === 'JPK'
     ? parseJpkFile(options.pakPath, options.password)
     : undefined;
@@ -213,7 +218,10 @@ export async function decodePakFully(options: DecodePakOptions): Promise<Decoded
     } catch (offlineError) {
       try {
         await options.ensureBridge?.();
-        const profile = await requestGeeProfile(options.password);
+        const profile = await requestGeeProfile(
+          options.password,
+          data!.subarray(10, 266)
+        );
         parsed = parser.parse(data!, options.password, profile);
       } catch (bridgeError) {
         throw new Error(
@@ -231,6 +239,10 @@ export async function decodePakFully(options: DecodePakOptions): Promise<Decoded
     }
     blocks = profile.blocks.map(normalizeBridgeBlock);
     slotCount = profile.slotCount as number;
+    skippedMalformedIndices = normalizeSkippedMalformedIndices(
+      profile.skippedMalformedIndices,
+      slotCount
+    );
   } else {
     throw new Error('当前只支持具有精确逻辑索引的 GEEPAK2、GEEPAK3、GAMEOFMIR、GAMEOFMIR2 PAK 和 996PC JPK');
   }
@@ -339,6 +351,7 @@ export async function decodePakFully(options: DecodePakOptions): Promise<Decoded
     slotCount,
     assets,
     recoveredChecksumIndices,
+    skippedMalformedIndices,
   };
   fs.writeFileSync(manifestPath, JSON.stringify(manifest), 'utf8');
   return {
@@ -352,7 +365,18 @@ export async function decodePakFully(options: DecodePakOptions): Promise<Decoded
     fromCache: false,
     storageMode: 'legacy',
     recoveredChecksumCount: recoveredChecksumIndices.length,
+    skippedMalformedCount: skippedMalformedIndices.length,
   };
+}
+
+function normalizeSkippedMalformedIndices(value: unknown, slotCount: number): number[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error('PAK 离线引擎返回的异常素材序号无效');
+  const indices = value.map(Number);
+  if (indices.some(index => !Number.isInteger(index) || index < 0 || index >= slotCount)) {
+    throw new Error('PAK 离线引擎返回的异常素材序号越界');
+  }
+  return [...new Set(indices)].sort((left, right) => left - right);
 }
 
 export function loadParser(extensionPath: string): GeePakApi {
@@ -517,8 +541,19 @@ function readValidManifest(
   }
 }
 
-export async function requestGeeProfile(password: string): Promise<unknown> {
-  const body = Buffer.from(JSON.stringify({ password }), 'utf8');
+export async function requestGeeProfile(
+  password: string,
+  encryptedGlobalHeader?: Uint8Array
+): Promise<unknown> {
+  if (encryptedGlobalHeader && encryptedGlobalHeader.length !== 256) {
+    throw new Error('GEE 加密全局头必须为 256 字节');
+  }
+  const body = Buffer.from(JSON.stringify({
+    password,
+    encryptedGlobalHeader: encryptedGlobalHeader
+      ? Buffer.from(encryptedGlobalHeader).toString('base64')
+      : undefined,
+  }), 'utf8');
   const result = await postBridge('/api/gee-profile', body, { 'Content-Type': 'application/json' });
   return result.profile;
 }

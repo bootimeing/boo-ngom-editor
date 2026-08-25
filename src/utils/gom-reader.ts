@@ -14,6 +14,7 @@ export interface ParsedGomArchive {
   family: 'GM GAMEOFMIR' | 'GM GAMEOFMIR2';
   slotCount: number;
   blocks: PakBlock[];
+  skippedMalformedIndices: number[];
 }
 
 export function parseGomFile(
@@ -95,64 +96,85 @@ export function parseGomFile(
 
     entries.sort((left, right) => left.headerOffset - right.headerOffset);
     const blocks: PakBlock[] = [];
+    const skippedMalformedIndices: number[] = [];
     for (const { logicalIndex, headerOffset } of entries) {
-      const encryptedHeader = readExactly(handle, 16, headerOffset);
-      const header = Buffer.allocUnsafe(16);
-      for (let index = 0; index < 16; index++) {
-        header[index] = encryptedHeader[index] ^ imageHeaderKey[index];
-      }
-      const imageType = header[0];
-      const flags = header[3];
-      const width = header.readUInt16LE(4);
-      const height = header.readUInt16LE(6);
-      const x = header.readInt16LE(8);
-      const y = header.readInt16LE(10);
-      const compressedSize = header.readUInt32LE(12);
-      if (width < 1 || height < 1 || width > 4096 || height > 4096) {
-        throw new Error(`${variant.family} 图片 ${logicalIndex} 尺寸无效: ${width}x${height}`);
-      }
-      let rawSize: number;
       try {
-        rawSize = parser.rawImageSize(imageType, flags, width, height);
-        parser.formatName(imageType, flags);
-      } catch (error) {
-        throw new Error(`${variant.family} 图片 ${logicalIndex}: ${errorText(error)}`);
-      }
-      const payloadSize = compressedSize || rawSize;
-      const payloadOffset = headerOffset + 16;
-      if (payloadSize <= 0 || payloadOffset + payloadSize > fileSize) {
-        throw new Error(`${variant.family} 图片 ${logicalIndex} 负载越界`);
-      }
-      if (compressedSize) {
-        const zlibHeader = readExactly(handle, 2, payloadOffset);
-        const cmf = zlibHeader[0];
-        const flg = zlibHeader[1];
-        if ((cmf & 0x0f) !== 8 || ((cmf << 8) + flg) % 31 !== 0) {
-          throw new Error(`${variant.family} 图片 ${logicalIndex} 的 zlib 头无效`);
+        const encryptedHeader = readExactly(handle, 16, headerOffset);
+        const header = Buffer.allocUnsafe(16);
+        for (let index = 0; index < 16; index++) {
+          header[index] = encryptedHeader[index] ^ imageHeaderKey[index];
         }
+        const imageType = header[0];
+        const flags = header[3];
+        const width = header.readUInt16LE(4);
+        const height = header.readUInt16LE(6);
+        const x = header.readInt16LE(8);
+        const y = header.readInt16LE(10);
+        const compressedSize = header.readUInt32LE(12);
+        if (width < 1 || height < 1 || width > 4096 || height > 4096) {
+          throw new Error(`${variant.family} 图片 ${logicalIndex} 尺寸无效: ${width}x${height}`);
+        }
+        const rawSize = parser.rawImageSize(imageType, flags, width, height);
+        parser.formatName(imageType, flags);
+        const payloadSize = compressedSize || rawSize;
+        const payloadOffset = headerOffset + 16;
+        if (payloadSize <= 0 || payloadOffset + payloadSize > fileSize) {
+          throw new Error(`${variant.family} 图片 ${logicalIndex} 负载越界`);
+        }
+        if (compressedSize) {
+          if (compressedSize < 2) {
+            throw new Error(`${variant.family} 图片 ${logicalIndex} 的压缩负载过短`);
+          }
+          const zlibHeader = readExactly(handle, 2, payloadOffset);
+          const cmf = zlibHeader[0];
+          const flg = zlibHeader[1];
+          if ((cmf & 0x0f) !== 8 || ((cmf << 8) + flg) % 31 !== 0) {
+            throw new Error(`${variant.family} 图片 ${logicalIndex} 的 zlib 头无效`);
+          }
+        }
+        blocks.push({
+          logicalIndex,
+          payloadOffset,
+          payloadSize,
+          compressedSize,
+          rawSize,
+          imageType,
+          flags,
+          width,
+          height,
+          x,
+          y,
+          format: parser.formatName(imageType, flags),
+        });
+      } catch (_error) {
+        skippedMalformedIndices.push(logicalIndex);
       }
-      blocks.push({
-        logicalIndex,
-        payloadOffset,
-        payloadSize,
-        compressedSize,
-        rawSize,
-        imageType,
-        flags,
-        width,
-        height,
-        x,
-        y,
-        format: parser.formatName(imageType, flags),
-      });
     }
+    assertMalformedBlockTolerance(entries.length, blocks.length, skippedMalformedIndices, variant.family);
     blocks.sort((left, right) => left.logicalIndex - right.logicalIndex);
-    return { family: variant.family, slotCount, blocks };
+    return { family: variant.family, slotCount, blocks, skippedMalformedIndices };
   } catch (error) {
     if (/密码|password/i.test(errorText(error))) throw error;
     throw new Error(`密码错误，或 ${pathLabel(filePath)} 索引损坏: ${errorText(error)}`);
   } finally {
     fs.closeSync(handle);
+  }
+}
+
+function assertMalformedBlockTolerance(
+  nonemptyCount: number,
+  validCount: number,
+  malformedIndices: number[],
+  family: string
+): void {
+  if (malformedIndices.length === 0) return;
+  const allowed = Math.min(8, Math.floor(nonemptyCount / 1000));
+  if (validCount < 1000 || malformedIndices.length > allowed) {
+    const preview = malformedIndices.slice(0, 8).join(', ');
+    throw new Error(
+      `${family} 检测到 ${malformedIndices.length} 个异常图片块`
+      + `${preview ? ` (序号 ${preview})` : ''}`
+    );
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-07-26",
+  "revision": "2026-08-24",
   "saySnippets": [
     {
       "id": "img-absolute",
@@ -306,21 +306,21 @@
       "id": "item-show",
       "engineVariants": {
         "GOM": {
-          "label": "<&ITEMSHOW:D:F:X:Y:B>",
-          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:边框}>",
-          "description": "使用绝对坐标显示物品图片和属性",
+          "label": "<&ITEMSHOW:D:F:X:Y:B:G:R:H:T:S:W>",
+          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:称号模式}:${10:内观素材}:${11:物品特效}>",
+          "description": "使用绝对坐标显示物品图片和属性，可设置数量、背景框、灰化、对齐、内观素材与物品特效",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm"
           }
         },
         "GEE": {
-          "label": "<&ITEMSHOW:D:F:X:Y:B>",
-          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:边框}>",
-          "description": "使用绝对坐标显示物品图片和属性",
+          "label": "<&ITEMSHOW:D:F:X:Y:Z:W:G:U/@Label>",
+          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>",
+          "description": "使用绝对坐标显示物品图片和属性，可设置背景框、发光、灰化、数量单位和单击标签",
           "source": {
             "revision": "2026-07-23",
-            "page": "游戏引擎反外挂系统/其他相关资料/货币实时刷新常量.htm"
+            "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用装备信息.htm"
           }
         },
         "996PC": {
@@ -483,7 +483,7 @@
       "engineVariants": {
         "GOM": {
           "label": "<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
-          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:模式}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
+          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
           "description": "显示动态进度条",
           "source": {
             "revision": "2026-07-23",
@@ -492,7 +492,7 @@
         },
         "GEE": {
           "label": "<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
-          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:模式}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
+          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
           "description": "显示动态进度条",
           "source": {
             "revision": "2026-07-23",
@@ -520,52 +520,6 @@
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/功能操作命令/自定义OK框.htm"
-          }
-        }
-      }
-    },
-    {
-      "id": "human-variable",
-      "engineVariants": {
-        "GOM": {
-          "label": "<$HUMAN(变量名)>",
-          "snippet": "<$HUMAN(${1:变量名})>",
-          "description": "读取已声明的人物自定义变量",
-          "source": {
-            "revision": "2026-07-23",
-            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
-          }
-        },
-        "GEE": {
-          "label": "<$HUMAN(变量名)>",
-          "snippet": "<$HUMAN(${1:变量名})>",
-          "description": "读取已声明的人物自定义变量",
-          "source": {
-            "revision": "2026-07-23",
-            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
-          }
-        },
-        "996PC": {
-          "label": "<$HUMAN(变量名)>",
-          "snippet": "<$HUMAN(${1:变量名})>",
-          "description": "读取已声明的人物自定义变量",
-          "source": {
-            "revision": "2026-07-23",
-            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
-          }
-        }
-      }
-    },
-    {
-      "id": "guild-variable",
-      "engineVariants": {
-        "GEE": {
-          "label": "<$GUILD(变量名)>",
-          "snippet": "<$GUILD(${1:变量名})>",
-          "description": "读取已声明的行会自定义变量",
-          "source": {
-            "revision": "2026-07-23",
-            "page": "游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm"
           }
         }
       }
@@ -606,13 +560,4301 @@
         "996PC": {
           "label": "<TIMETIPS:秒数:次数:颜色:X:Y/@标签>",
           "snippet": "<TIMETIPS:${1:秒数}:${2:次数(0无限)}:${3:颜色}:${4:X}:${5:Y}/@${6:标签}>",
-          "description": "NPC面板倒计时",
+          "description": "NPC 面板倒计时",
           "source": {
-            "revision": "2026-07-26",
-            "page": "游戏引擎反外挂系统/新增功能/NPC面板倒计时.htm",
-            "title": "NPC面板倒计时",
-            "evidenceLine": 6
-          }
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新增功能/NPC面板倒计时.htm"
+          },
+          "parameters": [
+            {
+              "description": "秒数"
+            },
+            {
+              "description": "次数(0无限)"
+            },
+            {
+              "description": "颜色"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "触发标签"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "container-layout",
+      "engineVariants": {
+        "GOM": {
+          "label": "<Layout:父子容器:X:Y:宽度:高度:边框颜色>",
+          "snippet": "<Layout:${1:父子容器}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:边框颜色}>",
+          "description": "创建可嵌套的 NPC 布局容器",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父子容器编号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "宽度"
+            },
+            {
+              "description": "高度"
+            },
+            {
+              "description": "边框颜色"
+            }
+          ],
+          "markupAliases": [
+            "<&Layout"
+          ]
+        },
+        "GEE": {
+          "label": "<Layout:父子容器:X:Y:宽度:高度:边框颜色>",
+          "snippet": "<Layout:${1:父子容器}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:边框颜色}>",
+          "description": "创建可嵌套的 NPC 布局容器",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父子容器编号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "宽度"
+            },
+            {
+              "description": "高度"
+            },
+            {
+              "description": "边框颜色"
+            }
+          ],
+          "markupAliases": [
+            "<&Layout"
+          ]
+        }
+      }
+    },
+    {
+      "id": "container-mtext",
+      "engineVariants": {
+        "GOM": {
+          "label": "<MText:父子容器:X:Y:颜色:多行文字>",
+          "snippet": "<MText:${1:父子容器}:${2:X}:${3:Y}:${4:颜色}:${5:第一行|第二行|第三行}>",
+          "description": "在 NPC 容器中显示多行文字",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父子容器编号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "颜色"
+            },
+            {
+              "description": "以竖线分隔的多行文字"
+            }
+          ]
+        },
+        "GEE": {
+          "label": "<MText:父子容器:X:Y:颜色:多行文字>",
+          "snippet": "<MText:${1:父子容器}:${2:X}:${3:Y}:${4:颜色}:${5:第一行|第二行|第三行}>",
+          "description": "在 NPC 容器中显示多行文字",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父子容器编号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "颜色"
+            },
+            {
+              "description": "以竖线分隔的多行文字"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "container-newline",
+      "engineVariants": {
+        "GOM": {
+          "label": "<NewLine:父容器>",
+          "snippet": "<NewLine:${1:#L01~}>",
+          "description": "在 NPC 容器中强制换行",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父容器编号"
+            }
+          ]
+        },
+        "GEE": {
+          "label": "<NewLine:父容器>",
+          "snippet": "<NewLine:${1:#L01~}>",
+          "description": "在 NPC 容器中强制换行",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父容器编号"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "container-listview",
+      "engineVariants": {
+        "GOM": {
+          "label": "<ListView:父子容器:X:Y:宽度:高度:间隔:默认索引:方向:记录位置:预留4:预留5:WZL:滚动条素材...>",
+          "snippet": "<ListView:${1:父子容器}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:子控件间隔}:${7:默认索引}:${8:方向(0竖向/1横向)}:${9:记录滚动位置}:${10:预留4}:${11:预留5}:${12:滚动条WZL序号}:${13:滚动条背景}:${14:上箭头默认}:${15:上箭头移入}:${16:上箭头按下}:${17:滑块默认}:${18:滑块移入}:${19:滑块按下}:${20:下箭头默认}:${21:下箭头移入}:${22:下箭头按下}>",
+          "description": "创建可横向或竖向滚动的 NPC 列表容器；ListView 不可嵌套",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父子容器编号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "容器宽度"
+            },
+            {
+              "description": "容器高度"
+            },
+            {
+              "description": "子控件间隔"
+            },
+            {
+              "description": "跳转索引(从0开始)"
+            },
+            {
+              "description": "方向(0竖向/1横向)"
+            },
+            {
+              "description": "记录滚动位置(0/1)"
+            },
+            {
+              "description": "预留4"
+            },
+            {
+              "description": "预留5"
+            },
+            {
+              "description": "滚动条WZL序号"
+            },
+            {
+              "description": "滚动条背景序号"
+            },
+            {
+              "description": "上箭头默认图片"
+            },
+            {
+              "description": "上箭头移入图片"
+            },
+            {
+              "description": "上箭头按下图片"
+            },
+            {
+              "description": "滑块默认图片"
+            },
+            {
+              "description": "滑块移入图片"
+            },
+            {
+              "description": "滑块按下图片"
+            },
+            {
+              "description": "下箭头默认图片"
+            },
+            {
+              "description": "下箭头移入图片"
+            },
+            {
+              "description": "下箭头按下图片"
+            }
+          ],
+          "markupAliases": [
+            "<&ListView"
+          ]
+        },
+        "GEE": {
+          "label": "<ListView:父子容器:X:Y:宽度:高度:间隔:默认索引:方向:预留3:预留4:预留5:WZL:滚动条素材...>",
+          "snippet": "<ListView:${1:父子容器}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:子控件间隔}:${7:默认索引}:${8:方向(0竖向/1横向)}:${9:预留3}:${10:预留4}:${11:预留5}:${12:滚动条WZL序号}:${13:滚动条背景}:${14:上箭头默认}:${15:上箭头移入}:${16:上箭头按下}:${17:滑块默认}:${18:滑块移入}:${19:滑块按下}:${20:下箭头默认}:${21:下箭头移入}:${22:下箭头按下}>",
+          "description": "创建可横向或竖向滚动的 NPC 列表容器；ListView 不可嵌套",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父子容器编号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "容器宽度"
+            },
+            {
+              "description": "容器高度"
+            },
+            {
+              "description": "子控件间隔"
+            },
+            {
+              "description": "跳转索引(从0开始)"
+            },
+            {
+              "description": "方向(0竖向/1横向)"
+            },
+            {
+              "description": "预留3"
+            },
+            {
+              "description": "预留4"
+            },
+            {
+              "description": "预留5"
+            },
+            {
+              "description": "滚动条WZL序号"
+            },
+            {
+              "description": "滚动条背景序号"
+            },
+            {
+              "description": "上箭头默认图片"
+            },
+            {
+              "description": "上箭头移入图片"
+            },
+            {
+              "description": "上箭头按下图片"
+            },
+            {
+              "description": "滑块默认图片"
+            },
+            {
+              "description": "滑块移入图片"
+            },
+            {
+              "description": "滑块按下图片"
+            },
+            {
+              "description": "下箭头默认图片"
+            },
+            {
+              "description": "下箭头移入图片"
+            },
+            {
+              "description": "下箭头按下图片"
+            }
+          ],
+          "markupAliases": [
+            "<&ListView"
+          ]
+        }
+      }
+    },
+    {
+      "id": "monster-preview",
+      "engineVariants": {
+        "GOM": {
+          "label": "<MONSTER:APPR:RACE:动作:方向:X:Y>",
+          "snippet": "<MONSTER:${1:APPR}:${2:RACE}:${3:动作(0站立/1走/2跑/3攻击/4受击/5死亡/6尸体)}:${4:方向(0-7)}:${5:X}:${6:Y}>",
+          "description": "在 NPC 界面显示怪物外观",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/怪物外形调用到NPC界面.htm"
+          },
+          "parameters": [
+            {
+              "description": "APPR"
+            },
+            {
+              "description": "RACE"
+            },
+            {
+              "description": "动作"
+            },
+            {
+              "description": "方向(0-7)"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            }
+          ]
+        },
+        "GEE": {
+          "label": "<MONSTER:RaceImg:Appr:显示方式:方向:X:Y>",
+          "snippet": "<MONSTER:${1:RaceImg}:${2:Appr}:${3:显示方式(0站立首帧/1站立动画/10走路首帧/11走路动画)}:${4:方向(0-7)}:${5:X}:${6:Y}>",
+          "description": "在 NPC 界面显示怪物外观",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC界面调用怪物外观.htm"
+          },
+          "parameters": [
+            {
+              "description": "RaceImg"
+            },
+            {
+              "description": "Appr"
+            },
+            {
+              "description": "显示方式"
+            },
+            {
+              "description": "方向(0-7)"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "user-item-preview",
+      "engineVariants": {
+        "GOM": {
+          "label": "<UserItem:D:X:Y:Z:W:G:R:H:S:E/@Label>",
+          "snippet": "<UserItem:${1:装备位置}:${2:X}:${3:Y}:${4:背景框}:${5:显示对象}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:内观素材(0Items/1StdItem)}:${10:绘制特效(0/1)}/@${11:标签}>",
+          "description": "在 NPC 对话框显示人物身上装备",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框调用身上装备信息.htm"
+          },
+          "parameters": [
+            {
+              "description": "装备位置"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "背景框"
+            },
+            {
+              "description": "显示对象(0自己/1查看目标)"
+            },
+            {
+              "description": "灰化(0/1)"
+            },
+            {
+              "description": "对齐方式"
+            },
+            {
+              "description": "自定义宽度"
+            },
+            {
+              "description": "内观素材(0 Items/1 StdItem)"
+            },
+            {
+              "description": "绘制物品特效(0/1)"
+            },
+            {
+              "description": "触发标签"
+            }
+          ]
+        },
+        "GEE": {
+          "label": "<UserItem:D:X:Y:Z:W/@Label>",
+          "snippet": "<UserItem:${1:装备位置}:${2:X}:${3:Y}:${4:背景框}:${5:发光代码}/@${6:标签}>",
+          "description": "在 NPC 对话框显示人物身上装备",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用身上装备信息.htm"
+          },
+          "parameters": [
+            {
+              "description": "装备位置"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "背景框"
+            },
+            {
+              "description": "发光代码"
+            },
+            {
+              "description": "触发标签"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "hero-user-item-preview",
+      "engineVariants": {
+        "GEE": {
+          "label": "<HeroUserItem:D:X:Y:Z:W/@Label>",
+          "snippet": "<HeroUserItem:${1:装备位置}:${2:X}:${3:Y}:${4:背景框}:${5:发光代码}/@${6:标签}>",
+          "description": "在 NPC 对话框显示英雄身上装备",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用身上装备信息.htm"
+          },
+          "parameters": [
+            {
+              "description": "装备位置"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "背景框"
+            },
+            {
+              "description": "发光代码"
+            },
+            {
+              "description": "触发标签"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "makeindex-item-preview",
+      "engineVariants": {
+        "GEE": {
+          "label": "<MakeIndexItem:D:F:X:Y:Z:W:G:U/@Label>",
+          "snippet": "<MakeIndexItem:${1:物品唯一序号}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>",
+          "description": "按物品唯一序号在 NPC 对话框显示背包物品",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/部分脚本实例/物品唯一序号调用人物背包物品显示到NPC对话框.htm"
+          },
+          "parameters": [
+            {
+              "description": "物品唯一序号"
+            },
+            {
+              "description": "数量"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "背景框"
+            },
+            {
+              "description": "发光代码"
+            },
+            {
+              "description": "灰化(0/1)"
+            },
+            {
+              "description": "数量单位(0/1)"
+            },
+            {
+              "description": "触发标签"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "custom-item-preview",
+      "engineVariants": {
+        "GEE": {
+          "label": "<CustomItem:I:F:D:X:Y:S:H>",
+          "snippet": "<CustomItem:${1:装备框编号}:${2:WIL序号}:${3:图片序号}:${4:X}:${5:Y}:${6:内观显示}:${7:提示信息}>",
+          "description": "在 NPC 对话框显示人物自定义装备框",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/其他相关资料/自定义装备框.html"
+          },
+          "parameters": [
+            {
+              "description": "自定义装备框编号(0-49)"
+            },
+            {
+              "description": "WIL序号"
+            },
+            {
+              "description": "图片序号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "内观显示"
+            },
+            {
+              "description": "提示信息"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "hero-custom-item-preview",
+      "engineVariants": {
+        "GEE": {
+          "label": "<HeroCustomItem:I:F:D:X:Y:S:H>",
+          "snippet": "<HeroCustomItem:${1:装备框编号}:${2:WIL序号}:${3:图片序号}:${4:X}:${5:Y}:${6:内观显示}:${7:提示信息}>",
+          "description": "在 NPC 对话框显示英雄自定义装备框",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/其他相关资料/自定义装备框.html"
+          },
+          "parameters": [
+            {
+              "description": "自定义装备框编号(0-49)"
+            },
+            {
+              "description": "WIL序号"
+            },
+            {
+              "description": "图片序号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "内观显示"
+            },
+            {
+              "description": "提示信息"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "input-memo",
+      "engineVariants": {
+        "GOM": {
+          "label": "<INPUTMEMO:ID:X:Y:宽度:高度:背景色:边框色:文字颜色:最小长度:最大长度:行高:自动换行:提示>",
+          "snippet": "<INPUTMEMO:${1:输入框ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:行高}:${12:自动换行(0/1)}:${13:提示信息}>",
+          "description": "在 NPC 对话框创建多行输入框",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm"
+          },
+          "parameters": [
+            {
+              "description": "输入框ID(1-40)"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "宽度"
+            },
+            {
+              "description": "高度"
+            },
+            {
+              "description": "背景色"
+            },
+            {
+              "description": "边框色"
+            },
+            {
+              "description": "文字颜色"
+            },
+            {
+              "description": "最小长度"
+            },
+            {
+              "description": "最大长度"
+            },
+            {
+              "description": "行高"
+            },
+            {
+              "description": "自动换行(0/1)"
+            },
+            {
+              "description": "数据无效提示"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "looks-preview",
+      "engineVariants": {
+        "GOM": {
+          "label": "<Looks:父子容器:Looks:X:Y>",
+          "snippet": "<Looks:${1:父子容器}:${2:Looks}:${3:X}:${4:Y}>",
+          "description": "在 NPC 容器中显示物品外观",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm"
+          },
+          "parameters": [
+            {
+              "description": "父子容器编号"
+            },
+            {
+              "description": "物品Looks"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            }
+          ]
+        },
+        "GEE": {
+          "label": "<Looks:N:X:Y:Z>",
+          "snippet": "<Looks:${1:图片位置}:${2:X}:${3:Y}:${4:背景框(0/1)}>",
+          "description": "显示 Items 系列资源中的物品外观",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/部分脚本实例/悬浮式提示框支持图片.HTML"
+          },
+          "parameters": [
+            {
+              "description": "图片位置"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "背景框(0/1)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "state-item-preview",
+      "engineVariants": {
+        "GEE": {
+          "label": "<StateItem:Looks:X:Y:边框|提示/@Label>",
+          "snippet": "<StateItem:${1:Looks}:${2:X}:${3:Y}:${4:边框}|${5:提示}/@${6:标签}>",
+          "description": "显示 StateItem 物品外观，可用于附加对话框和提示内容",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/添加对话框AddDlg (可用于主界面任务引导).html"
+          },
+          "parameters": [
+            {
+              "description": "物品Looks"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "边框"
+            },
+            {
+              "description": "悬停提示"
+            },
+            {
+              "description": "触发标签"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dnitems-preview",
+      "engineVariants": {
+        "GEE": {
+          "label": "<DnItems:Looks:X:Y:边框|提示/@Label>",
+          "snippet": "<DnItems:${1:Looks}:${2:X}:${3:Y}:${4:边框}|${5:提示}/@${6:标签}>",
+          "description": "显示 DnItems 物品外观，可用于附加对话框",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/游戏功能详解/添加对话框AddDlg (可用于主界面任务引导).html"
+          },
+          "parameters": [
+            {
+              "description": "物品Looks"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "边框"
+            },
+            {
+              "description": "悬停提示"
+            },
+            {
+              "description": "触发标签"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newopui-preview",
+      "engineVariants": {
+        "GEE": {
+          "label": "<NewopUI:N:X:Y>",
+          "snippet": "<NewopUI:${1:图片序号}:${2:X}:${3:Y}>",
+          "description": "显示 NewopUI.pak 中的图片",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/部分脚本实例/悬浮式提示框支持图片.HTML"
+          },
+          "parameters": [
+            {
+              "description": "图片序号"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-img-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Img|wil=资源|pcimg=图片|x=X|y=Y>",
+          "snippet": "<Img|wil=${1:资源文件名}|pcimg=${2:图片序号}|x=${3:X}|y=${4:Y}|bg=${5:背景图(0/1)}|link=@${6:触发标签}>",
+          "description": "996PC 新 NPC 面板图片组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/新界面写法.htm"
+          },
+          "parameters": [
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "pcimg",
+              "description": "图片序号"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "bg",
+              "description": "是否为背景图"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "esc",
+              "description": "按 ESC 关闭(0/1)"
+            },
+            {
+              "key": "move",
+              "description": "界面可移动(0/1)"
+            },
+            {
+              "key": "reset",
+              "description": "重置界面坐标(0/1)"
+            },
+            {
+              "key": "show",
+              "description": "显示位置"
+            },
+            {
+              "key": "layerid",
+              "description": "NPC 面板窗口ID"
+            },
+            {
+              "key": "loadDelay",
+              "description": "延迟加载剩余界面(0/1)"
+            },
+            {
+              "key": "hideMain",
+              "description": "隐藏主UI界面(0/1)"
+            },
+            {
+              "key": "forbidBagEquip",
+              "description": "禁止打开背包装备栏(0/1)"
+            },
+            {
+              "key": "scale9l",
+              "description": "九宫拉伸左边距"
+            },
+            {
+              "key": "scale9r",
+              "description": "九宫拉伸右边距"
+            },
+            {
+              "key": "scale9t",
+              "description": "九宫拉伸上边距"
+            },
+            {
+              "key": "scale9b",
+              "description": "九宫拉伸下边距"
+            },
+            {
+              "key": "grey",
+              "description": "灰化显示(0/1)"
+            },
+            {
+              "key": "bagPos",
+              "description": "背包位置(1左/0右)"
+            },
+            {
+              "key": "opacity",
+              "description": "透明度(0-255)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-button-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Button|wil=资源|pcnimg=默认|pcmimg=悬停|pcpimg=按下|text=文字|link=@标签>",
+          "snippet": "<Button|wil=${1:资源文件名}|pcnimg=${2:默认图片}|pcmimg=${3:悬停图片}|pcpimg=${4:按下图片}|text=${5:按钮文字}|color=${6:文字颜色}|size=${7:字号}|link=@${8:触发标签}>",
+          "description": "996PC 新 NPC 面板文字按钮组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/按钮.htm"
+          },
+          "parameters": [
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "pcnimg",
+              "description": "正常图片序号"
+            },
+            {
+              "key": "pcmimg",
+              "description": "悬停图片序号"
+            },
+            {
+              "key": "pcpimg",
+              "description": "按下图片序号"
+            },
+            {
+              "key": "text",
+              "description": "按钮文字"
+            },
+            {
+              "key": "color",
+              "description": "文字颜色"
+            },
+            {
+              "key": "size",
+              "description": "文字大小"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "outline",
+              "description": "文字描边宽度"
+            },
+            {
+              "key": "outlinecolor",
+              "description": "文字描边颜色"
+            },
+            {
+              "key": "grey",
+              "description": "灰化显示(0/1)"
+            },
+            {
+              "key": "tips",
+              "description": "鼠标悬停提示"
+            },
+            {
+              "key": "tipsx",
+              "description": "提示文字X偏移"
+            },
+            {
+              "key": "tipsy",
+              "description": "提示文字Y偏移"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-text-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Text|text=文字|x=X|y=Y|color=颜色|size=字号|link=@标签>",
+          "snippet": "<Text|text=${1:显示文字}|x=${2:X}|y=${3:Y}|color=${4:颜色}|size=${5:字号}|link=@${6:触发标签}>",
+          "description": "996PC 新 NPC 面板文字组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/文字.htm"
+          },
+          "parameters": [
+            {
+              "key": "text",
+              "description": "显示文字"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "color",
+              "description": "文字颜色；逗号分隔可闪烁"
+            },
+            {
+              "key": "size",
+              "description": "字号(14/16/18/20)"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "outline",
+              "description": "描边宽度"
+            },
+            {
+              "key": "outlinecolor",
+              "description": "描边颜色"
+            },
+            {
+              "key": "tips",
+              "description": "鼠标悬停提示"
+            },
+            {
+              "key": "tipsx",
+              "description": "提示文字X偏移"
+            },
+            {
+              "key": "tipsy",
+              "description": "提示文字Y偏移"
+            },
+            {
+              "key": "simplenum",
+              "description": "简化大数值显示(0/1)"
+            },
+            {
+              "key": "scrollWidth",
+              "description": "滚动区域宽度"
+            },
+            {
+              "key": "scrollWay",
+              "description": "滚动方式(0从右到左/1从下到上)"
+            },
+            {
+              "key": "scrollTime",
+              "description": "滚动时间(秒)"
+            },
+            {
+              "key": "scrollHeight",
+              "description": "滚动区域高度"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-rtext-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<RText|text=富文本|x=X|y=Y|color=颜色|size=字号>",
+          "snippet": "<RText|text=${1:富文本内容}|x=${2:X}|y=${3:Y}|color=${4:颜色}|size=${5:字号}>",
+          "description": "996PC 新 NPC 面板富文本组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/文字.htm"
+          },
+          "parameters": [
+            {
+              "key": "text",
+              "description": "富文本内容"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "color",
+              "description": "文字颜色"
+            },
+            {
+              "key": "size",
+              "description": "字号"
+            },
+            {
+              "key": "scrollWidth",
+              "description": "滚动区域宽度"
+            },
+            {
+              "key": "scrollWay",
+              "description": "滚动方式(0从右到左/1从下到上)"
+            },
+            {
+              "key": "scrollTime",
+              "description": "滚动时间(秒)"
+            },
+            {
+              "key": "scrollHeight",
+              "description": "滚动区域高度"
+            },
+            {
+              "key": "tips",
+              "description": "鼠标悬停提示"
+            },
+            {
+              "key": "tipsx",
+              "description": "提示文字X偏移"
+            },
+            {
+              "key": "tipsy",
+              "description": "提示文字Y偏移"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-layout-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Layout|width=宽度|height=高度|color=颜色|link=@标签>",
+          "snippet": "<Layout|width=${1:宽度}|height=${2:高度}|color=${3:颜色}|link=@${4:触发标签}>",
+          "description": "996PC 新 NPC 面板点击区域容器",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/基础容器Layout.htm"
+          },
+          "parameters": [
+            {
+              "key": "width",
+              "description": "容器宽度"
+            },
+            {
+              "key": "height",
+              "description": "容器高度"
+            },
+            {
+              "key": "color",
+              "description": "容器颜色；不写为透明"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-listview-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<ListView|children={子节点}|direction=方向|bounce=回弹|margin=间隔>",
+          "snippet": "<ListView|children={${1:子节点ID}}|direction=${2:方向(1竖向/2横向)}|bounce=${3:回弹}|margin=${4:子控件间隔}|cantouch=${5:可滑动(0/1)}>",
+          "description": "996PC 新 NPC 面板滚动列表容器；ListView 不可嵌套",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/列表容器ListView.htm"
+          },
+          "parameters": [
+            {
+              "key": "children",
+              "description": "子节点ID列表"
+            },
+            {
+              "key": "direction",
+              "description": "方向(1竖向/2横向)"
+            },
+            {
+              "key": "bounce",
+              "description": "回弹设置"
+            },
+            {
+              "key": "margin",
+              "description": "子控件间隔"
+            },
+            {
+              "key": "cantouch",
+              "description": "是否可滑动(1默认/0不可)"
+            },
+            {
+              "key": "reload",
+              "description": "刷新面板(0/1)"
+            },
+            {
+              "key": "default",
+              "description": "跳转到 children 中的索引"
+            },
+            {
+              "key": "Slider",
+              "description": "启用滑块(0/1)"
+            },
+            {
+              "key": "Sdbg",
+              "description": "滑块底图"
+            },
+            {
+              "key": "Sdupnimg",
+              "description": "向上或向左箭头正常图片"
+            },
+            {
+              "key": "Sdupmimg",
+              "description": "向上或向左箭头悬停图片"
+            },
+            {
+              "key": "Sduppimg",
+              "description": "向上或向左箭头按下图片"
+            },
+            {
+              "key": "Sdnimg",
+              "description": "滑块正常图片"
+            },
+            {
+              "key": "Sdmimg",
+              "description": "滑块悬停图片"
+            },
+            {
+              "key": "Sdpimg",
+              "description": "滑块按下图片"
+            },
+            {
+              "key": "Sddwnimg",
+              "description": "向下或向右箭头正常图片"
+            },
+            {
+              "key": "Sddwmimg",
+              "description": "向下或向右箭头悬停图片"
+            },
+            {
+              "key": "Sddwpimg",
+              "description": "向下或向右箭头按下图片"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-checkbox-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<CheckBox|checkboxid=变量|wil=资源|pcnimg=未选|pcpimg=选中|default=状态|link=@标签>",
+          "snippet": "<CheckBox|checkboxid=${1:数字变量}|wil=${2:资源文件名}|pcnimg=${3:未选图片}|pcpimg=${4:选中图片}|default=${5:默认状态(0/1)}|link=@${6:触发标签}>",
+          "description": "996PC 新 NPC 面板复选框组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/复选框CheckBox.htm"
+          },
+          "parameters": [
+            {
+              "key": "checkboxid",
+              "description": "提交状态的数字变量名"
+            },
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "pcnimg",
+              "description": "未选中图片"
+            },
+            {
+              "key": "pcpimg",
+              "description": "选中图片"
+            },
+            {
+              "key": "default",
+              "description": "默认选中状态(0/1)"
+            },
+            {
+              "key": "link",
+              "description": "提交触发标签"
+            },
+            {
+              "key": "delay",
+              "description": "自动提交间隔"
+            },
+            {
+              "key": "count",
+              "description": "自动提交次数"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-slider-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Slider|sliderid=变量|wil=资源|pcbgimg=背景|pcbarimg=进度|pcballimg=滑块|link=@标签>",
+          "snippet": "<Slider|sliderid=${1:变量}|wil=${2:资源文件名}|pcbgimg=${3:背景图片}|pcbarimg=${4:进度图片}|pcballimg=${5:滑块图片}|maxvalue=${6:最大值}|defvalue=${7:默认值}|link=@${8:触发标签}>",
+          "description": "996PC 新 NPC 面板滑动拉杆组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/滑动拉杆_Slider_.htm"
+          },
+          "parameters": [
+            {
+              "key": "sliderid",
+              "description": "提交滑动值的 N 或 N$ 变量"
+            },
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "pcbgimg",
+              "description": "拖动背景图片"
+            },
+            {
+              "key": "pcbarimg",
+              "description": "拖动条图片"
+            },
+            {
+              "key": "pcballimg",
+              "description": "拖动球图片"
+            },
+            {
+              "key": "maxvalue",
+              "description": "最大值；默认100"
+            },
+            {
+              "key": "defvalue",
+              "description": "默认值；默认0"
+            },
+            {
+              "key": "link",
+              "description": "跳转触发标签"
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-menuitem-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<MenuItem|menuid=变量|itemname=选项#选项|select=默认项|link=@标签>",
+          "snippet": "<MenuItem|menuid=${1:S变量}|itemname=${2:选项1#选项2}|select=${3:默认选项}|direction=${4:方向(0下拉/1上拉)}|link=@${5:触发标签}>",
+          "description": "996PC 新 NPC 面板下拉菜单组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/菜单选项_menuid_.htm"
+          },
+          "parameters": [
+            {
+              "key": "menuid",
+              "description": "提交选择结果的 S 或 S$ 变量"
+            },
+            {
+              "key": "itemname",
+              "description": "以 # 分隔的菜单项"
+            },
+            {
+              "key": "select",
+              "description": "默认选择文本"
+            },
+            {
+              "key": "direction",
+              "description": "方向(0下拉/1上拉)"
+            },
+            {
+              "key": "link",
+              "description": "跳转触发标签"
+            },
+            {
+              "key": "img",
+              "description": "展示底图资源"
+            },
+            {
+              "key": "arrowimg",
+              "description": "箭头图片资源"
+            },
+            {
+              "key": "selectimg",
+              "description": "选中图片资源"
+            },
+            {
+              "key": "listimg",
+              "description": "菜单列表底图资源"
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "itemhei",
+              "description": "单个菜单项高度"
+            },
+            {
+              "key": "fontcolor",
+              "description": "字体颜色"
+            },
+            {
+              "key": "selectcolor",
+              "description": "选中项字体颜色"
+            },
+            {
+              "key": "maxhei",
+              "description": "超过此高度后允许滚动"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-frames-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Frames|wil=资源|start=开始|count=数量|speed=速度|loop=次数>",
+          "snippet": "<Frames|wil=${1:资源文件名}|start=${2:开始图片}|count=${3:图片数量}|speed=${4:播放间隔毫秒}|loop=${5:播放次数}>",
+          "description": "996PC 新 NPC 面板序列帧组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/序列帧_Frames_.htm"
+          },
+          "parameters": [
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "start",
+              "description": "开始图片序号"
+            },
+            {
+              "key": "count",
+              "description": "图片数量"
+            },
+            {
+              "key": "speed",
+              "description": "播放间隔毫秒"
+            },
+            {
+              "key": "loop",
+              "description": "循环或播放次数"
+            },
+            {
+              "key": "DMode",
+              "description": "绘制模式(0普通/1特效)"
+            },
+            {
+              "key": "finishframe",
+              "description": "播放完成停留帧"
+            },
+            {
+              "key": "finishhide",
+              "description": "完成后隐藏(0/1)"
+            },
+            {
+              "key": "slowcount",
+              "description": "放缓数量；默认0"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-effect-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Effect|wil=资源|start=开始|num=数量|DMode=模式|gap=间隔|count=次数|link=@标签>",
+          "snippet": "<Effect|wil=${1:资源文件名}|start=${2:开始图片}|num=${3:播放数量}|DMode=${4:绘制模式(0普通/1特效)}|gap=${5:帧间隔毫秒}|count=${6:播放次数}|link=@${7:触发标签}>",
+          "description": "996PC 新 NPC 面板特效组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/特效Effect.htm"
+          },
+          "parameters": [
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "start",
+              "description": "开始图片序号"
+            },
+            {
+              "key": "num",
+              "description": "播放图片数量"
+            },
+            {
+              "key": "DMode",
+              "description": "绘制模式(0普通/1特效)"
+            },
+            {
+              "key": "gap",
+              "description": "帧间隔毫秒"
+            },
+            {
+              "key": "count",
+              "description": "播放次数"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "scale",
+              "description": "缩放比例；1为正常大小"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-input-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<Input|inputid=ID|type=类型|width=宽度|height=高度|mincount=最小|maxcount=最大>",
+          "snippet": "<Input|inputid=${1:输入框ID(1-9)}|type=${2:类型(0文本/1数字/2密码/3绝对值数字)}|width=${3:宽度}|height=${4:高度}|mincount=${5:最小长度}|maxcount=${6:最大长度}|errortips=${7:错误提示}>",
+          "description": "996PC 新 NPC 面板输入框组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/自定义输入框Input.htm"
+          },
+          "parameters": [
+            {
+              "key": "inputid",
+              "description": "输入框ID(1-9)"
+            },
+            {
+              "key": "type",
+              "description": "输入类型(0文本/1数字/2密码/3绝对值数字)"
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "mincount",
+              "description": "最小字符数"
+            },
+            {
+              "key": "maxcount",
+              "description": "最大字符数"
+            },
+            {
+              "key": "errortips",
+              "description": "输入类型不符提示"
+            },
+            {
+              "key": "place",
+              "description": "空值提示文字"
+            },
+            {
+              "key": "placecolor",
+              "description": "空值提示文字颜色"
+            },
+            {
+              "key": "color",
+              "description": "输入文字颜色"
+            },
+            {
+              "key": "size",
+              "description": "输入文字大小"
+            },
+            {
+              "key": "onlyCh",
+              "description": "仅允许中文(0/1)"
+            },
+            {
+              "key": "submitInput",
+              "description": "提交的输入框ID列表"
+            },
+            {
+              "key": "bgtype",
+              "description": "显示背景框(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-countdown-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<COUNTDOWN|time=时间|count=次数|size=字号|color=颜色|link=@标签>",
+          "snippet": "<COUNTDOWN|time=${1:倒计时时间}|count=${2:循环次数}|size=${3:字号}|color=${4:颜色}|link=@${5:结束标签}>",
+          "description": "996PC 新 NPC 面板秒级倒计时组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/倒计时COUNTDOWN.htm"
+          },
+          "parameters": [
+            {
+              "key": "time",
+              "description": "倒计时时间"
+            },
+            {
+              "key": "count",
+              "description": "循环次数"
+            },
+            {
+              "key": "size",
+              "description": "文字大小"
+            },
+            {
+              "key": "color",
+              "description": "文字颜色"
+            },
+            {
+              "key": "link",
+              "description": "结束触发标签；必须放在最后"
+            },
+            {
+              "key": "outline",
+              "description": "描边宽度"
+            },
+            {
+              "key": "outlinecolor",
+              "description": "描边颜色"
+            },
+            {
+              "key": "showWay",
+              "description": "显示方式(0显示秒/1显示天时分秒)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-timetips-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<TIMETIPS|time=时间|count=次数|size=字号|color=颜色|link=@标签>",
+          "snippet": "<TIMETIPS|time=${1:倒计时时间}|count=${2:循环次数}|size=${3:字号}|color=${4:颜色}|link=@${5:结束标签}>",
+          "description": "996PC 新 NPC 面板天、时、分、秒倒计时组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/倒计时COUNTDOWN.htm"
+          },
+          "parameters": [
+            {
+              "key": "time",
+              "description": "倒计时时间"
+            },
+            {
+              "key": "count",
+              "description": "循环次数"
+            },
+            {
+              "key": "size",
+              "description": "文字大小"
+            },
+            {
+              "key": "color",
+              "description": "文字颜色"
+            },
+            {
+              "key": "link",
+              "description": "结束触发标签；必须放在最后"
+            },
+            {
+              "key": "outline",
+              "description": "描边宽度"
+            },
+            {
+              "key": "outlinecolor",
+              "description": "描边颜色"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-itemshow-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<ItemShow|itemid=IDX|itemcount=数量|showtips=提示|bgtype=背景|link=@标签>",
+          "snippet": "<ItemShow|itemid=${1:物品IDX}|itemcount=${2:数量}|showtips=${3:显示属性(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>",
+          "description": "996PC 新 NPC 面板物品IDX展示组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm"
+          },
+          "parameters": [
+            {
+              "key": "itemid",
+              "description": "物品IDX"
+            },
+            {
+              "key": "itemname",
+              "description": "物品名称"
+            },
+            {
+              "key": "itemcount",
+              "description": "物品数量"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "bgtype",
+              "description": "显示背景图(0/1)"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签"
+            },
+            {
+              "key": "color",
+              "description": "数量颜色"
+            },
+            {
+              "key": "grey",
+              "description": "灰化显示(0/1)"
+            },
+            {
+              "key": "lock",
+              "description": "显示锁图标(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-equipshow-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<EquipShow|index=位置|showtips=提示|bgtype=背景|link=@标签>",
+          "snippet": "<EquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|bgtype=${3:背景图(0/1)}|link=@${4:触发标签}>",
+          "description": "996PC 新 NPC 面板人物装备位置展示组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm"
+          },
+          "parameters": [
+            {
+              "key": "index",
+              "description": "装备位置(0-55)"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "bgtype",
+              "description": "显示背景图(0/1)"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签"
+            },
+            {
+              "key": "scale",
+              "description": "缩放比例"
+            },
+            {
+              "key": "dblink",
+              "description": "双击触发标签"
+            },
+            {
+              "key": "reload",
+              "description": "刷新面板(0/1)"
+            },
+            {
+              "key": "effectshow",
+              "description": "特效显示方式(0不显示/1背包/2内观)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-heroequipshow-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<HEROEquipShow|index=位置|showtips=提示|bgtype=背景|link=@标签>",
+          "snippet": "<HEROEquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|bgtype=${3:背景图(0/1)}|link=@${4:触发标签}>",
+          "description": "996PC 新 NPC 面板英雄装备位置展示组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm"
+          },
+          "parameters": [
+            {
+              "key": "index",
+              "description": "装备位置(0-55)"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "bgtype",
+              "description": "显示背景图(0/1)"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签"
+            },
+            {
+              "key": "scale",
+              "description": "缩放比例"
+            },
+            {
+              "key": "dblink",
+              "description": "双击触发标签"
+            },
+            {
+              "key": "reload",
+              "description": "刷新面板(0/1)"
+            },
+            {
+              "key": "effectshow",
+              "description": "特效显示方式(0不显示/1背包/2内观)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-dbitemshow-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<DBItemShow|makeindex=唯一ID|showtips=提示|bgtype=背景|link=@标签>",
+          "snippet": "<DBItemShow|makeindex=${1:物品唯一ID}|showtips=${2:显示属性(0/1)}|bgtype=${3:背景图(0/1)}|link=@${4:触发标签}>",
+          "description": "996PC 新 NPC 面板人物唯一物品展示组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm"
+          },
+          "parameters": [
+            {
+              "key": "makeindex",
+              "description": "物品唯一ID"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "bgtype",
+              "description": "显示背景图(0/1)"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签"
+            },
+            {
+              "key": "grey",
+              "description": "灰化显示(0/1)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-herodbitemshow-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<HERODBItemShow|makeindex=唯一ID|showtips=提示|bgtype=背景|link=@标签>",
+          "snippet": "<HERODBItemShow|makeindex=${1:物品唯一ID}|showtips=${2:显示属性(0/1)}|bgtype=${3:背景图(0/1)}|link=@${4:触发标签}>",
+          "description": "996PC 新 NPC 面板英雄唯一物品展示组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm"
+          },
+          "parameters": [
+            {
+              "key": "makeindex",
+              "description": "物品唯一ID"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "bgtype",
+              "description": "显示背景图(0/1)"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签"
+            },
+            {
+              "key": "grey",
+              "description": "灰化显示(0/1)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-bagitems-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<BAGITEMS|condition=条件|select=已选ID|count=格子数|row=行数|link=@标签>",
+          "snippet": "<BAGITEMS|condition=${1:StdMode#Shape条件}|select=${2:已选唯一ID}|count=${3:格子数量}|row=${4:行数}|link=@${5:触发标签}>",
+          "description": "996PC 新 NPC 面板人物背包物品选择组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/取背包物品显示到格子.htm"
+          },
+          "parameters": [
+            {
+              "key": "condition",
+              "description": "过滤条件，格式 StdMode#Shape"
+            },
+            {
+              "key": "select",
+              "description": "已选择的物品唯一ID"
+            },
+            {
+              "key": "count",
+              "description": "格子数量"
+            },
+            {
+              "key": "row",
+              "description": "显示行数"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "iwidth",
+              "description": "格子宽度"
+            },
+            {
+              "key": "iheight",
+              "description": "格子高度"
+            },
+            {
+              "key": "selecttype",
+              "description": "选择类型(0多选/1单选)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
+            },
+            {
+              "key": "conditionEx",
+              "description": "是否过滤星级(0/1)"
+            },
+            {
+              "key": "conditionParam",
+              "description": "星级过滤等级"
+            },
+            {
+              "key": "conditionOnOff",
+              "description": "星级显示条件方向"
+            },
+            {
+              "key": "exclude",
+              "description": "已选后从同组件排除的唯一ID"
+            },
+            {
+              "key": "filter1",
+              "description": "排除物品ID列表"
+            },
+            {
+              "key": "filter2",
+              "description": "排除物品名列表"
+            },
+            {
+              "key": "filter3",
+              "description": "仅显示的物品ID或名称列表"
+            },
+            {
+              "key": "exbind",
+              "description": "过滤绑定物品(0/1)"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-herobagitems-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<HEROBAGITEMS|condition=条件|select=已选ID|count=格子数|row=行数|link=@标签>",
+          "snippet": "<HEROBAGITEMS|condition=${1:StdMode#Shape条件}|select=${2:已选唯一ID}|count=${3:格子数量}|row=${4:行数}|link=@${5:触发标签}>",
+          "description": "996PC 新 NPC 面板英雄背包物品选择组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/取背包物品显示到格子.htm"
+          },
+          "parameters": [
+            {
+              "key": "condition",
+              "description": "过滤条件，格式 StdMode#Shape"
+            },
+            {
+              "key": "select",
+              "description": "已选择的物品唯一ID"
+            },
+            {
+              "key": "count",
+              "description": "格子数量"
+            },
+            {
+              "key": "row",
+              "description": "显示行数"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "iwidth",
+              "description": "格子宽度"
+            },
+            {
+              "key": "iheight",
+              "description": "格子高度"
+            },
+            {
+              "key": "selecttype",
+              "description": "选择类型(0多选/1单选)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
+            },
+            {
+              "key": "conditionEx",
+              "description": "是否过滤星级(0/1)"
+            },
+            {
+              "key": "conditionParam",
+              "description": "星级过滤等级"
+            },
+            {
+              "key": "conditionOnOff",
+              "description": "星级显示条件方向"
+            },
+            {
+              "key": "exclude",
+              "description": "已选后从同组件排除的唯一ID"
+            },
+            {
+              "key": "filter1",
+              "description": "排除物品ID列表"
+            },
+            {
+              "key": "filter2",
+              "description": "排除物品名列表"
+            },
+            {
+              "key": "filter3",
+              "description": "仅显示的物品ID或名称列表"
+            },
+            {
+              "key": "exbind",
+              "description": "过滤绑定物品(0/1)"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-equipitems-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<EQUIPITEMS|positions=位置|select=已选ID|count=格子数|row=行数|link=@标签>",
+          "snippet": "<EQUIPITEMS|positions=${1:装备位置}|select=${2:已选唯一ID}|count=${3:格子数量}|row=${4:行数}|link=@${5:触发标签}>",
+          "description": "996PC 新 NPC 面板人物身上装备选择组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/获取身上装备显示到格子.htm"
+          },
+          "parameters": [
+            {
+              "key": "positions",
+              "description": "装备位置"
+            },
+            {
+              "key": "select",
+              "description": "已选择的物品唯一ID"
+            },
+            {
+              "key": "count",
+              "description": "格子数量"
+            },
+            {
+              "key": "row",
+              "description": "显示行数"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "selecttype",
+              "description": "选择类型(0多选/1单选)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
+            },
+            {
+              "key": "iwidth",
+              "description": "格子宽度"
+            },
+            {
+              "key": "iheight",
+              "description": "格子高度"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-heroequipitems-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<HEROEQUIPITEMS|positions=位置|select=已选ID|count=格子数|row=行数|link=@标签>",
+          "snippet": "<HEROEQUIPITEMS|positions=${1:装备位置}|select=${2:已选唯一ID}|count=${3:格子数量}|row=${4:行数}|link=@${5:触发标签}>",
+          "description": "996PC 新 NPC 面板英雄身上装备选择组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/获取身上装备显示到格子.htm"
+          },
+          "parameters": [
+            {
+              "key": "positions",
+              "description": "装备位置"
+            },
+            {
+              "key": "select",
+              "description": "已选择的物品唯一ID"
+            },
+            {
+              "key": "count",
+              "description": "格子数量"
+            },
+            {
+              "key": "row",
+              "description": "显示行数"
+            },
+            {
+              "key": "link",
+              "description": "单击触发标签；必须放在最后"
+            },
+            {
+              "key": "selecttype",
+              "description": "选择类型(0多选/1单选)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
+            },
+            {
+              "key": "iwidth",
+              "description": "格子宽度"
+            },
+            {
+              "key": "iheight",
+              "description": "格子高度"
+            },
+            {
+              "key": "showtips",
+              "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-percentimg-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<PercentImg|direction=方向|wil=资源|pcimg=图片|minValue=当前|maxValue=最大>",
+          "snippet": "<PercentImg|direction=${1:方向(0左到右/1右到左/2上到下/3下到上)}|wil=${2:资源文件名}|pcimg=${3:图片序号}|minValue=${4:当前值}|maxValue=${5:最大值}>",
+          "description": "996PC 新 NPC 面板百分比图片组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/百分比图片_PercentImg_.htm"
+          },
+          "parameters": [
+            {
+              "key": "direction",
+              "description": "方向(0左到右/1右到左/2上到下/3下到上)"
+            },
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "pcimg",
+              "description": "图片序号"
+            },
+            {
+              "key": "minValue",
+              "description": "当前显示进度值"
+            },
+            {
+              "key": "maxValue",
+              "description": "最大值"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-itembox-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<ITEMBOX|boxindex=编号|stdmode=类型|wil=资源|pcimg=背景|tips=提示>",
+          "snippet": "<ITEMBOX|boxindex=${1:OK框编号}|stdmode=${2:允许StdMode}|wil=${3:资源文件名}|pcimg=${4:背景图片}|tips=${5:提示文字}>",
+          "description": "996PC 新 NPC 面板自定义 OK 框组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/自定义OK框.htm"
+          },
+          "parameters": [
+            {
+              "key": "boxindex",
+              "description": "OK框编号"
+            },
+            {
+              "key": "stdmode",
+              "description": "允许放入的物品 StdMode 列表"
+            },
+            {
+              "key": "wil",
+              "description": "背景图片资源文件名"
+            },
+            {
+              "key": "pcimg",
+              "description": "背景图片序号"
+            },
+            {
+              "key": "tips",
+              "description": "鼠标悬停提示"
+            },
+            {
+              "key": "tipsx",
+              "description": "提示文字X偏移"
+            },
+            {
+              "key": "tipsy",
+              "description": "提示文字Y偏移"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-textatlas-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<TextAtlas|wil=资源|pcimg=图片|iwidth=字宽|iheight=字高|text=数字>",
+          "snippet": "<TextAtlas|wil=${1:资源文件名}|pcimg=${2:图片序号}|iwidth=${3:单字宽度}|iheight=${4:素材高度}|text=${5:数字或变量}>",
+          "description": "996PC 新 NPC 面板艺术字数字组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/艺术字TextAtlas.htm"
+          },
+          "parameters": [
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "pcimg",
+              "description": "包含0-9的整图序号"
+            },
+            {
+              "key": "iwidth",
+              "description": "单字宽度"
+            },
+            {
+              "key": "iheight",
+              "description": "素材高度"
+            },
+            {
+              "key": "text",
+              "description": "需要转换的数字或变量"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-uimodel-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<UIModel|sex=性别|clothID=衣服|weaponID=武器|headID=头盔|scale=缩放>",
+          "snippet": "<UIModel|sex=${1:性别(0男/1女)}|clothID=${2:衣服Looks}|weaponID=${3:武器Looks}|headID=${4:头盔Looks}|scale=${5:缩放比例}>",
+          "description": "996PC 新 NPC 面板角色内观组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/角色内观部件_UIModel_.htm"
+          },
+          "parameters": [
+            {
+              "key": "sex",
+              "description": "性别(0男/1女)"
+            },
+            {
+              "key": "clothID",
+              "description": "衣服内观Looks"
+            },
+            {
+              "key": "weaponID",
+              "description": "武器内观Looks"
+            },
+            {
+              "key": "headID",
+              "description": "头盔内观Looks"
+            },
+            {
+              "key": "scale",
+              "description": "缩放比例；1为默认"
+            },
+            {
+              "key": "clothEffectID",
+              "description": "衣服特效ID及模式坐标"
+            },
+            {
+              "key": "weaponEffectID",
+              "description": "武器特效ID及模式坐标"
+            },
+            {
+              "key": "headEffectID",
+              "description": "头盔特效ID"
+            },
+            {
+              "key": "capID",
+              "description": "斗笠内观Looks"
+            },
+            {
+              "key": "capEffectID",
+              "description": "斗笠特效ID"
+            },
+            {
+              "key": "shieldID",
+              "description": "盾牌内观Looks"
+            },
+            {
+              "key": "shieldEffectID",
+              "description": "盾牌特效ID"
+            },
+            {
+              "key": "veilID",
+              "description": "面巾内观Looks"
+            },
+            {
+              "key": "veilEffectID",
+              "description": "面巾特效ID"
+            },
+            {
+              "key": "hairID",
+              "description": "发型ID"
+            },
+            {
+              "key": "notShowMold",
+              "description": "不显示裸模(true/false)"
+            },
+            {
+              "key": "notShowHair",
+              "description": "不显示头发(true/false)"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "color",
+              "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-costitem-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<CostItem|itemid=IDX|itemcount=数量|title=标题|color=颜色>",
+          "snippet": "<CostItem|itemid=${1:物品IDX}|itemcount=${2:数量}|title=${3:标题}|color=${4:数量颜色}>",
+          "description": "996PC 新 NPC 面板货币需求展示组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/货币需求展示_CostItem_.htm"
+          },
+          "parameters": [
+            {
+              "key": "itemid",
+              "description": "物品IDX"
+            },
+            {
+              "key": "itemcount",
+              "description": "物品数量"
+            },
+            {
+              "key": "title",
+              "description": "标题文本；不配置使用默认标题"
+            },
+            {
+              "key": "color",
+              "description": "斜杠后文字颜色"
+            },
+            {
+              "key": "itemscale",
+              "description": "物品图片缩放"
+            },
+            {
+              "key": "fontsize",
+              "description": "字号"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "link",
+              "description": "单击响应的脚本标签；帮助要求触发字段放在最后"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            },
+            {
+              "key": "size",
+              "description": "字体大小"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "newui-loadingbar-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<LoadingBar|wil=资源|pcloadingbg=底图|pcloadingbar=进度图|startper=起始|endper=结束|link=@标签>",
+          "snippet": "<LoadingBar|wil=${1:资源文件名}|pcloadingbg=${2:进度条底图}|pcloadingbar=${3:进度条图片}|startper=${4:起始进度}|endper=${5:结束进度}|link=@${6:完成标签}>",
+          "description": "996PC 新 NPC 面板动态进度条组件",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新NPC界面写法/进度条LoadingBar.htm"
+          },
+          "parameters": [
+            {
+              "key": "wil",
+              "description": "图片资源文件名"
+            },
+            {
+              "key": "pcloadingbg",
+              "description": "进度条底图"
+            },
+            {
+              "key": "pcloadingbar",
+              "description": "进度条滚动图片"
+            },
+            {
+              "key": "startper",
+              "description": "起始进度"
+            },
+            {
+              "key": "endper",
+              "description": "结束进度；默认100"
+            },
+            {
+              "key": "link",
+              "description": "完成触发标签；必须放在最后"
+            },
+            {
+              "key": "size",
+              "description": "文字大小"
+            },
+            {
+              "key": "color",
+              "description": "文字颜色"
+            },
+            {
+              "key": "outline",
+              "description": "描边宽度"
+            },
+            {
+              "key": "outlinecolor",
+              "description": "描边颜色"
+            },
+            {
+              "key": "direction",
+              "description": "方向(0左到右/1右到左)"
+            },
+            {
+              "key": "interval",
+              "description": "滚动间隔；默认0.05"
+            },
+            {
+              "key": "loadvalue",
+              "description": "每次间隔增加的进度；默认10"
+            },
+            {
+              "key": "offsetX",
+              "description": "进度图中心X偏移"
+            },
+            {
+              "key": "offsetY",
+              "description": "进度图中心Y偏移"
+            },
+            {
+              "key": "maxper",
+              "description": "最大进度；默认100"
+            },
+            {
+              "key": "HideText",
+              "description": "隐藏进度文字"
+            },
+            {
+              "key": "id",
+              "description": "元素ID；同一界面不可重复"
+            },
+            {
+              "key": "children",
+              "description": "子节点ID列表，格式为 {1,2,3}"
+            },
+            {
+              "key": "a",
+              "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+            },
+            {
+              "key": "ax",
+              "description": "锚点X"
+            },
+            {
+              "key": "ay",
+              "description": "锚点Y"
+            },
+            {
+              "key": "x",
+              "description": "坐标X"
+            },
+            {
+              "key": "y",
+              "description": "坐标Y"
+            },
+            {
+              "key": "percentx",
+              "description": "百分比坐标X"
+            },
+            {
+              "key": "percenty",
+              "description": "百分比坐标Y",
+              "aliases": [
+                "pencenty"
+              ]
+            },
+            {
+              "key": "width",
+              "description": "宽度"
+            },
+            {
+              "key": "height",
+              "description": "高度"
+            },
+            {
+              "key": "percentwidth",
+              "description": "百分比宽度"
+            },
+            {
+              "key": "percentheight",
+              "description": "百分比高度"
+            }
+          ]
         }
       }
     }

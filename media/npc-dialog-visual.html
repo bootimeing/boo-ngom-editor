@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{STYLE_URI}}">
+  <title>BOO NPC 界面可视化编辑器</title>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="identity">
+      <strong id="functionTitle">NPC 界面</strong>
+      <span id="fileTitle">等待脚本数据</span>
+      <span id="engineBadge" class="badge">--</span>
+    </div>
+    <div class="toolbar-group zoom-tools" aria-label="画布缩放">
+      <button id="zoomOut" class="icon-button" title="缩小" aria-label="缩小">−</button>
+      <span id="zoomValue" class="zoom-value">100%</span>
+      <button id="zoomIn" class="icon-button" title="放大" aria-label="放大">+</button>
+      <button id="zoomReset" class="quiet-button">100%</button>
+    </div>
+    <div class="toolbar-group actions">
+      <button id="undoButton" class="icon-button" title="撤销可视化草稿" aria-label="撤销">↶</button>
+      <button id="redoButton" class="icon-button" title="重做可视化草稿" aria-label="重做">↷</button>
+      <button id="reloadButton" class="quiet-button">重新载入</button>
+      <button id="applyButton" class="secondary-button">应用到代码</button>
+      <button id="saveButton" class="primary-button">保存文件</button>
+    </div>
+  </header>
+
+  <section id="statusBanner" class="status-banner hidden" role="status"></section>
+  <section id="offsetBar" class="offset-bar hidden">
+    <div>
+      <strong>NPC 文字坐标修正</strong>
+      <span id="offsetSource"></span>
+    </div>
+    <label>X <input id="offsetX" type="number" step="1"></label>
+    <label>Y <input id="offsetY" type="number" step="1"></label>
+    <button id="saveOffsets" class="secondary-button hidden">保存翎风修正值</button>
+    <span id="offsetHelp" class="offset-help"></span>
+  </section>
+
+  <main class="editor-layout">
+    <aside class="scene-pane" aria-label="条件场景">
+      <div class="pane-title">
+        <div>
+          <strong>界面场景</strong>
+          <span id="sceneCount">0</span>
+        </div>
+        <button id="resetPreview" class="pane-icon-button" title="恢复默认预览" aria-label="恢复默认预览">↺</button>
+      </div>
+      <div id="sceneList" class="scene-list"></div>
+      <details id="advancedConditions" class="advanced-conditions hidden">
+        <summary>
+          <span>高级条件模拟</span>
+          <span id="advancedConditionCount">0</span>
+        </summary>
+        <div id="advancedConditionList" class="advanced-condition-list"></div>
+      </details>
+      <div class="pane-section">
+        <strong>当前条件</strong>
+        <pre id="conditionText" class="condition-text">无</pre>
+      </div>
+      <div class="pane-section variable-section">
+        <strong>脚本变量值</strong>
+        <div id="variableList" class="variable-list">当前场景未使用脚本变量</div>
+      </div>
+      <div class="pane-section change-section">
+        <strong>坐标改动</strong>
+        <div id="changeList" class="change-list">暂无改动</div>
+      </div>
+    </aside>
+
+    <section class="canvas-pane">
+      <div class="canvas-heading">
+        <div>
+          <strong id="sceneTitle">等待场景</strong>
+          <span id="canvasSize"></span>
+        </div>
+        <span id="coordinateReadout">坐标 --, --</span>
+      </div>
+      <div id="canvasViewport" class="canvas-viewport" tabindex="0">
+        <div id="canvasStage" class="canvas-stage">
+          <div id="dialogCanvas" class="dialog-canvas">
+            <div class="canvas-origin" title="画布原点 0,0"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="inspector-pane" aria-label="元素属性">
+      <div class="pane-title">
+        <strong>元素属性</strong>
+        <span id="selectionState">未选择</span>
+      </div>
+      <div id="emptyInspector" class="empty-inspector">点击画布元素查看属性。按住鼠标拖动，方向键每次微调 1 像素。</div>
+      <div id="elementInspector" class="element-inspector hidden">
+        <div class="field wide">
+          <label>界面语句</label>
+          <strong id="elementToken"></strong>
+          <span id="elementDescription"></span>
+        </div>
+        <div class="field-grid">
+          <label class="field">显示 X<input id="elementX" type="number" step="1"></label>
+          <label class="field">显示 Y<input id="elementY" type="number" step="1"></label>
+        </div>
+        <div class="field-grid read-only-grid">
+          <div class="field"><label>源码 X</label><span id="sourceX">--</span></div>
+          <div class="field"><label>源码 Y</label><span id="sourceY">--</span></div>
+        </div>
+        <div class="field wide"><label>坐标模式</label><span id="coordinateMode"></span></div>
+        <div class="field wide"><label>显示内容</label><span id="elementText"></span></div>
+        <div class="field wide"><label>素材</label><span id="assetState"></span></div>
+        <div class="field wide"><label>参数</label><div id="elementParameters" class="parameter-list"></div></div>
+        <div id="elementWarning" class="element-warning hidden"></div>
+        <div class="inspector-actions">
+          <button id="locateButton" class="secondary-button">定位源码</button>
+          <button id="patchButton" class="quiet-button hidden">打开补丁管理</button>
+        </div>
+        <div class="field wide raw-field">
+          <label>原始语句</label>
+          <pre id="rawStatement"></pre>
+        </div>
+      </div>
+      <div class="pane-section diagnostics">
+        <strong>兼容性提示</strong>
+        <div id="sceneWarnings" class="diagnostic-list">无</div>
+      </div>
+      <div class="pane-section diagnostics">
+        <strong>锁定语句</strong>
+        <div id="unsupportedList" class="diagnostic-list">无</div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script src="{{SCRIPT_URI}}"></script>
+</body>
+</html>

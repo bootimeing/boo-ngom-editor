@@ -1,9 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const languageAudit = require('./audit-engine-language-accuracy');
+const { supplementalSayInterfaceEntries } = require('./say-interface-definitions');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const revision = '2026-07-23';
+const revision = '2026-08-24';
 const helpRoots = {
   GOM: path.join(
     process.env.LOCALAPPDATA || '',
@@ -151,11 +152,14 @@ function saySnippets() {
       geePage: geeText,
     }),
     sharedSnippet('item-show', {
-      label: '<&ITEMSHOW:D:F:X:Y:B>',
-      snippet: '<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:边框}>',
-      description: '使用绝对坐标显示物品图片和属性',
+      label: '<&ITEMSHOW:D:F:X:Y:B:G:R:H:T:S:W>',
+      snippet: '<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:称号模式}:${10:内观素材}:${11:物品特效}>',
+      description: '使用绝对坐标显示物品图片和属性，可设置数量、背景框、灰化、对齐、内观素材与物品特效',
       gomPage: '游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm',
-      geePage: '游戏引擎反外挂系统/其他相关资料/货币实时刷新常量.htm',
+      geeLabel: '<&ITEMSHOW:D:F:X:Y:Z:W:G:U/@Label>',
+      geeSnippet: '<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>',
+      geeDescription: '使用绝对坐标显示物品图片和属性，可设置背景框、发光、灰化、数量单位和单击标签',
+      geePage: '游戏引擎反外挂系统/部分脚本实例/NPC对话框调用装备信息.htm',
     }),
     sharedSnippet('input-text', {
       label: '<&INPUTTEXT:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>',
@@ -194,7 +198,7 @@ function saySnippets() {
     }),
     sharedSnippet('progress-bar', {
       label: '<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>',
-      snippet: '<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:模式}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>',
+      snippet: '<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>',
       description: '显示动态进度条',
       gomPage: '游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm',
       geePage: '游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm',
@@ -206,24 +210,6 @@ function saySnippets() {
       gomPage: '游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm',
       geePage: '游戏引擎反外挂系统/功能操作命令/自定义OK框.htm',
     }),
-    sharedSnippet('human-variable', {
-      label: '<$HUMAN(变量名)>',
-      snippet: '<$HUMAN(${1:变量名})>',
-      description: '读取已声明的人物自定义变量',
-      gomPage: '游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm',
-      geePage: '游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm',
-    }),
-    {
-      id: 'guild-variable',
-      engineVariants: {
-        GEE: variant(
-          '<$GUILD(变量名)>',
-          '<$GUILD(${1:变量名})>',
-          '读取已声明的行会自定义变量',
-          '游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm'
-        ),
-      },
-    },
   ];
 
   const pcIcons = '游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm';
@@ -231,7 +217,6 @@ function saySnippets() {
   const pcItemShow = '游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm';
   const pcText = '游戏引擎反外挂系统/游戏功能详解/设置NPC文字坐标.htm';
   const pcParams = '游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm';
-  const pcVariables = '游戏引擎反外挂系统/功能操作命令/自定义变量功能.htm';
   const set996 = (id, value) => {
     const entry = entries.find(candidate => candidate.id === id);
     if (!entry) throw new Error(`Missing SAY snippet for 996PC variant: ${id}`);
@@ -288,12 +273,6 @@ function saySnippets() {
     '创建数字输入框',
     pcInput
   ));
-  set996('human-variable', variant(
-    '<$HUMAN(变量名)>',
-    '<$HUMAN(${1:变量名})>',
-    '读取已声明的人物自定义变量',
-    pcVariables
-  ));
   entries.push(
     {
       id: 'imgex-relative-996pc',
@@ -320,6 +299,7 @@ function saySnippets() {
       },
     }
   );
+  entries.push(...supplementalSayInterfaceEntries());
   return entries;
 }
 

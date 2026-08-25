@@ -35,6 +35,7 @@ function main() {
       'D:\\another-client\\DATA\\ui\\Items1.pak|items-password|0',
       'E:\\legacy-client\\Simple.pak|simple-password|0',
       'Q:\\old-client\\Resources\\Data\\Title.jpk|jpk-password|0',
+      'Q:\\old-client\\Resources\\Data\\Space.pak|"  spaced password  "|0',
       'invalid line',
     ].join('\r\n'));
 
@@ -66,6 +67,11 @@ function main() {
     const parsedRecords = readPakPasswordRecords(configPath);
     assert.equal(parsedRecords[0].password, 'dialog-password');
     assert.equal(parsedRecords[0].option, '0');
+    assert.equal(
+      parsedRecords.find(record => record.configuredPath.endsWith('Space.pak')).password,
+      '  spaced password  ',
+      'quoted passwords must preserve intentional leading and trailing spaces'
+    );
 
     const utf8ConfigPath = path.join(tempRoot, 'Pak-utf8.txt');
     fs.writeFileSync(
@@ -95,6 +101,7 @@ function main() {
     assert.equal(selectPakPassword(undefined, undefined, 'saved'), 'saved');
     assert.equal(classifyPakPasswordError(new Error('password is incorrect')), 'confirmed');
     assert.equal(classifyPakPasswordError(new Error('密码错误，或 Items.pak 索引损坏')), 'ambiguous');
+    assert.equal(classifyPakPasswordError(new Error('密码不正确或属于尚未支持的加密变体')), 'ambiguous');
     assert.equal(classifyPakPasswordError(Object.assign(new Error('JPK 密码错误，或文件格式不支持'), { name: 'JpkPasswordError' })), 'ambiguous');
     assert.equal(classifyPakPasswordError(new Error('GAMEOFMIR 索引越界')), 'none');
     assert.equal(isConfirmedPakPasswordError(new Error('密码错误')), true);

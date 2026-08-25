@@ -2,14 +2,19 @@
 
 [CmdletBinding()]
 param(
-	[string]$OutputPath
+	[string]$OutputPath,
+	[string]$SourcePath
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $projectDirectory = $PSScriptRoot
-$sourcePath = Join-Path $projectDirectory 'native\M2Reloader.cpp'
+if ([string]::IsNullOrWhiteSpace($SourcePath)) {
+	$SourcePath = Join-Path $projectDirectory 'native\M2Reloader.cpp'
+} else {
+	$SourcePath = [System.IO.Path]::GetFullPath($SourcePath)
+}
 $defaultOutputPath = Join-Path $projectDirectory 'runtime\native-win-x64\M2Reloader.exe'
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 	$OutputPath = $defaultOutputPath
@@ -19,7 +24,8 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 $outputDirectory = Split-Path -Parent $OutputPath
 $objectDirectory = Join-Path $projectDirectory 'obj\Release\native-win-x64'
 $outputPath = $OutputPath
-$objectPath = Join-Path $objectDirectory 'M2Reloader.obj'
+$objectName = [System.IO.Path]::GetFileNameWithoutExtension($SourcePath) + '.obj'
+$objectPath = Join-Path $objectDirectory $objectName
 
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 if (-not (Test-Path -LiteralPath $vswhere)) {
@@ -100,7 +106,7 @@ try {
 		'/DNTDDI_VERSION=0x06010000',
 		"/Fo$objectPath",
 		"/Fe$outputPath",
-		$sourcePath,
+		$SourcePath,
 		'/link',
 		'/MACHINE:X64',
 		'/SUBSYSTEM:CONSOLE,6.01',

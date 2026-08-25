@@ -75,6 +75,7 @@ import {
   findMir200Directory,
   mapEntityMatches,
   formatNpcDisplayName,
+  MapSafeZone,
   merchantColumns,
   MerchantNpc,
   monGenColumns,
@@ -83,6 +84,7 @@ import {
   parseMerchantNameColor,
   parseMerchantText,
   parseMonGenText,
+  parseStartPointText,
   resolveMerchantScriptPath,
   selectCustomNpcArchive,
   updateMerchantNpc,
@@ -124,6 +126,7 @@ interface MapPreviewMessage {
     y?: number;
     appearance?: number;
     iconText?: string;
+    targetMapKey?: string;
   };
   spawn?: {
     lineNumber?: number;
@@ -160,6 +163,12 @@ interface ResolvedNpcIcon extends NpcIconConfig {
   previewTruncated: boolean;
 }
 
+interface ResolvedMapSafeZone extends MapSafeZone {
+  frames: ResolvedNpcFrame[];
+  frameInterval: number;
+  resourceLabel: string;
+}
+
 interface NpcResolutionContext {
   envirDirectory: string;
   engine: EngineId;
@@ -171,6 +180,7 @@ interface NpcResolutionContext {
   effectImageArchives: { name: string; willIdx: number; extension?: string }[];
   customAnimations: Map<number, ResolvedNpcAnimation>;
   officialAnimations: Map<number, ResolvedNpcAnimation>;
+  safeZoneAnimations: Map<number, ResolvedNpcAnimation>;
 }
 
 interface ResolvedNpcAnimation {
@@ -456,6 +466,8 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
           this.originalMapVersion++;
         } else if (message?.type === 'updateNpc') {
           this.enqueueNpcUpdate(message as MapPreviewMessage);
+        } else if (message?.type === 'moveNpcToMap') {
+          this.enqueueNpcMove(message as MapPreviewMessage);
         } else if (message?.type === 'updateSpawn') {
           this.enqueueSpawnUpdate(message as MapPreviewMessage);
         } else if (message?.type === 'openNpcScript') {
@@ -568,12 +580,19 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         width: dimensions?.width || 0,
         height: dimensions?.height || 0,
       },
+      maps: this.maps.map(entry => ({
+        key: entry.key,
+        mapId: entry.mapId,
+        originalMapId: entry.originalMapId,
+        name: entry.name,
+      })),
       imageUrl,
       miniMapPak: reference?.pakName || '',
       miniMapIndex: reference?.imageIndex ?? -1,
       markers,
       npcs: entities.npcs,
       spawns: entities.spawns,
+      safeZones: entities.safeZones,
       merchantColumns: merchantColumns(
         entities.npcs.reduce((count, npc) => Math.max(count, npc.fields.length), 0)
       ),
@@ -606,6 +625,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   ): {
     npcs: ResolvedMapNpc[];
     spawns: MonsterSpawn[];
+    safeZones: ResolvedMapSafeZone[];
     resourceRoots: string[];
     warnings: string[];
   } {
@@ -614,17 +634,20 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     const resourceRoots = new Set<string>();
     const warnings: string[] = [];
     if (!envirDirectory || !mir200Directory) {
-      return { npcs: [], spawns: [], resourceRoots: [], warnings: ['未找到 Mir200\\Envir'] };
+      return { npcs: [], spawns: [], safeZones: [], resourceRoots: [], warnings: ['未找到 Mir200\\Envir'] };
     }
 
     const merchantPath = path.join(envirDirectory, 'Merchant.txt');
     const monGenPath = path.join(envirDirectory, 'MonGen.txt');
+    const startPointPath = path.join(envirDirectory, 'StartPoint.txt');
     const setupPath = path.join(mir200Directory, '!Setup.txt');
     const merchantText = readOptionalText(merchantPath);
     const monGenText = readOptionalText(monGenPath);
+    const startPointText = readOptionalText(startPointPath);
     const setupText = readOptionalText(setupPath);
     if (merchantText === undefined) warnings.push('未找到 Merchant.txt');
     if (monGenText === undefined) warnings.push('未找到 MonGen.txt');
+    if (startPointText === undefined) warnings.push('未找到 StartPoint.txt');
 
     clearPakCache();
     const context = this.createNpcResolutionContext(
@@ -639,7 +662,13 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       .map(npc => this.resolveMapNpc(npc, context));
     const spawns = (monGenText === undefined ? [] : parseMonGenText(monGenText))
       .filter(spawn => mapEntityMatches(spawn.mapName, map));
-    return { npcs, spawns, resourceRoots: [...resourceRoots], warnings };
+    const safeZones = (startPointText === undefined ? [] : parseStartPointText(startPointText, engine))
+      .filter(zone => mapEntityMatches(zone.mapName, map))
+      .map(zone => this.resolveMapSafeZone(zone, context));
+    if (safeZones.some(zone => zone.customResource && zone.frames.length === 0)) {
+      warnings.push('安全区自定义素材 SafePointEffect 未缓存');
+    }
+    return { npcs, spawns, safeZones, resourceRoots: [...resourceRoots], warnings };
   }
 
   private createNpcResolutionContext(
@@ -661,6 +690,90 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       effectImageArchives: loadPakIndex(workspaceRoot)?.pakList || [],
       customAnimations: new Map<number, ResolvedNpcAnimation>(),
       officialAnimations: new Map<number, ResolvedNpcAnimation>(),
+      safeZoneAnimations: new Map<number, ResolvedNpcAnimation>(),
+    };
+  }
+
+  private resolveMapSafeZone(zone: MapSafeZone, context: NpcResolutionContext): ResolvedMapSafeZone {
+    if (!zone.customResource) {
+      return {
+        ...zone,
+        frames: [],
+        frameInterval: 0,
+        resourceLabel: zone.styleLabel,
+      };
+    }
+    let animation = context.safeZoneAnimations.get(zone.haloType);
+    if (!animation) {
+      animation = this.resolveSafeZoneAnimation(zone.haloType, context);
+      context.safeZoneAnimations.set(zone.haloType, animation);
+    }
+    return {
+      ...zone,
+      frames: animation.frames,
+      frameInterval: animation.interval,
+      resourceLabel: animation.label,
+    };
+  }
+
+  private resolveSafeZoneAnimation(
+    haloType: number,
+    context: NpcResolutionContext
+  ): ResolvedNpcAnimation {
+    if (context.engine !== 'GEE' || haloType < 20 || haloType > 75 || !this.panel) {
+      return { frames: [], interval: 0, label: `安全区样式 ${haloType}` };
+    }
+    const supportedExtensions = uiEditorArchiveExtensions(context.engine);
+    let sourcePath = '';
+    for (const extension of supportedExtensions) {
+      sourcePath = resolveResourceFile(
+        context.clientLayout?.dataRoots || [],
+        ['SafePointEffect'],
+        `.${extension}`
+      ) || '';
+      if (sourcePath) break;
+    }
+    const pak = sourcePath
+      ? context.patchPaks.find(candidate => sameFilePath(candidate.pakPath, sourcePath))
+      : context.patchPaks.find(candidate => (
+        path.basename(candidate.pakPath, path.extname(candidate.pakPath)).toLowerCase() === 'safepointeffect'
+      ));
+    if (!pak || !isPatchCacheCurrent(pak)) {
+      return { frames: [], interval: 0, label: 'SafePointEffect 未缓存' };
+    }
+    let table: CachedPatchAssetTable;
+    try {
+      table = this.originalAssetTable(pak);
+    } catch (error) {
+      console.warn('[BOO] 安全区素材索引读取失败:', error instanceof Error ? error.message : String(error));
+      return { frames: [], interval: 0, label: 'SafePointEffect 索引不可用' };
+    }
+    const startIndex = (haloType - 20) * 10;
+    const frames: ResolvedNpcFrame[] = [];
+    for (let offset = 0; offset < 10; offset++) {
+      const imageIndex = startIndex + offset;
+      if (imageIndex >= pak.slotCount || imageIndex >= table.slotCount) break;
+      if (!table.present[imageIndex] || table.blank[imageIndex]) continue;
+      const imagePath = patchImagePath(pak, imageIndex);
+      if (!pak.archiveId && !isFile(imagePath)) continue;
+      frames.push({
+        url: this.panel.webview.asWebviewUri(
+          pak.archiveId
+            ? archiveResourceUri(pak.archiveId, imageIndex)
+            : vscode.Uri.file(imagePath)
+        ).toString(),
+        width: table.width[imageIndex] || 1,
+        height: table.height[imageIndex] || 1,
+        offsetX: table.offsetX[imageIndex] || 0,
+        offsetY: table.offsetY[imageIndex] || 0,
+        usesOffsets: true,
+      });
+    }
+    if (!pak.archiveId) context.resourceRoots.add(pak.cacheDir);
+    return {
+      frames,
+      interval: frames.length > 1 ? 120 : 0,
+      label: `${path.basename(pak.pakPath)} · ${String(startIndex).padStart(6, '0')}-${String(startIndex + 9).padStart(6, '0')} · ${frames.length}/10 帧`,
     };
   }
 
@@ -1175,6 +1288,71 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         });
       } catch (error) {
         this.postEntitySaveError('spawn', message, error);
+      }
+    });
+  }
+
+  private enqueueNpcMove(message: MapPreviewMessage): void {
+    const sourceMapKey = this.currentMap?.key;
+    this.entitySaveQueue = this.entitySaveQueue.then(() => {
+      try {
+        if (!sourceMapKey || this.currentMap?.key !== sourceMapKey) throw new Error('当前地图已经切换');
+        const targetMapKey = String(message.npc?.targetMapKey || '');
+        const targetMap = this.maps.find(map => map.key === targetMapKey);
+        if (!targetMap) throw new Error('目标地图已经失效，请重新选择');
+        if (targetMap.key === sourceMapKey) throw new Error('NPC 已经位于当前地图');
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const envirDirectory = workspaceRoot ? findEnvirDirectory(workspaceRoot) : undefined;
+        const merchantPath = envirDirectory ? path.join(envirDirectory, 'Merchant.txt') : '';
+        if (!workspaceRoot || !envirDirectory || !merchantPath || !isFile(merchantPath)) {
+          throw new Error('未找到 Merchant.txt');
+        }
+        const lineNumber = Number(message.npc?.lineNumber);
+        let x = Number(message.npc?.x);
+        let y = Number(message.npc?.y);
+        const appearance = Number(message.npc?.appearance);
+        const engine = normalizeEngineId(
+          vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+        );
+        const layout = this.clientResourceLayout(engine);
+        const dimensions = findMapDimensions(
+          workspaceRoot,
+          [targetMap.originalMapId, targetMap.mapId],
+          layout?.mapRoots || []
+        );
+        if (dimensions) {
+          x = Math.max(0, Math.min(dimensions.width - 1, Math.round(x)));
+          y = Math.max(0, Math.min(dimensions.height - 1, Math.round(y)));
+        }
+        const decoded = decodeTextFile(fs.readFileSync(merchantPath));
+        const updated = updateMerchantNpc(
+          decoded.text,
+          lineNumber,
+          x,
+          y,
+          appearance,
+          targetMap.mapId
+        );
+        const iconText = typeof message.npc?.iconText === 'string'
+          ? message.npc.iconText
+          : undefined;
+        if (iconText !== undefined) validateNpcIconText(iconText, engine);
+        fs.writeFileSync(merchantPath, encodeTextFile(updated.text, decoded.encoding));
+        if (iconText !== undefined) saveNpcIconText(envirDirectory, updated.npc, engine, iconText);
+        this.pendingNpcReveal = {
+          mapKey: targetMap.key,
+          lineNumber: updated.npc.lineNumber,
+          x: updated.npc.x,
+          y: updated.npc.y,
+          displayName: updated.npc.displayName,
+        };
+        this.openMap(targetMap, false);
+      } catch (error) {
+        void this.panel?.webview.postMessage({
+          type: 'npcMoveError',
+          requestId: message.requestId,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
     });
   }

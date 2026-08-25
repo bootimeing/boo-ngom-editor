@@ -56,6 +56,7 @@ export interface ArchiveIndexSummary {
   storedWillIdx: number;
   slotCount: number;
   blockCount: number;
+  skippedMalformedCount?: number;
   createdAt: number;
   jpkRc4State?: string;
   wilColorCount?: number;
@@ -159,6 +160,7 @@ export async function openArchiveIndexed(
   let format: ArchiveFormat;
   let blocks: PakBlock[];
   let slotCount: number;
+  let skippedMalformedCount = 0;
   let jpkRc4State: string | undefined;
   let wilColorCount: number | undefined;
   let wilPaletteBgra: string | undefined;
@@ -202,7 +204,7 @@ export async function openArchiveIndexed(
       } catch (offlineError) {
         try {
           await options.ensureBridge?.();
-          const profile = await requestGeeProfile(options.password);
+          const profile = await requestGeeFileProfile(pakPath, options.password);
           parsed = parseGeeFile(parser, pakPath, stat.size, options.password, profile);
         } catch (bridgeError) {
           throw new Error(
@@ -218,6 +220,7 @@ export async function openArchiveIndexed(
       format = 'GOM';
       blocks = profile.blocks;
       slotCount = profile.slotCount;
+      skippedMalformedCount = profile.skippedMalformedIndices.length;
     } else {
       throw new Error('当前只支持具有精确逻辑索引的 GEEPAK2/GEEPAK3/GOM PAK、996PC JPK、WIL/WIX 和 WZL/WZX');
     }
@@ -255,6 +258,7 @@ export async function openArchiveIndexed(
     storedWillIdx: options.willIdx,
     slotCount,
     blockCount: blocks.length,
+    skippedMalformedCount,
     createdAt: Date.now(),
     jpkRc4State,
     wilColorCount,
@@ -270,7 +274,10 @@ export async function openArchiveIndexed(
   rememberIndexBuffer(indexCacheKey(options.indexRoot, archiveId), indexBuffer);
 
   const assets = createAssetsFromBlocks(summary, blocks, options.willIdx);
-  options.onProgress?.(slotCount, slotCount, `${summary.pakName}: 索引完成，共 ${slotCount} 项`);
+  const skippedNote = skippedMalformedCount > 0
+    ? `，跳过 ${skippedMalformedCount} 张异常素材`
+    : '';
+  options.onProgress?.(slotCount, slotCount, `${summary.pakName}: 索引完成，共 ${slotCount} 项${skippedNote}`);
   return summaryToResult(summary, cacheDir, assets, options.willIdx, false);
 }
 
@@ -305,6 +312,21 @@ async function requestGee2FileProfile(
       fileSize,
       (offset, length) => readExactly(handle, length, offset),
       password
+    );
+  } finally {
+    fs.closeSync(handle);
+  }
+}
+
+async function requestGeeFileProfile(
+  pakPath: string,
+  password: string
+): Promise<unknown> {
+  const handle = fs.openSync(pakPath, 'r');
+  try {
+    return await requestGeeProfile(
+      password,
+      readExactly(handle, 256, 10)
     );
   } finally {
     fs.closeSync(handle);
@@ -520,6 +542,7 @@ function summaryToResult(
     fromCache,
     storageMode: 'direct',
     archiveId: summary.archiveId,
+    skippedMalformedCount: summary.skippedMalformedCount || 0,
   };
 }
 

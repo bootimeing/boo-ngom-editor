@@ -301,8 +301,23 @@ function main() {
   );
   assert.match(
     extension,
-    /listCalledClientArchives[\s\S]*打开新的 \$\{archiveLabel\}\.\.\.[\s\S]*已经缓存的补丁 \$\{archiveLabel\}/,
-    'Open archive must list the new-file action before called cached patch archives'
+    /listCalledClientArchives[\s\S]{0,5000}pakIndex\.pakList[\s\S]{0,1000}selectPreferredArchiveFile/,
+    'Open archive must build its complete row list from EffectImageList order'
+  );
+  assert.match(
+    extension,
+    /description: cacheReady[\s\S]{0,500}: '未缓存'[\s\S]{0,500}problemsErrorIcon\.foreground/,
+    'uncached called resources must show an error-colored icon and the right-side 未缓存 status'
+  );
+  assert.match(
+    extension,
+    /if \(!selected\.cachedPak\)[\s\S]{0,300}quickPick\.selectedItems = \[\][\s\S]{0,100}return/,
+    'uncached resources must remain visible but cannot be accepted'
+  );
+  assert.doesNotMatch(
+    extension,
+    /function selectNewPakFiles|打开新的 \$\{archiveLabel\}/,
+    'the UI open-resource action must not bypass EffectImageList or Patch Manager caching'
   );
   assert.match(
     extension,
