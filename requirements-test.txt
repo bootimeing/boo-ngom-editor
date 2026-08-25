@@ -1,2 +1,3 @@
 # Python dependencies used only by source-level regression tests and CI.
 pycryptodome==3.23.0
+unicorn==2.1.4

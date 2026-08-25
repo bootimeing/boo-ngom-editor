@@ -15,7 +15,10 @@ BOO 自有源代码按根目录 `LICENSE` 中的 MIT License 发布。下列第�
 
 ## 测试依赖
 
-`requirements-test.txt` 固定 PyCryptodome 3.23.0，仅用于 PAK 密钥派生源码回归和 GitHub Actions，不进入 VSIX。该项目按其上游 BSD / Public Domain 声明使用。
+`requirements-test.txt` 固定以下源码测试依赖，仅用于 PAK 密钥派生回归和 GitHub Actions，不进入 VSIX：
+
+- PyCryptodome 3.23.0，按其上游 BSD / Public Domain 声明使用。
+- Unicorn 2.1.4，按其上游 BSD License 声明使用。
 
 ## Webview 组件
 
