@@ -1,5 +1,7 @@
 .vscode/**
 .vscode-test/**
+.pytest_cache/**
+test-artifacts/**
 .eslintcache
 eslint.config.*
 tests/**
@@ -91,6 +93,7 @@ data/backup-*/**
 docs/**
 *.md
 !README.md
+!THIRD_PARTY_NOTICES.md
 data/temp/**
 vscode-app-*.log
 *.txt

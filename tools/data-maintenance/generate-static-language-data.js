@@ -6,17 +6,17 @@ const { supplementalSayInterfaceEntries } = require('./say-interface-definitions
 const projectRoot = path.resolve(__dirname, '..', '..');
 const revision = '2026-08-24';
 const helpRoots = {
-  GOM: path.join(
+  GOM: process.env.BOO_GOM_HELP_ROOT || path.join(
     process.env.LOCALAPPDATA || '',
     'Temp',
     'boo-help-audit-gom-20260719'
   ),
-  GEE: path.join(
+  GEE: process.env.BOO_GEE_HELP_ROOT || path.join(
     process.env.LOCALAPPDATA || '',
     'Temp',
     'boo-help-audit-gee-20260719'
   ),
-  '996PC': path.join(
+  '996PC': process.env.BOO_996PC_HELP_ROOT || path.join(
     process.env.LOCALAPPDATA || '',
     'Temp',
     'boo-help-audit-20260723',
@@ -40,21 +40,27 @@ function variant(label, snippet, description, page, evidenceToken) {
 }
 
 function sharedSnippet(id, definition) {
+  const gomVariant = variant(
+    definition.label,
+    definition.snippet,
+    definition.description,
+    definition.gomPage
+  );
+  const geeVariant = variant(
+    definition.geeLabel || definition.label,
+    definition.geeSnippet || definition.snippet,
+    definition.geeDescription || definition.description,
+    definition.geePage
+  );
+  if (definition.markupAliases) {
+    gomVariant.markupAliases = [...definition.markupAliases];
+    geeVariant.markupAliases = [...definition.markupAliases];
+  }
   return {
     id,
     engineVariants: {
-      GOM: variant(
-        definition.label,
-        definition.snippet,
-        definition.description,
-        definition.gomPage
-      ),
-      GEE: variant(
-        definition.geeLabel || definition.label,
-        definition.geeSnippet || definition.snippet,
-        definition.geeDescription || definition.description,
-        definition.geePage
-      ),
+      GOM: gomVariant,
+      GEE: geeVariant,
     },
   };
 }
@@ -103,17 +109,23 @@ function saySnippets() {
       geePage: geeAbsolute,
     }),
     sharedSnippet('playimg-absolute', {
-      label: '<&PLAYIMG:F:N:C:T:X:Y>',
-      snippet: '<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}>',
-      description: '使用绝对坐标播放动态图片',
+      label: '<&PLAYIMG:F:N:C:T:X:Y:M:L:文字标题:R>',
+      snippet: '<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0/1)}:${8:播放次数}:${9:文字标题}:${10:素材坐标偏移(0/1)}>',
+      description: '使用绝对坐标播放动态图片，可设置绘制模式、次数、标题和素材坐标偏移',
       gomPage: gomAbsolute,
+      geeLabel: '<&PLAYIMG:F:N:C:T:X:Y:M:备注文字:P>',
+      geeSnippet: '<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0-3)}:${8:备注文字}:${9:输入框ID列表}>',
+      geeDescription: '使用绝对坐标播放动态图片，可设置绘制层、备注和提交输入框',
       geePage: geeAbsolute,
     }),
     sharedSnippet('playimgex-absolute', {
-      label: '<&PLAYIMGEX:F:N:C:T:H:X:Y>',
-      snippet: '<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}>',
-      description: '使用绝对坐标按指定次数播放动态图片',
+      label: '<&PLAYIMGEX:F:N:C:T:X:Y:M:L>',
+      snippet: '<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0/1)}:${8:播放次数}>',
+      description: '使用绝对坐标播放动态图片，可设置绘制模式和播放次数',
       gomPage: '游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm',
+      geeLabel: '<&PLAYIMGEX:F:N:C:T:H:X:Y:M:备注文字:P>',
+      geeSnippet: '<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}:${8:绘制模式(0-3)}:${9:备注文字}:${10:输入框ID列表}>',
+      geeDescription: '使用绝对坐标按指定次数播放动态图片，可设置绘制层、备注和提交输入框',
       geePage: geeIcons,
     }),
     sharedSnippet('text-absolute', {
@@ -153,11 +165,11 @@ function saySnippets() {
     }),
     sharedSnippet('item-show', {
       label: '<&ITEMSHOW:D:F:X:Y:B:G:R:H:T:S:W>',
-      snippet: '<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:称号模式}:${10:内观素材}:${11:物品特效}>',
+      snippet: '<&ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:称号模式}:${10:内观素材}:${11:物品特效}>',
       description: '使用绝对坐标显示物品图片和属性，可设置数量、背景框、灰化、对齐、内观素材与物品特效',
       gomPage: '游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm',
       geeLabel: '<&ITEMSHOW:D:F:X:Y:Z:W:G:U/@Label>',
-      geeSnippet: '<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>',
+      geeSnippet: '<&ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>',
       geeDescription: '使用绝对坐标显示物品图片和属性，可设置背景框、发光、灰化、数量单位和单击标签',
       geePage: '游戏引擎反外挂系统/部分脚本实例/NPC对话框调用装备信息.htm',
     }),
@@ -190,15 +202,19 @@ function saySnippets() {
       geePage: geeCountdown,
     }),
     sharedSnippet('image-number', {
-      label: '<&IMGNUM:N:VALUE:GAP:X:Y:D>',
-      snippet: '<&IMGNUM:${1:开始图片}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:方向}>',
-      description: '将数字转换为连续图片显示',
+      label: '<&IMGNUM:START:VALUE:GAP:X:Y:INPUTIDS>',
+      snippet: '<&IMGNUM:${1:开始图片}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:提交输入框ID}>',
+      description: '从 NewopUI 起始图片后的 0-9 数字素材显示数值，可提交指定输入框 ID',
       gomPage: '游戏引擎反外挂系统/游戏功能详解/NPC对话框数字转图片.htm',
+      geeLabel: '<&IMGNUM:TYPE:VALUE:GAP:X:Y:INPUTIDS>',
+      geeSnippet: '<&IMGNUM:${1:数字类型(0-9)}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:提交输入框ID}>',
+      geeDescription: '使用 NewopUI 1230-1329 中指定数字类型的素材显示数值，可提交指定输入框 ID',
       geePage: '游戏引擎反外挂系统/游戏功能详解/数字转换为图片显示标签.htm',
     }),
     sharedSnippet('progress-bar', {
-      label: '<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>',
-      snippet: '<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>',
+      label: '<ProgressBar:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>',
+      snippet: '<ProgressBar:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>',
+      markupAliases: ['<&PROGRESSBAR'],
       description: '显示动态进度条',
       gomPage: '游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm',
       geePage: '游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm',
@@ -217,6 +233,7 @@ function saySnippets() {
   const pcItemShow = '游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm';
   const pcText = '游戏引擎反外挂系统/游戏功能详解/设置NPC文字坐标.htm';
   const pcParams = '游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm';
+  const pcCountdown = '游戏引擎反外挂系统/新增功能/NPC面板倒计时.htm';
   const set996 = (id, value) => {
     const entry = entries.find(candidate => candidate.id === id);
     if (!entry) throw new Error(`Missing SAY snippet for 996PC variant: ${id}`);
@@ -257,7 +274,7 @@ function saySnippets() {
   ));
   set996('item-show', variant(
     '<ITEMSHOW:D:F:X:Y:B>',
-    '<ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:显示背景(0/1)}>',
+    '<ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:显示背景(0/1)}>',
     '显示物品图片并在悬停时显示属性',
     pcItemShow
   ));
@@ -272,6 +289,12 @@ function saySnippets() {
     '<INPUTNUM:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小值}:${10:最大值}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>',
     '创建数字输入框',
     pcInput
+  ));
+  set996('countdown', variant(
+    '<COUNTDOWN:S:C:COLOR:X:Y/@LABEL>',
+    '<COUNTDOWN:${1:秒数}:${2:次数}:${3:颜色}:${4:X}:${5:Y}/@${6:触发标签}>',
+    '显示文字倒计时并在结束时触发脚本',
+    pcCountdown
   ));
   entries.push(
     {

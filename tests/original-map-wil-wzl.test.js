@@ -6,7 +6,11 @@ const zlib = require('node:zlib');
 
 const { openArchiveIndexed, readArchiveImagePng } = require('../out/utils/archive-index');
 const { scanClientArchiveFiles } = require('../out/utils/client-resources');
-const { collectOriginalMapViewport, parseOriginalMap } = require('../out/utils/original-map');
+const {
+  collectOriginalMapViewport,
+  originalMapAnimationFrameReferences,
+  parseOriginalMap,
+} = require('../out/utils/original-map');
 const {
   invalidatePatchCacheIndex,
   loadCachedPatchAssetTable,
@@ -24,18 +28,21 @@ function buildPairIndex(count, offsets) {
 
 function buildWil(wilPath, wixPath) {
   const header = Buffer.alloc(56 + 1024);
-  header.writeUInt32LE(1, 44);
+  header.writeUInt32LE(3, 44);
   header.writeUInt32LE(256, 48);
   header.writeUInt32LE(1024, 52);
   header.set([0, 0, 255, 0], 56 + 4);
-  const frame = Buffer.alloc(9);
-  frame.writeUInt16LE(1, 0);
-  frame.writeUInt16LE(1, 2);
-  frame.writeInt16LE(-7, 4);
-  frame.writeInt16LE(9, 6);
-  frame[8] = 1;
-  fs.writeFileSync(wilPath, Buffer.concat([header, frame]));
-  fs.writeFileSync(wixPath, buildPairIndex(1, [header.length]));
+  const firstFrame = Buffer.alloc(9);
+  firstFrame.writeUInt16LE(1, 0);
+  firstFrame.writeUInt16LE(1, 2);
+  firstFrame.writeInt16LE(-7, 4);
+  firstFrame.writeInt16LE(9, 6);
+  firstFrame[8] = 1;
+  const thirdFrame = Buffer.from(firstFrame);
+  thirdFrame.writeInt16LE(-5, 4);
+  thirdFrame.writeInt16LE(11, 6);
+  fs.writeFileSync(wilPath, Buffer.concat([header, firstFrame, thirdFrame]));
+  fs.writeFileSync(wixPath, buildPairIndex(3, [header.length, 0, header.length + firstFrame.length]));
 }
 
 function buildWzl(wzlPath, wzxPath) {
@@ -61,9 +68,15 @@ function buildMap() {
   const data = Buffer.alloc(52 + width * height * cellSize);
   data.writeUInt16LE(width, 0);
   data.writeUInt16LE(height, 2);
+  data[4] = 0x0f;
+  data.write('Legend of mir', 5, 'ascii');
+  data[18] = 0x0d;
+  data[19] = 0x0a;
   const offset = 52;
   data.writeUInt16LE(1, offset);
   data.writeUInt16LE(1, offset + 4);
+  data[offset + 8] = 0x83;
+  data[offset + 9] = 1;
   data[offset + 10] = 1;
   return data;
 }
@@ -115,8 +128,19 @@ async function main() {
       bottom: 1,
     });
     assert.deepEqual(
-      references.map(reference => [reference.archiveName, reference.imageIndex]),
-      [['Tiles', 0], ['Objects2', 0]]
+      references.map(reference => [
+        reference.archiveName,
+        reference.imageIndex,
+        reference.animationFrame,
+        reference.animationTick,
+      ]),
+      [['Tiles', 0, 0, 0], ['Objects2', 0, 0x83, 1]]
+    );
+    const animationFrames = originalMapAnimationFrameReferences(references[1]);
+    assert.deepEqual(
+      animationFrames.map(reference => [reference.archiveName, reference.imageIndex]),
+      [['Objects2', 0], ['Objects2', 1], ['Objects2', 2]],
+      'MAP object animation must retain consecutive WIL slots, including a blank timing frame'
     );
 
     const tiles = resolveCachedPatchArchiveByName(
@@ -137,6 +161,9 @@ async function main() {
     assert.equal(tiles.pak.format, 'WZL');
     assert.equal(objects.status, 'ready');
     assert.equal(objects.pak.format, 'WIL');
+    const objectAssets = loadCachedPatchAssetTable(objects.pak);
+    assert.equal(objectAssets.slotCount, 3);
+    assert.deepEqual([...objectAssets.blank], [0, 1, 0]);
     assert.deepEqual(
       [
         loadCachedPatchAssetTable(tiles.pak).offsetX[0],
@@ -146,10 +173,12 @@ async function main() {
     );
     assert.deepEqual(
       [
-        loadCachedPatchAssetTable(objects.pak).offsetX[0],
-        loadCachedPatchAssetTable(objects.pak).offsetY[0],
+        objectAssets.offsetX[0],
+        objectAssets.offsetY[0],
+        objectAssets.offsetX[2],
+        objectAssets.offsetY[2],
       ],
-      [-7, 9]
+      [-7, 9, -5, 11]
     );
     assertPng(await readArchiveImagePng({
       extensionPath,
@@ -162,6 +191,18 @@ async function main() {
       indexRoot,
       archiveId: objects.pak.archiveId,
       imageIndex: 0,
+    }));
+    assertPng(await readArchiveImagePng({
+      extensionPath,
+      indexRoot,
+      archiveId: objects.pak.archiveId,
+      imageIndex: 1,
+    }));
+    assertPng(await readArchiveImagePng({
+      extensionPath,
+      indexRoot,
+      archiveId: objects.pak.archiveId,
+      imageIndex: 2,
     }));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

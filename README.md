@@ -1,8 +1,15 @@
-# BOO 可视化编辑器 V4.3.3
+# BOO 可视化编辑器 V4.3.4
 
 面向传奇 GM、版本制作人员和脚本开发者的一体化 Visual Studio Code 扩展。
 
-支持 NGOM（922G/GOM）、翎风（GEE）和 996PC。将脚本开发、UI 制作、客户端资源读取、数据库维护、地图预览、脚本同步和 M2 在线重载集中在同一个工作环境中。
+支持 NGOM（922G/GOM）、翎风（GEE）和 996PC。将脚本开发、UI 制作、客户端资源读取、数据库维护、地图预览、脚本同步、M2 在线重载和本地 AI 助手集中在同一个工作环境中。
+
+## V4.3.4 更新重点
+
+- Ctrl+F12 独立面板扩展为按引擎解析主对话框背景、AddDlg 子窗口、文字、图片、按钮、输入、菜单/ListView、物品、进度与动画；动态字段逐项安全退化，不再用一个通用占位覆盖整个控件。
+- `ITEMSHOW` 严格按当前引擎物品数据库的 `IDX` 查询 `Looks`，再定位 `Items/ItemsN` 素材；动态编号、数据库歧义或过期缓存不会被猜成图片序号。
+- 原始地图改为按可视区域分批加载与邻区预取，静态 Tiles/SmTiles 使用持久瓦片缓存；已验证的 GOM MAP profile 增加 Objects 动画、bit7 DrawBlend 和永久 `MAPEFFECT` 保守预览。
+- 新增静态 `SETONTIMER`、`ADDBUTTON` 与新 GOM `ADDDLG` 回调目标跳转，并补齐严格浏览器回归和 VSIX 包内运行闭包检查。
 
 ## 功能总览
 
@@ -29,6 +36,7 @@
 - `CHECKTEXTLIST`、`#CALL`、`#CALLEX`、`#INCLUDE` 等相对路径支持 `Ctrl+左键` 跳转。
 - 目标脚本不存在时，可以在点击后确认创建空白文本。
 - `AutoRunRobot.txt` 中的 `@函数` 可以跳转到 `RobotManage.txt` 中的对应定义。
+- 静态 `SETONTIMER ID` 可以跳到同一服务端 `QManage.txt` 的 `[@OnTimerID]`；`ADDBUTTON ID` 与新 GOM `ADDDLG` 的直接 `@QF` 目标优先查找 `QFunction-0.txt`，未命中时再查同一 `Envir` 下的 `QuestDiary`。动态或越界参数不会被猜测为回调。
 - 支持特殊字符标签、跨文件标签、Robot 定时脚本函数和默认引擎标签。
 
 #### 审查与快速修复
@@ -56,26 +64,32 @@
 
 ### UI 可视化编辑器
 
+#### 常规 UI 编辑器
+
 - 支持图片、文字、三态按钮、特效动画、倒计时、文本框、数字框、关闭按钮、装备框和进度条。
 - 支持拖动布局、属性编辑、缩放、平移、多选、复制、粘贴、删除和方向键微调。
 - 支持 NPC 脚本与可视化画布双向联动，并生成对应 UI 代码。
+
+#### Ctrl+F12 NPC 对话画布
+
 - 在 NPC 脚本当前 `[@函数]` 中按 `Ctrl+F12`，可以打开独立的 NPC 界面可视化面板；该面板与原 UI 编辑器互不影响。
-- 独立面板支持预览默认 `#SAY`、条件分支和 `#ELSESAY`，切换多个条件组合，解析可确定的脚本变量，并用鼠标拖动、方向键、属性输入、撤销和重做微调控件。
-- 应用或保存时只回写对应控件的坐标数字；相对坐标按当前引擎的 NPC 文字修正值显示，带 `&` 的绝对坐标不叠加修正。
-- 支持传统 PNG 素材目录，以及 PAK、JPK、WIL、WZL 资源预览。
-- WIL/WZL 当前提供只读预览，读取配套索引文件并保留原始图片序号和偏移。
-- “打开资源包”会按照 `EffectImageList.txt` 行序列出当前服务端调用的全部资源；已缓存项可以打开，未缓存项以红色状态显示且不可选择。
-- 支持同时打开多个已缓存资源包、历史记录、单包关闭和重新读取，资源标签继续按照 `EffectImageList.txt` 的调用顺序显示。
-- 保留空白图片槽位，素材名称统一显示为六位序号，避免图片位置错乱。
+- 独立面板按当前引擎解析主对话框背景、AddDlg 子窗口，以及文字、图片、按钮、Input、MenuItem/ListView、ITEMSHOW、进度和动画等可确定控件；支持预览默认 `#SAY`、条件分支和 `#ELSESAY`，并切换多个条件组合。
+- 动态字段逐项显示：未知文字使用“预览文字”，未知显示数值使用 `0`；这些显示占位不会解锁素材、数据库、坐标、进度、动画、计时或动作参数。
+- `ITEMSHOW` 首参数按当前引擎物品数据库 `IDX` 查询 `Looks`，再定位 `Items/ItemsN` 包内槽；数据库歧义、动态 IDX、过期或缺失缓存会明确拒绝，不把 IDX 直接当图片号。
+- 点击、输入、滚动、计时、动画和 `@` 标签只在 Webview 内本地预览，不提交服务器、不执行脚本标签，也不刷新真实客户端。
+- 可用鼠标拖动、方向键、属性输入、撤销和重做微调控件。传统 positional 文字使用已验证的 `4px` 绘制偏差，非文字控件按对话框逻辑原点显示；应用或保存时只逆写可直接定位的坐标数字。
 
 ### 客户端与补丁管理
 
 - 按工作区绑定传奇客户端目录，不同服务端工作区可以使用不同客户端。
 - 自动识别客户端 `Data`、`Map`、`Wav`、`Graphics` 及自定义补丁目录。
 - 客户端中存在多个自定义补丁时，可输入并保存当前工作区使用的补丁文件夹名，中文和英文名称均可识别。
+- 支持传统 PNG 素材目录，以及 PAK、JPK、WIL、WZL 资源预览；WIL/WZL 当前只读，并保留配套索引中的原始图片序号和偏移。
+- “打开资源包”按照 `EffectImageList.txt` 行序列出当前服务端调用的全部资源；已缓存项可以打开，未缓存项以红色状态显示且不可选择。
+- 支持同时打开多个已缓存资源包、历史记录、单包关闭和重新读取；保留空白图片槽位，素材名称统一显示为六位序号，避免位置错乱。
 - 同名资源优先读取自定义补丁，缺少时再读取客户端原始资源。
 - 支持 GOM/翎风 PAK、WIL、WZL，以及 996PC JPK 资源。
-- 支持读取需求资源或读取全部资源。日常默认只检测已调用素材、`items` 系列、`mmap10` 和原始地图所需的 `npc` 至 `npc4`。
+- 支持读取需求资源或读取全部资源。日常默认检测 `EffectImageList.txt` 已调用素材、`items` 至 `items9`、`mmap10`、原始地图所需的 `npc` 至 `npc4` 和 `SafePointEffect`。
 - 自动适配 `Pak.txt`、`JpkList.txt` 中的资源路径，并支持单个资源修改密码和重新读取。
 - 通过文件指纹判断资源是否变化，未变化时直接复用索引，变化后重新建立索引。
 - 已缓存资源由 UI 编辑器、数据库、小地图和原始地图共同使用。
@@ -106,7 +120,9 @@
 - 标识可以拖动、方向键微调、增加或删除，并自动保存到原始文件。
 - 每个工作区会记住标识文件路径，下次启动自动重新读取。
 - 原始地图模式按照 MAP 引用的 Tiles、SmTiles 和 Objects 绘制完整地图，支持 PAK、JPK、WIL、WZL 素材。
-- 原始地图首次读取显示进度，完成后缩放和平移直接复用已加载内容。
+- 原始地图按当前可视区域分批请求并预取；Tiles/SmTiles 静态底层合成为 16×16 格持久瓦片，命中缓存时不再重复发送静态底层摆放数据，Objects、MAP 动画与永久 `MAPEFFECT` 仍按视口动态绘制。
+- 对已验证的 GOM MAP profile，Objects 支持内嵌连续帧动画与 bit7 DrawBlend（SourceAlpha + One）；未验证的控制字节按普通首帧显示，不扩展猜测到其他 profile。
+- 可保守预览 `QManage.txt` 的 `[@Startup]` 中静态可达、全员可见且无限循环的永久 `MAPEFFECT`。它表示脚本定义，不代表 M2 当前实时状态；条件、动态参数、非零可见范围或未验证绘制模式会跳过并提示。
 - 原始地图显示 `Merchant.txt` 中的 NPC 和 `MonGen.txt` 中的刷怪信息，不显示小地图标识编辑器。
 - 原始地图中的官方 NPC 使用客户端原始正面动画：优先读取自定义补丁 `npc` 至 `npc4` 的 PAK/JPK，未提供对应包时再读取客户端 WZL/WIL，并保留素材原始偏移。
 - NPC 名称按照游戏显示规则居中定位，名称中的 `\` 会按游戏顺序拆分为多行。
@@ -145,7 +161,27 @@
 - 常用命令、脚本片段、脚本模板和 ANIS 特殊符号。
 - 变量列表、数据库查看器和地图查看器快捷入口。
 - 编辑器右上角“快捷文件”可打开常用服务端文件，并按工作区添加或移除 Mir200 相对路径。
-- 左侧活动栏最下方“DeepSeek”按钮，点击后在右侧拆分编辑器打开 DeepSeek Harness AI 助手，支持自备 API Key。
+
+### DeepSeek Harness AI 助手
+
+- 左侧活动栏提供独立 DeepSeek 入口，点击后在右侧拆分编辑器打开本机 DeepSeek Harness。
+- 可复用已经运行的本机 Harness，或按配置尝试启动；API Key 保留在 Harness 自己的设置中。
+- 左侧视图保持为轻量启动卡，不把完整聊天界面挤在侧边栏内。
+
+## 安装
+
+已经取得 VSIX 时，在 VS Code 扩展视图右上角选择“从 VSIX 安装…”，选中 `boo-ngom-editor-4.3.4.vsix`，安装完成后重新加载窗口。
+
+从源代码构建时，先安装 Node.js 20 与 Python 3.12，再运行：
+
+```powershell
+npm ci
+python -m pip install -r requirements-test.txt
+npm run test:all
+npm run package
+```
+
+本地安装包生成在 `artifacts/releases/vscode-marketplace/`。发布前还应解包并运行 `npm run verify:packaged-dependencies -- "<解包后的 extension 目录>"`。
 
 ## 使用方法
 
@@ -153,7 +189,7 @@
 
 使用 VS Code 打开传奇服务端根目录。扩展会尝试识别当前引擎；需要手动调整时，点击状态栏引擎名称或运行“BOO: 切换引擎”。
 
-按 `Ctrl+Shift+P` 并输入“BOO”，可以查看扩展提供的全部命令。
+按 `Ctrl+Shift+P` 并输入“BOO”，可以查看主要 BOO 命令；DeepSeek、快捷文件与全部保存也可以从对应入口使用。
 
 ### 使用 DeepSeek AI 助手
 
@@ -201,7 +237,7 @@ SQLite 可以修改字段结构；MDB 当前只读；996PC XLS 支持记录编�
 
 打开 `.map` 文件可以使用地图查看器。左侧“地图预览”用于浏览 MapInfo 地图、导入标识和切换“预览地图/原始地图”。
 
-预览地图用于编辑小地图标识；原始地图用于查看和调整 NPC、刷怪点及真实地图素材。原始地图首次打开需要等待资源读取完成。
+预览地图用于编辑小地图标识；原始地图用于查看和调整 NPC、刷怪点及真实地图素材。原始地图先加载当前可视区域，平移到未缓存区域时会继续请求并显示进度。
 
 在原始地图中点击 NPC 后，右侧 NPC 编辑器可以修改坐标、外观编号和顶戴文本。修改会自动保存到 `Merchant.txt` 或对应的 `Envir\NpcIcons` 文件，并在地图上重新读取最新外观与顶戴。
 
@@ -286,6 +322,7 @@ MDB 当前只支持查看。SQLite 与 996PC XLS 需要写入权限，并且不�
 ## 开源与开发
 
 - 源代码：[GitHub - bootimeing/boo-ngom-editor](https://github.com/bootimeing/boo-ngom-editor)
+- 版本记录：[CHANGELOG.md](CHANGELOG.md)
 - 开源许可：[MIT License](LICENSE)
 - 第三方组件与资源：[第三方声明](https://github.com/bootimeing/boo-ngom-editor/blob/main/THIRD_PARTY_NOTICES.md)
 - 问题反馈：[GitHub Issues](https://github.com/bootimeing/boo-ngom-editor/issues)

@@ -13,6 +13,7 @@ const rootVsix = fs.readdirSync(root).filter(name => name.toLowerCase().endsWith
 assert.deepEqual(rootVsix, [], 'VSIX release files must stay under artifacts/releases');
 
 for (const relativePath of [
+  'CHANGELOG.md',
   'artifacts/README.md',
   'data/README.md',
   'docs/README.md',
@@ -21,7 +22,13 @@ for (const relativePath of [
   'docs/plans/PERFORMANCE_OPTIMIZATION_PLAN.md',
   'docs/reports/CODE_CLEANUP_AUDIT.md',
   'docs/reports/ENGINE_HELP_AUDIT.md',
+  'docs/reports/NPC_DIALOG_ACT_UI_EVIDENCE_2026-08-31.md',
+  'docs/reports/NPC_DIALOG_RENDERING_REPAIR_2026-09-04.md',
   'docs/reports/THREE_ENGINE_COMPARISON.md',
+  'docs/reports/XIAMI1_BOO_BORROWING_REPORT_2026-09-04.md',
+  'docs/reports/XIAMI1_SECURITY_SUPPLEMENT_2026-09-04.md',
+  'docs/reports/assets/ctrl-f12-main-dialog-origin-v4.3.4.png',
+  'docs/reports/assets/ctrl-f12-real-rank-v4.3.4.png',
   'docs/releases/OPENVSX_FIRST_PUBLISH.md',
   'tools/release/package-vsix.js',
   'tools/release/verify-packaged-dependencies.js',
@@ -44,6 +51,9 @@ for (const obsoletePath of [
   'artifacts/verification',
   '996PC_INTEGRATION_PLAN.md',
   'CODE_CLEANUP_AUDIT.md',
+  'CTRL_F12_ACT_UI_EVIDENCE.md',
+  'CTRL_F12_RENDERING_REPAIR_REPORT.md',
+  'XIAMI1_BORROWING_AUDIT_REPORT.md',
 ]) {
   assert.ok(!exists(obsoletePath), `Legacy project path still exists: ${obsoletePath}`);
 }
@@ -56,6 +66,11 @@ assert.equal(
 
 const vscodeIgnore = fs.readFileSync(path.join(root, '.vscodeignore'), 'utf8');
 assert.match(vscodeIgnore, /^artifacts\/\*\*$/m, 'artifacts must never be included in a VSIX');
+assert.match(vscodeIgnore, /^!THIRD_PARTY_NOTICES\.md$/m, 'third-party notices must be included in a VSIX');
+
+const gitIgnore = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
+assert.match(gitIgnore, /^\.pytest_cache\/$/m, 'pytest cache must stay out of Git');
+assert.match(gitIgnore, /^test-artifacts\/$/m, 'generated test artifacts must stay out of Git');
 
 const releaseRoot = path.join(root, 'artifacts', 'releases');
 if (fs.existsSync(releaseRoot)) {

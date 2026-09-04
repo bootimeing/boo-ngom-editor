@@ -1,6 +1,10 @@
 import { NestedVariableAnalysisOptions } from '../utils/nested-variable-analysis';
 import { normalizeScriptVariableName } from '../utils/variable-statistics';
-import { DialogResolvedVariable } from './model';
+import { EngineId } from '../types';
+import {
+  DialogResolvedVariable,
+  DialogVariableSourceReference,
+} from './model';
 
 const VARIABLE_NAME = /^(?:[PDMNSIGAUTJZ]\d+|(?:GL|[NSLD])\$[A-Za-z0-9_\u3400-\u9fff]+)$/i;
 const MAX_EXECUTION_DEPTH = 48;
@@ -18,9 +22,12 @@ interface ScriptFunction {
 
 interface RuntimeValue {
   value: string;
+  previewValue?: string;
   complete: boolean;
+  staticValueSource?: 'database-item-index';
   sourceLabel?: string;
   sourceLine?: number;
+  sourceReferences?: DialogVariableSourceReference[];
   dependencies?: DialogResolvedVariable[];
 }
 
@@ -29,9 +36,20 @@ interface TemplateResult {
   complete: boolean;
 }
 
+interface ResolveTemplateOptions {
+  previewUnknownText?: boolean;
+}
+
 interface LabelExecution {
   snapshots: Map<number, Map<string, RuntimeValue>>;
   finalValues: Map<string, RuntimeValue>;
+}
+
+interface RuntimeFileEffects {
+  /** Paths whose on-disk bytes may be replaced by an earlier runtime command. */
+  invalidatedListPaths: Set<string>;
+  /** A dynamic output path can alias any later list read, so fail closed. */
+  unknownListWrite: boolean;
 }
 
 export interface DialogResolvedLine {
@@ -51,6 +69,7 @@ export interface DialogVariableResolution {
 export interface ResolveDialogVariablesOptions {
   rootLabel: string;
   targetLabels: readonly string[];
+  engine: EngineId;
   conditionStates?: Readonly<Record<string, boolean>>;
   dataOptions?: NestedVariableAnalysisOptions;
 }
@@ -71,6 +90,10 @@ export function resolveDialogVariables(
     const target = byName.get(targetName);
     if (!target) continue;
     const environment = new Map<string, RuntimeValue>();
+    const fileEffects: RuntimeFileEffects = {
+      invalidatedListPaths: new Set(),
+      unknownListWrite: false,
+    };
     const snapshotsByLabel = new Map<string, Map<number, Map<string, RuntimeValue>>>();
     executeFunction(
       root.label,
@@ -79,6 +102,7 @@ export function resolveDialogVariables(
       snapshotsByLabel,
       options,
       warnings,
+      fileEffects,
       []
     );
     if (!snapshotsByLabel.has(targetName)) {
@@ -92,6 +116,7 @@ export function resolveDialogVariables(
           snapshotsByLabel,
           options,
           warnings,
+          fileEffects,
           []
         );
       }
@@ -104,6 +129,7 @@ export function resolveDialogVariables(
         snapshotsByLabel,
         options,
         warnings,
+        fileEffects,
         []
       );
     }
@@ -164,6 +190,7 @@ function executeFunction(
   snapshotsByLabel: Map<string, Map<number, Map<string, RuntimeValue>>>,
   options: ResolveDialogVariablesOptions,
   warnings: string[],
+  fileEffects: RuntimeFileEffects,
   stack: string[]
 ): void {
   const label = normalizeLabel(rawLabel);
@@ -214,28 +241,55 @@ function executeFunction(
     if (!trimmed || trimmed.startsWith(';') || trimmed.startsWith('//')) continue;
     if (collectingConditions) {
       conditionCount++;
+      const conditionCommand = parseConditionCommand(trimmed);
+      if (conditionCommand) {
+        invalidateConditionRuntimeOutputs(
+          conditionCommand.name,
+          conditionCommand.rest,
+          options.engine,
+          environment,
+          section.label,
+          line.lineNumber
+        );
+      }
       continue;
     }
     if (!actionEnabled) continue;
     const command = parseCommand(trimmed);
     if (!command) continue;
     if (command.name === 'GOTO') {
-      const target = cleanTargetLabel(command.rest.split(/\s+/)[0] || '');
-      if (target.startsWith('@')) {
+      const invocation = parseGotoInvocation(command.rest);
+      const returnTargets = (invocation?.returnTargets || [])
+        .map(rawTarget => resolveRuntimeOutputTarget(rawTarget, environment))
+        .filter((target): target is string => target !== undefined);
+      if (invocation?.target.startsWith('@')) {
         executeFunction(
-          target,
+          invocation.target,
           byName,
           environment,
           snapshotsByLabel,
           options,
           warnings,
+          fileEffects,
           nextStack
         );
       }
+      for (const target of returnTargets) {
+        setUnknownRuntimeValue(environment, target, section.label, line.lineNumber);
+      }
       continue;
     }
-    if (command.name === 'BREAK') break;
-    executeAssignment(command.name, command.rest, environment, options, section.label, line.lineNumber);
+    if (command.name === 'BREAK' || command.name === 'RETURN') break;
+    executeAssignment(
+      command.name,
+      command.rest,
+      environment,
+      options,
+      warnings,
+      fileEffects,
+      section.label,
+      line.lineNumber
+    );
   }
 }
 
@@ -244,9 +298,25 @@ function executeAssignment(
   rest: string,
   environment: Map<string, RuntimeValue>,
   options: ResolveDialogVariablesOptions,
+  warnings: string[],
+  fileEffects: RuntimeFileEffects,
   sourceLabel: string,
   sourceLine: number
 ): void {
+  if (command === 'MIRRORMAPTIME' && (options.engine === 'GOM' || options.engine === '996PC')) {
+    // Both documented implementations write the newly-created mirror map id
+    // through the implicit D99 channel. It is runtime state, never a reusable
+    // static database IDX capability.
+    setUnknownRuntimeValue(environment, 'D99', sourceLabel, sourceLine);
+    return;
+  }
+
+  const listOutputPaths = runtimeListWriterOutputPaths(command, rest, environment);
+  if (listOutputPaths) {
+    if (listOutputPaths.length === 0) fileEffects.unknownListWrite = true;
+    for (const path of listOutputPaths) fileEffects.invalidatedListPaths.add(path);
+    return;
+  }
   if (command === 'MOV' || command === 'INC' || command === 'DEC'
     || command === 'MUL' || command === 'DIV') {
     const split = splitFirstArgument(rest);
@@ -255,6 +325,12 @@ function executeAssignment(
     if (!target) return;
     const references = new Map<string, DialogResolvedVariable>();
     const value = resolveTemplate(split.remainder, environment, references);
+    const preview = resolveTemplate(
+      split.remainder,
+      environment,
+      undefined,
+      { previewUnknownText: true }
+    );
     const current = environment.get(target) || {
       value: defaultVariableValue(target),
       complete: false,
@@ -262,31 +338,45 @@ function executeAssignment(
     let next = value.value === '' && !isStringVariable(target)
       ? defaultVariableValue(target)
       : value.value;
+    let nextPreview = preview.value === '' && !isStringVariable(target)
+      ? defaultVariableValue(target)
+      : preview.value;
     let complete = value.complete;
     if (command === 'INC') {
       if (isStringVariable(target) || !isFiniteNumber(current.value) || !isFiniteNumber(value.value)) {
         next = current.value + value.value;
+        nextPreview = (current.previewValue ?? current.value) + preview.value;
       } else {
         next = String(Number(current.value) + Number(value.value));
+        nextPreview = next;
       }
       complete = current.complete && value.complete;
     } else if (command === 'DEC' || command === 'MUL' || command === 'DIV') {
       if (!isFiniteNumber(current.value) || !isFiniteNumber(value.value)
         || (command === 'DIV' && Number(value.value) === 0)) {
         next = defaultVariableValue(target);
+        nextPreview = next;
         complete = false;
       } else {
         const left = Number(current.value);
         const right = Number(value.value);
         next = String(command === 'DEC' ? left - right : command === 'MUL' ? left * right : left / right);
+        nextPreview = next;
         complete = current.complete && value.complete;
       }
     }
     environment.set(target, {
       value: next,
+      previewValue: nextPreview,
       complete,
       sourceLabel,
       sourceLine: sourceLine + 1,
+      sourceReferences: command === 'MOV'
+        ? [{ sourceLabel, sourceLine: sourceLine + 1 }]
+        : mergeSourceReferences(
+          runtimeSourceReferences(current),
+          [{ sourceLabel, sourceLine: sourceLine + 1 }]
+        ),
       dependencies: command === 'MOV'
         ? [...references.values()]
         : mergeDependencies(current.dependencies, [...references.values()]),
@@ -337,6 +427,13 @@ function executeAssignment(
   }
 
   const parts = splitArguments(rest);
+  const unknownOutputTargets = unmodeledRuntimeOutputTargets(command, parts, environment);
+  if (unknownOutputTargets) {
+    for (const target of unknownOutputTargets) {
+      setUnknownRuntimeValue(environment, target, sourceLabel, sourceLine);
+    }
+    return;
+  }
   if (command === 'READCONFIGFILEITEM' && parts.length >= 4) {
     const target = resolveTarget(parts[3], environment);
     if (!target) return;
@@ -358,7 +455,10 @@ function executeAssignment(
 
   if (command === 'GETLISTSTRING' && parts.length >= 3) {
     const filePath = resolveTemplate(parts[0], environment);
-    const list = options.dataOptions?.resolveListData?.({ path: filePath.value });
+    const invalidated = listReadWasInvalidated(filePath, fileEffects);
+    const list = invalidated
+      ? undefined
+      : options.dataOptions?.resolveListData?.({ path: filePath.value });
     const rowValue = resolveTemplate(parts[1], environment);
     const row = Number(rowValue.value);
     const targets = parts.slice(2)
@@ -376,6 +476,11 @@ function executeAssignment(
         sourceLine: sourceLine + 1,
       });
     });
+    if (invalidated) {
+      warnings.push(
+        `列表 ${filePath.value || parts[0]} 在读取前会被运行时命令改写；Ctrl+F12 已禁止借用磁盘旧快照`
+      );
+    }
     return;
   }
 
@@ -384,7 +489,10 @@ function executeAssignment(
     const rowValue = resolveTemplate(parts[1], environment);
     const target = resolveTarget(parts[2], environment);
     if (!target) return;
-    const list = options.dataOptions?.resolveListData?.({ path: filePath.value });
+    const invalidated = listReadWasInvalidated(filePath, fileEffects);
+    const list = invalidated
+      ? undefined
+      : options.dataOptions?.resolveListData?.({ path: filePath.value });
     const row = Number(rowValue.value);
     const line = Number.isInteger(row) && row >= 0 ? list?.lines[row] : undefined;
     const complete = filePath.complete && rowValue.complete && list?.complete === true && line !== undefined;
@@ -394,6 +502,11 @@ function executeAssignment(
       sourceLabel,
       sourceLine: sourceLine + 1,
     });
+    if (invalidated) {
+      warnings.push(
+        `列表 ${filePath.value || parts[0]} 在读取前会被运行时命令改写；Ctrl+F12 已禁止借用磁盘旧快照`
+      );
+    }
     return;
   }
 
@@ -469,10 +582,13 @@ function executeAssignment(
   }
 
   if (command === 'GETDBITEMFIELDVALUE' && parts.length >= 3) {
-    const target = resolveTarget(parts[parts.length - 1], environment);
+    const rawTarget = parts[parts.length - 1];
+    const target = resolveTarget(rawTarget, environment);
     if (!target) return;
-    const itemName = resolveTemplate(parts[0], environment);
-    const field = resolveTemplate(parts.slice(1, -1).join(' '), environment);
+    const rawItemName = parts[0];
+    const rawField = parts.slice(1, -1).join(' ');
+    const itemName = resolveTemplate(rawItemName, environment);
+    const field = resolveTemplate(rawField, environment);
     const result = itemName.complete && field.complete
       ? options.dataOptions?.resolveDatabaseField?.({
         itemName: itemName.value,
@@ -482,6 +598,13 @@ function executeAssignment(
     environment.set(target, {
       value: result?.complete ? result.value : defaultVariableValue(target),
       complete: result?.complete === true,
+      ...(result?.complete === true
+        && parts.length === 3
+        && !/<\$/i.test(rawItemName)
+        && rawField.trim().toUpperCase() === 'IDX'
+        && VARIABLE_NAME.test(rawTarget.trim())
+        ? { staticValueSource: 'database-item-index' as const }
+        : {}),
       sourceLabel,
       sourceLine: sourceLine + 1,
     });
@@ -513,7 +636,52 @@ function executeAssignment(
       sourceLabel,
       sourceLine: sourceLine + 1,
     });
+    return;
   }
+
+  // Unknown commands are a capability boundary. A raw standalone variable may
+  // be an undocumented output target, so revoke an existing database IDX value
+  // conservatively. Embedded input expressions such as <$STR(N$IDX)> are not
+  // standalone tokens and therefore remain untouched.
+  for (const rawArgument of parts) {
+    const rawTarget = rawArgument.trim();
+    if (!VARIABLE_NAME.test(rawTarget)) continue;
+    const target = normalizeScriptVariableName(rawTarget);
+    if (environment.get(target)?.staticValueSource !== 'database-item-index') continue;
+    setUnknownRuntimeValue(environment, target, sourceLabel, sourceLine);
+  }
+}
+
+function unmodeledRuntimeOutputTargets(
+  command: string,
+  parts: readonly string[],
+  environment: ReadonlyMap<string, RuntimeValue>
+): string[] | undefined {
+  const outputIndexes: Readonly<Record<string, readonly number[]>> = {
+    CALCPER: [2],
+    GETRANDOMLINETEXT: [1],
+    GETRANDOMLINETEXTEX: [1],
+  };
+  const indexes = outputIndexes[command];
+  if (!indexes) return undefined;
+  return indexes.flatMap(index => {
+    const target = resolveRuntimeOutputTarget(parts[index] || '', environment);
+    return target ? [target] : [];
+  });
+}
+
+function setUnknownRuntimeValue(
+  environment: Map<string, RuntimeValue>,
+  target: string,
+  sourceLabel: string,
+  sourceLine: number
+): void {
+  environment.set(target, {
+    value: defaultVariableValue(target),
+    complete: false,
+    sourceLabel,
+    sourceLine: sourceLine + 1,
+  });
 }
 
 function resolveTarget(raw: string, environment: ReadonlyMap<string, RuntimeValue>): string | undefined {
@@ -526,6 +694,33 @@ function resolveTarget(raw: string, environment: ReadonlyMap<string, RuntimeValu
   return undefined;
 }
 
+/**
+ * Output positions in several engine commands are documented both as a raw
+ * variable and as a direct projection such as `<$STR(N$1)>`.  Evaluating the
+ * latter first turns it into the old value (for example `935`) and loses the
+ * identity of the variable that the runtime command will overwrite.  Recover
+ * only an exact one-variable projection here; concatenated or nested
+ * expressions remain outside the static contract.  The ordinary resolver is
+ * retained as a fallback for a statically known indirect target name.
+ */
+function resolveRuntimeOutputTarget(
+  raw: string,
+  environment: ReadonlyMap<string, RuntimeValue>
+): string | undefined {
+  const value = raw.trim();
+  if (VARIABLE_NAME.test(value)) return normalizeScriptVariableName(value);
+  for (const pattern of [
+    /^<\$\s*STR\(\s*([^()]+?)\s*\)\s*>$/i,
+    /^\$STR\(\s*([^()]+?)\s*\)$/i,
+    /^<\$\s*([^<>]+?)\s*>$/i,
+  ]) {
+    const match = pattern.exec(value);
+    const target = match?.[1]?.trim();
+    if (target && VARIABLE_NAME.test(target)) return normalizeScriptVariableName(target);
+  }
+  return resolveTarget(value, environment);
+}
+
 function resolveTargetLines(
   section: ScriptFunction,
   execution: LabelExecution
@@ -534,7 +729,12 @@ function resolveTargetLines(
   for (const line of section.lines) {
     const variables = new Map<string, DialogResolvedVariable>();
     const environment = execution.snapshots.get(line.lineNumber) || execution.finalValues;
-    const resolved = resolveTemplate(line.text, environment, variables);
+    const resolved = resolveTemplate(
+      line.text,
+      environment,
+      variables,
+      { previewUnknownText: true }
+    );
     if (resolved.value !== line.text || variables.size > 0) {
       lines.set(line.lineNumber, { text: resolved.value, variables: [...variables.values()] });
     }
@@ -545,12 +745,13 @@ function resolveTargetLines(
 function resolveTemplate(
   input: string,
   environment: ReadonlyMap<string, RuntimeValue>,
-  references?: Map<string, DialogResolvedVariable>
+  references?: Map<string, DialogResolvedVariable>,
+  options: ResolveTemplateOptions = {}
 ): TemplateResult {
   let value = input;
   let complete = true;
   for (let pass = 0; pass < MAX_TEMPLATE_PASSES; pass++) {
-    const resolved = resolveTemplatePass(value, environment, references);
+    const resolved = resolveTemplatePass(value, environment, references, options);
     complete = complete && resolved.complete;
     if (resolved.value === value) return { value, complete };
     value = resolved.value;
@@ -561,7 +762,8 @@ function resolveTemplate(
 function resolveTemplatePass(
   input: string,
   environment: ReadonlyMap<string, RuntimeValue>,
-  references?: Map<string, DialogResolvedVariable>
+  references: Map<string, DialogResolvedVariable> | undefined,
+  options: ResolveTemplateOptions
 ): TemplateResult {
   let output = '';
   let complete = true;
@@ -578,7 +780,7 @@ function resolveTemplatePass(
           value: VARIABLE_NAME.test(variableName) ? defaultVariableValue(variableName) : variableName,
           complete: !VARIABLE_NAME.test(variableName),
         };
-        output += replacement.value;
+        output += previewRuntimeValue(variableName, replacement, options);
         complete = complete && resolvedInner.complete && replacement.complete;
         recordReference(references, variableName, replacement);
         cursor = end.after;
@@ -594,7 +796,7 @@ function resolveTemplatePass(
           value: VARIABLE_NAME.test(variableName) ? defaultVariableValue(variableName) : '',
           complete: false,
         };
-        output += replacement.value;
+        output += previewRuntimeValue(variableName, replacement, options);
         complete = complete && replacement.complete;
         recordReference(references, variableName, replacement);
         cursor = end + 1;
@@ -625,8 +827,10 @@ function recordReference(
     name,
     value: value.value,
     status: value.complete ? 'resolved' : 'default',
+    ...(value.staticValueSource ? { staticValueSource: value.staticValueSource } : {}),
     sourceLabel: value.sourceLabel,
     sourceLine: value.sourceLine,
+    sourceReferences: runtimeSourceReferences(value),
   });
   for (const dependency of value.dependencies || []) {
     if (!references.has(dependency.name)) references.set(dependency.name, dependency);
@@ -651,6 +855,165 @@ function findStrExpressionEnd(
 function parseCommand(line: string): { name: string; rest: string } | undefined {
   const match = /^\s*(?:<\$[^>]+>\.)?([A-Za-z][A-Za-z0-9_]*)\b([\s\S]*)$/i.exec(line);
   return match ? { name: match[1].toUpperCase(), rest: match[2].trim() } : undefined;
+}
+
+function parseConditionCommand(line: string): { name: string; rest: string } | undefined {
+  let source = line.trim();
+  while (/^NOT(?:\s+|$)/i.test(source)) source = source.replace(/^NOT(?:\s+|$)/i, '').trim();
+  return parseCommand(source);
+}
+
+const CONDITION_RUNTIME_OUTPUT_INDEXES: Readonly<
+  Record<EngineId, Readonly<Record<string, readonly number[]>>>
+> = {
+  GOM: {
+    CHECKBAGITEM: [1],
+    CHECKSLAVENAME: [1],
+    CHECKITEMADDVALUE: [4],
+    CHECKITEMADDVALUEEX: [4],
+    CHECKNAMEDATETIMELIST: [2, 3, 4, 5],
+    CHECKNAMELISTPOSITION: [3],
+    CHECKREVIVAL: [0],
+    CHECKSKILL: [4, 5],
+    CHECKUSERDATE: [3, 4],
+    FINDMONPOINT: [2, 3, 4],
+    GETGUILDMEMBERCOUNT: [1],
+    GETSHOPITEMCOUNT: [1, 3],
+    GETSTRINGPOSEX: [2, 3],
+  },
+  GEE: {
+    CHECKITEMADDVALUE: [4],
+    CHECKNAMEDATETIMELIST: [2, 3, 4, 5],
+    CHECKNAMELISTPOSITION: [3],
+    CHECKUSERDATE: [3, 4],
+    FINDMONPOINT: [2, 3],
+    GETGUILDMEMBERCOUNT: [1],
+    GETSTRINGPOSEX: [2, 3],
+  },
+  '996PC': {
+    CHECKBAGITEM: [1],
+    CHECKITEMADDVALUE: [4],
+    CHECKNAMEDATETIMELIST: [2, 3, 4, 5],
+    CHECKNAMELISTPOSITION: [3],
+    CHECKREVIVAL: [0],
+    GETSTRINGPOSEX: [2, 3],
+  },
+};
+
+function invalidateConditionRuntimeOutputs(
+  command: string,
+  rest: string,
+  engine: EngineId,
+  environment: Map<string, RuntimeValue>,
+  sourceLabel: string,
+  sourceLine: number
+): void {
+  if (command === 'CHECKNAMELISTPOSITION' && (engine === 'GOM' || engine === 'GEE')) {
+    // The classic GOM/GEE contract also writes the matched list position to
+    // the implicit P0 register when no explicit fourth output is supplied.
+    // That runtime value must replace any earlier database-Idx capability.
+    setUnknownRuntimeValue(environment, 'P0', sourceLabel, sourceLine);
+  }
+  const indexes = CONDITION_RUNTIME_OUTPUT_INDEXES[engine][command];
+  if (!indexes) return;
+  const parts = splitArguments(rest);
+  for (const index of indexes) {
+    const target = resolveRuntimeOutputTarget(parts[index] || '', environment);
+    if (target) setUnknownRuntimeValue(environment, target, sourceLabel, sourceLine);
+  }
+}
+
+interface GotoInvocation {
+  target: string;
+  returnTargets: string[];
+}
+
+function parseGotoInvocation(rest: string): GotoInvocation | undefined {
+  const source = rest.trim();
+  if (!source.startsWith('@')) return undefined;
+  const open = source.indexOf('(');
+  if (open < 0) {
+    return {
+      target: cleanTargetLabel(source.split(/\s+/)[0] || ''),
+      returnTargets: [],
+    };
+  }
+
+  const target = cleanTargetLabel(source.slice(0, open));
+  const close = findGotoCallClose(source, open);
+  if (close < 0) return { target, returnTargets: [] };
+  const argumentsText = source.slice(open + 1, close);
+  const returnSeparator = findTopLevelDelimiter(argumentsText, '|');
+  if (returnSeparator < 0) return { target, returnTargets: [] };
+  return {
+    target,
+    returnTargets: splitTopLevelDelimited(argumentsText.slice(returnSeparator + 1), ','),
+  };
+}
+
+function findGotoCallClose(value: string, open: number): number {
+  let depth = 0;
+  let angleDepth = 0;
+  let quote = '';
+  for (let cursor = open; cursor < value.length; cursor++) {
+    const char = value[cursor];
+    if (quote) {
+      if (char === quote && value[cursor - 1] !== '\\') quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === '<' && value[cursor + 1] === '$') {
+      angleDepth++;
+      continue;
+    }
+    if (char === '>' && angleDepth > 0) {
+      angleDepth--;
+      continue;
+    }
+    if (angleDepth > 0) continue;
+    if (char === '(') depth++;
+    else if (char === ')' && --depth === 0) return cursor;
+  }
+  return -1;
+}
+
+function findTopLevelDelimiter(value: string, delimiter: string): number {
+  let parenDepth = 0;
+  let angleDepth = 0;
+  let braceDepth = 0;
+  let quote = '';
+  for (let cursor = 0; cursor < value.length; cursor++) {
+    const char = value[cursor];
+    if (quote) {
+      if (char === quote && value[cursor - 1] !== '\\') quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") quote = char;
+    else if (char === '<' && value[cursor + 1] === '$') angleDepth++;
+    else if (char === '>' && angleDepth > 0) angleDepth--;
+    else if (char === '{') braceDepth++;
+    else if (char === '}' && braceDepth > 0) braceDepth--;
+    else if (char === '(') parenDepth++;
+    else if (char === ')' && parenDepth > 0) parenDepth--;
+    else if (char === delimiter && parenDepth === 0 && angleDepth === 0 && braceDepth === 0) return cursor;
+  }
+  return -1;
+}
+
+function splitTopLevelDelimited(value: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let remaining = value;
+  while (remaining) {
+    const index = findTopLevelDelimiter(remaining, delimiter);
+    const part = (index < 0 ? remaining : remaining.slice(0, index)).trim();
+    if (part) result.push(part);
+    if (index < 0) break;
+    remaining = remaining.slice(index + delimiter.length);
+  }
+  return result;
 }
 
 function directiveName(line: string): string | undefined {
@@ -692,7 +1055,7 @@ function splitArgumentsWithSpans(value: string): Array<{ value: string; end: num
       continue;
     }
     if (char === '"' || char === "'") quote = char;
-    else if (char === '<') angleDepth++;
+    else if (char === '<' && value[cursor + 1] === '$') angleDepth++;
     else if (char === '>' && angleDepth > 0) angleDepth--;
     else if (char === '{') braceDepth++;
     else if (char === '}' && braceDepth > 0) braceDepth--;
@@ -711,6 +1074,69 @@ function splitListLine(line: string, targetCount: number): string[] {
     return [line.slice(0, separator), line.slice(separator + 1)];
   }
   return line.split(':');
+}
+
+/**
+ * File-producing ranking commands execute inside the game server. If one is
+ * active before GETLISTSTRING, the current disk bytes are a pre-execution
+ * snapshot rather than proof of what that read will observe.
+ */
+function runtimeListWriterOutputPaths(
+  command: string,
+  rest: string,
+  environment: ReadonlyMap<string, RuntimeValue>
+): string[] | undefined {
+  const outputIndexes: Readonly<Record<string, readonly number[]>> = {
+    SORTHUMVARTOLISTEX: [3],
+    SORTHUMVARTOLIST: [1, 3],
+    SORTVARTOLIST: [2],
+    SORTGUILDTOLIST: [0],
+  };
+  const indexes = outputIndexes[command];
+  if (!indexes) return undefined;
+  const parts = splitArguments(rest);
+  const outputs: string[] = [];
+  let unknown = false;
+  for (const index of indexes) {
+    if (index >= parts.length) continue;
+    const resolved = resolveTemplate(parts[index], environment);
+    const normalized = resolved.complete
+      ? normalizeScriptDataPath(resolved.value)
+      : undefined;
+    if (normalized) outputs.push(normalized);
+    else unknown = true;
+  }
+  return unknown || outputs.length === 0 ? [] : [...new Set(outputs)];
+}
+
+function listReadWasInvalidated(
+  filePath: TemplateResult,
+  effects: RuntimeFileEffects
+): boolean {
+  if (effects.unknownListWrite) return true;
+  if (!filePath.complete) return false;
+  const normalized = normalizeScriptDataPath(filePath.value);
+  return Boolean(normalized && effects.invalidatedListPaths.has(normalized));
+}
+
+function normalizeScriptDataPath(value: string): string | undefined {
+  const raw = value.trim().replace(/^["']|["']$/g, '').replace(/\//g, '\\');
+  if (!raw || /<\$/i.test(raw)) return undefined;
+  const prefix = /^[A-Za-z]:/.exec(raw)?.[0]?.toUpperCase();
+  const absolute = raw.startsWith('\\');
+  const body = prefix ? raw.slice(prefix.length) : raw;
+  const segments: string[] = [];
+  for (const segment of body.split(/\\+/)) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..' && segments.length > 0 && segments.at(-1) !== '..') {
+      segments.pop();
+    } else {
+      segments.push(segment);
+    }
+  }
+  const normalizedBody = segments.join('\\').toUpperCase();
+  if (!normalizedBody && !prefix && !absolute) return undefined;
+  return `${prefix || ''}${absolute ? '\\' : ''}${normalizedBody}`;
 }
 
 function findCsvRow(
@@ -738,6 +1164,43 @@ function mergeDependencies(
   const result = new Map<string, DialogResolvedVariable>();
   for (const dependency of [...(left || []), ...right]) result.set(dependency.name, dependency);
   return [...result.values()];
+}
+
+function runtimeSourceReferences(value: RuntimeValue): DialogVariableSourceReference[] {
+  if (value.sourceReferences?.length) return [...value.sourceReferences];
+  return value.sourceLabel && value.sourceLine !== undefined
+    ? [{ sourceLabel: value.sourceLabel, sourceLine: value.sourceLine }]
+    : [];
+}
+
+function mergeSourceReferences(
+  left: readonly DialogVariableSourceReference[],
+  right: readonly DialogVariableSourceReference[]
+): DialogVariableSourceReference[] {
+  const result = new Map<string, DialogVariableSourceReference>();
+  for (const reference of [...left, ...right]) {
+    result.set(`${normalizeLabel(reference.sourceLabel)}:${reference.sourceLine}`, reference);
+  }
+  return [...result.values()];
+}
+
+function previewRuntimeValue(
+  variableName: string,
+  value: RuntimeValue,
+  options: ResolveTemplateOptions
+): string {
+  if (options.previewUnknownText && value.previewValue !== undefined) {
+    return value.previewValue;
+  }
+  if (
+    options.previewUnknownText
+    && !value.complete
+    && value.value === ''
+    && isStringVariable(variableName)
+  ) {
+    return '预览文字';
+  }
+  return value.value;
 }
 
 function calculateSimpleFormula(rawExpression: string): string | undefined {

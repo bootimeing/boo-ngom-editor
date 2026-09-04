@@ -1,4 +1,5 @@
 import { EngineId } from '../types';
+import { findScriptCommandInvocations, ScriptTextSpan } from './command-arguments';
 
 export type ScriptLabelReferenceKind = 'ui' | 'goto';
 
@@ -29,6 +30,67 @@ export interface ScriptLabelResolutionOptions {
   skipSectionedDataDocuments?: boolean;
   isAdditionalDefinedLabel?: (normalizedName: string) => boolean;
 }
+
+export type ScriptCommandCallbackKind = 'timer' | 'button' | 'addDlg';
+
+export interface ScriptCommandCallbackReference {
+  kind: ScriptCommandCallbackKind;
+  command: 'SETONTIMER' | 'ADDBUTTON' | 'ADDDLG';
+  id: string;
+  label: string;
+  targetFileName: 'QManage.txt' | 'QFunction-0.txt';
+  commandSpan: ScriptTextSpan;
+  idSpan: ScriptTextSpan;
+}
+
+interface NumericScriptCommandCallbackRule {
+  valueKind: 'numeric';
+  kind: 'timer' | 'button';
+  command: 'SETONTIMER' | 'ADDBUTTON';
+  argumentIndex: number;
+  labelPrefix: 'OnTimer' | 'ButtonClick';
+  targetFileName: ScriptCommandCallbackReference['targetFileName'];
+}
+
+interface DirectLabelScriptCommandCallbackRule {
+  valueKind: 'direct-label';
+  kind: 'addDlg';
+  command: 'ADDDLG';
+  argumentIndex: number;
+  engine: 'GOM';
+  targetFileName: 'QFunction-0.txt';
+}
+
+type ScriptCommandCallbackRule =
+  | NumericScriptCommandCallbackRule
+  | DirectLabelScriptCommandCallbackRule;
+
+const SCRIPT_COMMAND_CALLBACK_RULES: readonly ScriptCommandCallbackRule[] = [
+  {
+    valueKind: 'numeric',
+    kind: 'timer',
+    command: 'SETONTIMER',
+    argumentIndex: 0,
+    labelPrefix: 'OnTimer',
+    targetFileName: 'QManage.txt',
+  },
+  {
+    valueKind: 'numeric',
+    kind: 'button',
+    command: 'ADDBUTTON',
+    argumentIndex: 1,
+    labelPrefix: 'ButtonClick',
+    targetFileName: 'QFunction-0.txt',
+  },
+  {
+    valueKind: 'direct-label',
+    kind: 'addDlg',
+    command: 'ADDDLG',
+    argumentIndex: 7,
+    engine: 'GOM',
+    targetFileName: 'QFunction-0.txt',
+  },
+];
 
 // 官方系统回调标签（按钮/对话标签中的 /@ 或 /@@ 调用），用于避免误报
 const OFFICIAL_SYSTEM_UI_LABELS = new Set([
@@ -131,6 +193,65 @@ function createReference(
 
 export function normalizeScriptLabelKey(label: string): string {
   return label.trim().toUpperCase();
+}
+
+/**
+ * 找出静态命令参数派生的引擎回调标签。
+ *
+ * 只接受当前帮助已核验的 SETONTIMER、ADDBUTTON 旧命令格式，以及
+ * 新 GOM ADDDLG 第 8 参数的直接 @QF字段。相似命令、变量、表达式、
+ * 负数以及非 GOM 的 AddDlg 不会被静态猜测。
+ */
+export function findScriptCommandCallbackReferences(
+  lineText: string,
+  engine: EngineId
+): ScriptCommandCallbackReference[] {
+  if (isScriptCommentLine(lineText)) return [];
+  const directive = /^\s*#([A-Za-z]+)/.exec(lineText)?.[1].toUpperCase();
+  if (directive && directive !== 'ACT' && directive !== 'ELSEACT') return [];
+
+  const invocations = findScriptCommandInvocations(
+    lineText,
+    typedName => {
+      const command = typedName.toUpperCase();
+      return SCRIPT_COMMAND_CALLBACK_RULES.find(rule => (
+        rule.command === command
+        && (rule.valueKind !== 'direct-label' || rule.engine === engine)
+      ));
+    }
+  );
+  const references: ScriptCommandCallbackReference[] = [];
+  for (const invocation of invocations) {
+    if (invocation.form !== 'line') continue;
+    const rule = invocation.command;
+    const idSpan = invocation.arguments[rule.argumentIndex];
+    if (!idSpan) continue;
+    const id = rule.valueKind === 'direct-label'
+      ? normalizeStaticDirectCallbackLabel(idSpan.text)
+      : normalizeStaticCallbackId(idSpan.text, rule.kind, engine);
+    if (id === undefined) continue;
+    references.push({
+      kind: rule.kind,
+      command: rule.command,
+      id,
+      label: rule.valueKind === 'direct-label' ? id : `${rule.labelPrefix}${id}`,
+      targetFileName: rule.targetFileName,
+      commandSpan: invocation.commandSpan,
+      idSpan,
+    });
+  }
+  return references;
+}
+
+export function findScriptCommandCallbackAt(
+  lineText: string,
+  character: number,
+  engine: EngineId
+): ScriptCommandCallbackReference | undefined {
+  return findScriptCommandCallbackReferences(lineText, engine).find(reference => (
+    isCharacterInSpan(character, reference.commandSpan)
+    || isCharacterInSpan(character, reference.idSpan)
+  ));
 }
 
 export function findScriptLabelDefinitions(lines: string[]): ScriptLabelDefinition[] {
@@ -263,4 +384,29 @@ export function findAtLabelTokenAt(lineText: string, character: number): string 
     if (character >= match.index && character <= end) return name;
   }
   return undefined;
+}
+
+function normalizeStaticDirectCallbackLabel(value: string): string | undefined {
+  if (!value.startsWith('@')) return undefined;
+  const label = readUntilTerminator(value, 1, isGenericAtLabelTerminator);
+  if (!label || label.length !== value.length - 1) return undefined;
+  return label;
+}
+
+function normalizeStaticCallbackId(
+  value: string,
+  kind: ScriptCommandCallbackKind,
+  engine: EngineId
+): string | undefined {
+  if (!/^\d+$/.test(value)) return undefined;
+  const numeric = Number(value);
+  if (!Number.isSafeInteger(numeric)) return undefined;
+  const maximum = kind === 'timer' ? 255 : (engine === 'GEE' ? 200 : 100);
+  const minimum = kind === 'timer' ? 0 : 1;
+  if (numeric < minimum || numeric > maximum) return undefined;
+  return String(numeric);
+}
+
+function isCharacterInSpan(character: number, span: ScriptTextSpan): boolean {
+  return character >= span.start && character < span.end;
 }

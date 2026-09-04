@@ -108,6 +108,18 @@ function supplementalSayInterfaceEntries() {
       },
     },
     {
+      id: 'big-number-text',
+      engineVariants: {
+        GEE: positional(
+          '<BigNum:数值:X:Y:{FColor=颜色;FSize=字号;FName=字体}>',
+          '<BigNum:${1:数值}:${2:X}:${3:Y}:{FColor=${4:249};FSize=${5:9};FName=${6:微软雅黑}}>',
+          '在 NPC 对话框按客户端大数单位规则显示数值',
+          '游戏引擎反外挂系统/部分脚本实例/变量显示数字单位.htm',
+          ['数值或变量', 'X', 'Y', '文字颜色', '字号', '字体名']
+        ),
+      },
+    },
+    {
       id: 'container-newline',
       engineVariants: {
         GOM: positional(
@@ -174,7 +186,7 @@ function supplementalSayInterfaceEntries() {
       id: 'user-item-preview',
       engineVariants: {
         GOM: positional(
-          '<UserItem:D:X:Y:Z:W:G:R:H:S:E/@Label>',
+          '<UserItem:D:X:Y:Z:W:G:R:H:S:W/@Label>',
           '<UserItem:${1:装备位置}:${2:X}:${3:Y}:${4:背景框}:${5:显示对象}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:内观素材(0Items/1StdItem)}:${10:绘制特效(0/1)}/@${11:标签}>',
           '在 NPC 对话框显示人物身上装备',
           '游戏引擎反外挂系统/游戏功能详解/NPC对话框调用身上装备信息.htm',
@@ -241,9 +253,9 @@ function supplementalSayInterfaceEntries() {
       id: 'input-memo',
       engineVariants: {
         GOM: positional(
-          '<INPUTMEMO:ID:X:Y:宽度:高度:背景色:边框色:文字颜色:最小长度:最大长度:行高:自动换行:提示>',
-          '<INPUTMEMO:${1:输入框ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:行高}:${12:自动换行(0/1)}:${13:提示信息}>',
-          '在 NPC 对话框创建多行输入框',
+          '<&INPUTMEMO:ID:X:Y:宽度:高度:背景色:边框色:文字颜色:最小长度:最大长度:行高:自动换行:提示>',
+          '<&INPUTMEMO:${1:输入框ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:行高}:${12:自动换行(0/1)}:${13:提示信息}>',
+          '在 NPC 对话框以绝对坐标创建多行输入框；不带 & 的旧写法按相对坐标兼容',
           '游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm',
           ['输入框ID(1-40)', 'X', 'Y', '宽度', '高度', '背景色', '边框色', '文字颜色', '最小长度', '最大长度', '行高', '自动换行(0/1)', '数据无效提示']
         ),
@@ -320,6 +332,7 @@ function supplementalSayInterfaceEntries() {
     '<Img|wil=${1:资源文件名}|pcimg=${2:图片序号}|x=${3:X}|y=${4:Y}|bg=${5:背景图(0/1)}|link=@${6:触发标签}>',
     '996PC 新 NPC 面板图片组件', [
       parameter('wil', '图片资源文件名'), parameter('pcimg', '图片序号'),
+      parameter('img', '直接 PNG 路径；客户端素材根目录未公开'),
       parameter('x', '坐标X'), parameter('y', '坐标Y'), parameter('bg', '是否为背景图'),
       parameter('link', '单击触发标签；必须放在最后'),
       parameter('esc', '按 ESC 关闭(0/1)'), parameter('move', '界面可移动(0/1)'),
@@ -329,7 +342,7 @@ function supplementalSayInterfaceEntries() {
       parameter('scale9l', '九宫拉伸左边距'), parameter('scale9r', '九宫拉伸右边距'),
       parameter('scale9t', '九宫拉伸上边距'), parameter('scale9b', '九宫拉伸下边距'),
       parameter('grey', '灰化显示(0/1)'), parameter('bagPos', '背包位置(1左/0右)'),
-      parameter('opacity', '透明度(0-255)'),
+      parameter('opacity', '透明度(0-255)'), parameter('reload', '刷新面板(0/1)'),
     ]);
   add996('newui-button-996pc', '按钮.htm',
     '<Button|wil=资源|pcnimg=默认|pcmimg=悬停|pcpimg=按下|text=文字|link=@标签>',
@@ -344,8 +357,8 @@ function supplementalSayInterfaceEntries() {
       parameter('tipsy', '提示文字Y偏移'),
     ]);
   add996('newui-text-996pc', '文字.htm',
-    '<Text|text=文字|x=X|y=Y|color=颜色|size=字号|link=@标签>',
-    '<Text|text=${1:显示文字}|x=${2:X}|y=${3:Y}|color=${4:颜色}|size=${5:字号}|link=@${6:触发标签}>',
+    '<Text|id=ID|x=X|y=Y|width=宽度|height=高度|text=文字|color=颜色|size=字号|outline=描边|outlinecolor=描边颜色|simplenum=0/1|scrollWidth=滚动宽度|scrollHeight=滚动高度|scrollWay=方向|scrollTime=秒|link=@标签>',
+    '<Text|id=${1:ID}|x=${2:X}|y=${3:Y}|width=${4:宽度}|height=${5:高度}|text=${6:显示文字}|color=${7:颜色}|size=${8:字号}|outline=${9:描边宽度}|outlinecolor=${10:描边颜色}|tips=${11:悬停提示}|tipsx=${12:提示X偏移}|tipsy=${13:提示Y偏移}|simplenum=${14:0}|scrollWidth=${15:滚动区域宽度}|scrollHeight=${16:滚动区域高度}|scrollWay=${17:0}|scrollTime=${18:秒}|link=@${19:触发标签}>',
     '996PC 新 NPC 面板文字组件', [
       parameter('text', '显示文字'), parameter('x', '坐标X'), parameter('y', '坐标Y'),
       parameter('color', '文字颜色；逗号分隔可闪烁'), parameter('size', '字号(14/16/18/20)'),
@@ -375,7 +388,7 @@ function supplementalSayInterfaceEntries() {
     ]);
   add996('newui-listview-996pc', '列表容器ListView.htm',
     '<ListView|children={子节点}|direction=方向|bounce=回弹|margin=间隔>',
-    '<ListView|children={${1:子节点ID}}|direction=${2:方向(1竖向/2横向)}|bounce=${3:回弹}|margin=${4:子控件间隔}|cantouch=${5:可滑动(0/1)}>',
+    '<ListView|children={${1:子节点ID}}|direction=${2:方向(1竖向/2横向)}|bounce=${3:回弹}|margin=${4:子控件间隔}|cantouch=${5:可滑动(0/1)}|Slider=${6:启用滑块(0/1)}|Sdbg=${7:滑块底图}|Sdupnimg=${8:上或左箭头正常图}|Sdupmimg=${9:上或左箭头悬停图}|Sduppimg=${10:上或左箭头按下图}|Sdnimg=${11:滑块正常图}|Sdmimg=${12:滑块悬停图}|Sdpimg=${13:滑块按下图}|Sddwnimg=${14:下或右箭头正常图}|Sddwmimg=${15:下或右箭头悬停图}|Sddwpimg=${16:下或右箭头按下图}>',
     '996PC 新 NPC 面板滚动列表容器；ListView 不可嵌套', [
       parameter('children', '子节点ID列表'), parameter('direction', '方向(1竖向/2横向)'),
       parameter('bounce', '回弹设置'), parameter('margin', '子控件间隔'),
@@ -388,12 +401,14 @@ function supplementalSayInterfaceEntries() {
       parameter('Sddwmimg', '向下或向右箭头悬停图片'), parameter('Sddwpimg', '向下或向右箭头按下图片'),
     ]);
   add996('newui-checkbox-996pc', '复选框CheckBox.htm',
-    '<CheckBox|checkboxid=变量|wil=资源|pcnimg=未选|pcpimg=选中|default=状态|link=@标签>',
-    '<CheckBox|checkboxid=${1:数字变量}|wil=${2:资源文件名}|pcnimg=${3:未选图片}|pcpimg=${4:选中图片}|default=${5:默认状态(0/1)}|link=@${6:触发标签}>',
+    '<CheckBox|checkboxid=变量|wil=资源|pcnimg=未选|pcpimg=选中|default=状态|submit=提交|link=@标签>',
+    '<CheckBox|checkboxid=${1:数字变量}|wil=${2:资源文件名}|pcnimg=${3:未选图片}|pcpimg=${4:选中图片}|default=${5:默认状态(0/1)}|submit=${6:提交参数}|link=@${7:触发标签}>',
     '996PC 新 NPC 面板复选框组件', [
       parameter('checkboxid', '提交状态的数字变量名'), parameter('wil', '图片资源文件名'),
       parameter('pcnimg', '未选中图片'), parameter('pcpimg', '选中图片'),
-      parameter('default', '默认选中状态(0/1)'), parameter('link', '提交触发标签'),
+      parameter('default', '默认选中状态(0/1)'),
+      parameter('submit', '提交参数（手册列出，取值语义未公开）'),
+      parameter('link', '提交触发标签'),
       parameter('delay', '自动提交间隔'), parameter('count', '自动提交次数'),
     ]);
   add996('newui-slider-996pc', '滑动拉杆_Slider_.htm',
@@ -439,7 +454,7 @@ function supplementalSayInterfaceEntries() {
     ]);
   add996('newui-input-996pc', '自定义输入框Input.htm',
     '<Input|inputid=ID|type=类型|width=宽度|height=高度|mincount=最小|maxcount=最大>',
-    '<Input|inputid=${1:输入框ID(1-9)}|type=${2:类型(0文本/1数字/2密码/3绝对值数字)}|width=${3:宽度}|height=${4:高度}|mincount=${5:最小长度}|maxcount=${6:最大长度}|errortips=${7:错误提示}>',
+    '<Input|inputid=${1:输入框ID(1-9)}|type=${2:类型(0文本/1数字/2密码/3绝对值数字)}|width=${3:宽度}|height=${4:高度}|color=${5:输入文字颜色}|size=${6:字号}|mincount=${7:最小长度}|maxcount=${8:最大长度}|errortips=${9:错误提示}|place=${10:空值提示}|placecolor=${11:提示颜色}|onlyCh=${12:仅中文(0/1)}|bgtype=${13:背景框(0/1)}>',
     '996PC 新 NPC 面板输入框组件', [
       parameter('inputid', '输入框ID(1-9)'), parameter('type', '输入类型(0文本/1数字/2密码/3绝对值数字)'),
       parameter('width', '宽度'), parameter('height', '高度'), parameter('mincount', '最小字符数'),
@@ -468,22 +483,23 @@ function supplementalSayInterfaceEntries() {
     ]);
   add996('newui-itemshow-996pc', '物品框ItemShow.htm',
     '<ItemShow|itemid=IDX|itemcount=数量|showtips=提示|bgtype=背景|link=@标签>',
-    '<ItemShow|itemid=${1:物品IDX}|itemcount=${2:数量}|showtips=${3:显示属性(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>',
-    '996PC 新 NPC 面板物品IDX展示组件', [
-      parameter('itemid', '物品IDX'), parameter('itemname', '物品名称'), parameter('itemcount', '物品数量'),
+    '<ItemShow|itemid=${1:数据库物品IDX}|itemcount=${2:数量}|showtips=${3:显示属性(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>',
+    '996PC 新 NPC 面板数据库物品 IDX 展示组件', [
+      parameter('itemid', '数据库物品 IDX'), parameter('itemname', '物品名称'), parameter('itemcount', '物品数量'),
       parameter('showtips', '显示物品属性(0/1)'), parameter('bgtype', '显示背景图(0/1)'),
       parameter('link', '单击触发标签'), parameter('color', '数量颜色'), parameter('grey', '灰化显示(0/1)'),
-      parameter('lock', '显示锁图标(0/1)'),
+      parameter('lock', '显示锁图标(0/1)'), parameter('scale', '缩放比例'),
     ]);
   for (const [id, tag, description] of [
     ['newui-equipshow-996pc', 'EquipShow', '人物装备位置展示'],
     ['newui-heroequipshow-996pc', 'HEROEquipShow', '英雄装备位置展示'],
   ]) {
     add996(id, '物品框ItemShow.htm',
-      `<${tag}|index=位置|showtips=提示|bgtype=背景|link=@标签>`,
-      `<${tag}|index=\${1:装备位置}|showtips=\${2:显示属性(0/1)}|bgtype=\${3:背景图(0/1)}|link=@\${4:触发标签}>`,
+      `<${tag}|index=位置|showtips=提示|showstar=星级|bgtype=背景|link=@标签>`,
+      `<${tag}|index=\${1:装备位置}|showtips=\${2:显示属性(0/1)}|showstar=\${3:显示星级(0/1)}|bgtype=\${4:背景图(0/1)}|link=@\${5:触发标签}>`,
       `996PC 新 NPC 面板${description}组件`, [
         parameter('index', '装备位置(0-55)'), parameter('showtips', '显示物品属性(0/1)'),
+        parameter('showstar', '显示星级(0/1)'),
         parameter('bgtype', '显示背景图(0/1)'), parameter('link', '单击触发标签'),
         parameter('scale', '缩放比例'), parameter('dblink', '双击触发标签'),
         parameter('reload', '刷新面板(0/1)'), parameter('effectshow', '特效显示方式(0不显示/1背包/2内观)'),
@@ -553,6 +569,18 @@ function supplementalSayInterfaceEntries() {
       parameter('tips', '鼠标悬停提示'), parameter('tipsx', '提示文字X偏移'),
       parameter('tipsy', '提示文字Y偏移'),
     ]);
+  entries.push({
+    id: 'textatlas-996pc',
+    engineVariants: {
+      '996PC': positional(
+        '<TextAtlas:F:N:X:Y:L>',
+        '<TextAtlas:${1:WIL序号}:${2:起始图片}:${3:X}:${4:Y}:${5:数字或变量}>',
+        '996PC 传统 NPC 面板连续数字图片艺术字',
+        '游戏引擎反外挂系统/新增功能/艺术字效果.htm',
+        ['WIL序号', '起始图片', 'X', 'Y', '数字或变量']
+      ),
+    },
+  });
   add996('newui-textatlas-996pc', '艺术字TextAtlas.htm',
     '<TextAtlas|wil=资源|pcimg=图片|iwidth=字宽|iheight=字高|text=数字>',
     '<TextAtlas|wil=${1:资源文件名}|pcimg=${2:图片序号}|iwidth=${3:单字宽度}|iheight=${4:素材高度}|text=${5:数字或变量}>',
@@ -576,16 +604,17 @@ function supplementalSayInterfaceEntries() {
       parameter('notShowHair', '不显示头发(true/false)'),
     ]);
   add996('newui-costitem-996pc', '货币需求展示_CostItem_.htm',
-    '<CostItem|itemid=IDX|itemcount=数量|title=标题|color=颜色>',
-    '<CostItem|itemid=${1:物品IDX}|itemcount=${2:数量}|title=${3:标题}|color=${4:数量颜色}>',
+    '<CostItem|itemid=IDX|itemcount=数量|title=标题|titlecolor=标题颜色|color=数量颜色|fontsize=字号|itemscale=缩放>',
+    '<CostItem|itemid=${1:物品IDX}|itemcount=${2:数量}|title=${3:标题}|titlecolor=${4:标题颜色}|color=${5:数量颜色}|fontsize=${6:字号}|itemscale=${7:缩放}>',
     '996PC 新 NPC 面板货币需求展示组件', [
       parameter('itemid', '物品IDX'), parameter('itemcount', '物品数量'),
-      parameter('title', '标题文本；不配置使用默认标题'), parameter('color', '斜杠后文字颜色'),
+      parameter('title', '标题文本；不配置使用默认标题'), parameter('titlecolor', '标题文本颜色'),
+      parameter('color', '斜杠后文字颜色'),
       parameter('itemscale', '物品图片缩放'), parameter('fontsize', '字号'),
     ]);
   add996('newui-loadingbar-996pc', '进度条LoadingBar.htm',
     '<LoadingBar|wil=资源|pcloadingbg=底图|pcloadingbar=进度图|startper=起始|endper=结束|link=@标签>',
-    '<LoadingBar|wil=${1:资源文件名}|pcloadingbg=${2:进度条底图}|pcloadingbar=${3:进度条图片}|startper=${4:起始进度}|endper=${5:结束进度}|link=@${6:完成标签}>',
+    '<LoadingBar|id=${1:ID}|x=${2:X}|y=${3:Y}|width=${4:宽度}|height=${5:高度}|wil=${6:资源文件名}|pcloadingbg=${7:进度条底图}|pcloadingbar=${8:进度条图片}|startper=${9:起始进度}|endper=${10:结束进度}|maxper=${11:最大进度}|interval=${12:0.05}|loadvalue=${13:10}|direction=${14:0}|offsetX=${15:0}|offsetY=${16:0}|size=${17:字号}|color=${18:文字颜色}|outline=${19:描边宽度}|outlinecolor=${20:描边颜色}|HideText=${21:0}|link=@${22:完成标签}>',
     '996PC 新 NPC 面板动态进度条组件', [
       parameter('wil', '图片资源文件名'), parameter('pcloadingbg', '进度条底图'),
       parameter('pcloadingbar', '进度条滚动图片'), parameter('startper', '起始进度'),

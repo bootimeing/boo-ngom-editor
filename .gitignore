@@ -2,6 +2,8 @@ node_modules/
 out/
 *.vsix
 .vscode-test/
+.pytest_cache/
+test-artifacts/
 archives/
 artifacts/*
 !artifacts/README.md

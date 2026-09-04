@@ -85,11 +85,11 @@ function main() {
 
   assert.equal(data.schemaVersion, 1);
   assert.equal(data.revision, '2026-08-24');
-  assert.equal(data.saySnippets.length, 66);
+  assert.equal(data.saySnippets.length, 68);
   assert.equal(data.mapInfoParams.length, 106);
   assert.equal(gomSay.length, 27);
-  assert.equal(geeSay.length, 33);
-  assert.equal(pc996Say.length, 41);
+  assert.equal(geeSay.length, 34);
+  assert.equal(pc996Say.length, 42);
   assert.equal(gomMap.length, 77);
   assert.equal(geeMap.length, 85);
   assert.equal(pc996Map.length, 75);
@@ -115,7 +115,20 @@ function main() {
     assert.equal(entries.some(entry => entry.id === 'guild-variable'), false);
   }
   assert.match(byId(gomSay, 'imgex-absolute').snippet, /WIL序号.*默认图片.*移入图片.*按下图片/);
-  assert.match(byId(gomSay, 'image-number').snippet, /开始图片.*数字值.*字符间隔.*方向/);
+  const gomImageNumber = byId(gomSay, 'image-number');
+  const geeImageNumber = byId(geeSay, 'image-number');
+  assert.match(gomImageNumber.snippet, /开始图片.*数字值.*字符间隔.*提交输入框ID/);
+  assert.doesNotMatch(gomImageNumber.snippet, /方向/);
+  assert.match(geeImageNumber.snippet, /数字类型.*数字值.*字符间隔.*提交输入框ID/);
+  assert.doesNotMatch(geeImageNumber.snippet, /开始图片|方向/);
+  for (const progress of [byId(gomSay, 'progress-bar'), byId(geeSay, 'progress-bar')]) {
+    assert.match(progress.label, /^<ProgressBar:/i,
+      'the canonical ProgressBar completion must match the documented no-& form');
+    assert.ok(progress.markupAliases?.some(alias => /^<&ProgressBar$/i.test(alias)),
+      'ProgressBar must retain the absolute-coordinate & spelling as an explicit alias');
+  }
+  assert.match(byId(gomSay, 'input-memo').snippet, /^<&INPUTMEMO:/,
+    'GOM INPUTMEMO canonical snippet must use the documented absolute-coordinate & form');
   assert.equal(
     byId(gomSay, 'item-box').label,
     '<ITEMBOX:N:F:M:X:Y:W:H:S:T>'
@@ -132,6 +145,48 @@ function main() {
   assert.equal(byId(gomSay, 'monster-preview').label, '<MONSTER:APPR:RACE:动作:方向:X:Y>');
   assert.equal(byId(geeSay, 'monster-preview').label, '<MONSTER:RaceImg:Appr:显示方式:方向:X:Y>');
   assert.equal(byId(pc996Say, 'newui-button-996pc').label.startsWith('<Button|'), true);
+  const pc996InputSnippet = byId(pc996Say, 'newui-input-996pc').snippet;
+  for (const field of ['place', 'placecolor', 'color', 'size', 'onlyCh', 'bgtype']) {
+    assert.match(pc996InputSnippet, new RegExp(`\\|${field}=`),
+      `996PC Input completion must expose ${field}`);
+  }
+  const pc996ListViewSnippet = byId(pc996Say, 'newui-listview-996pc').snippet;
+  for (const field of ['Slider', 'Sdbg', 'Sdupnimg', 'Sdnimg', 'Sddwnimg']) {
+    assert.match(pc996ListViewSnippet, new RegExp(`\\|${field}=`),
+      `996PC ListView completion must expose normal-state slider field ${field}`);
+  }
+  for (const field of [
+    'Sdupmimg', 'Sduppimg', 'Sdmimg', 'Sdpimg', 'Sddwmimg', 'Sddwpimg',
+  ]) {
+    assert.match(pc996ListViewSnippet, new RegExp(`\\|${field}=`),
+      `996PC ListView completion must expose interaction-state slider field ${field}`);
+  }
+  const pc996LoadingBarSnippet = byId(pc996Say, 'newui-loadingbar-996pc').snippet;
+  for (const field of [
+    'id', 'x', 'y', 'width', 'height', 'wil', 'pcloadingbg', 'pcloadingbar',
+    'startper', 'endper', 'maxper', 'interval', 'loadvalue', 'direction',
+    'offsetX', 'offsetY', 'size', 'color', 'outline', 'outlinecolor', 'HideText',
+  ]) {
+    assert.match(pc996LoadingBarSnippet, new RegExp(`\\|${field}=`),
+      `996PC LoadingBar completion must expose ${field}`);
+  }
+  assert.ok(
+    pc996LoadingBarSnippet.lastIndexOf('|link=') > pc996LoadingBarSnippet.lastIndexOf('|HideText='),
+    '996PC LoadingBar link must remain the final field in the completion'
+  );
+  const pc996TextSnippet = byId(pc996Say, 'newui-text-996pc').snippet;
+  for (const field of [
+    'id', 'x', 'y', 'width', 'height', 'text', 'color', 'size',
+    'outline', 'outlinecolor', 'tips', 'tipsx', 'tipsy', 'simplenum',
+    'scrollWidth', 'scrollHeight', 'scrollWay', 'scrollTime',
+  ]) {
+    assert.match(pc996TextSnippet, new RegExp(`\\|${field}=`),
+      `996PC Text completion must expose ${field}`);
+  }
+  assert.ok(
+    pc996TextSnippet.lastIndexOf('|link=') > pc996TextSnippet.lastIndexOf('|scrollTime='),
+    '996PC Text link must remain the final field in the completion'
+  );
   assert.equal(gomSay.some(entry => entry.id === 'newui-button-996pc'), false);
   assert.equal(geeSay.some(entry => entry.id === 'newui-button-996pc'), false);
 
@@ -220,6 +275,11 @@ function main() {
     findSayMarkupParameterAt(nestedNewText, nestedNewText.indexOf('S$标题'), pc996Markup)?.meaning,
     '显示文字'
   );
+  const costItem = byId(pc996Say, 'newui-costitem-996pc');
+  assert.ok(costItem.parameters.some(parameter => parameter.key === 'titlecolor'),
+    '996PC CostItem must catalog its documented title color separately from slash text color');
+  assert.match(costItem.snippet, /\|titlecolor=/,
+    '996PC CostItem completion must expose the documented titlecolor field');
   const sayHelpers = {
     buildSayMarkupIndex,
     findSayMarkupParameterAt,
@@ -228,8 +288,8 @@ function main() {
     sayMarkupParameterMeanings,
   };
   assert.equal(verifySayParameterCatalog(gomSay, 'GOM', sayHelpers), 24);
-  assert.equal(verifySayParameterCatalog(geeSay, 'GEE', sayHelpers), 30);
-  assert.equal(verifySayParameterCatalog(pc996Say, '996PC', sayHelpers), 38);
+  assert.equal(verifySayParameterCatalog(geeSay, 'GEE', sayHelpers), 31);
+  assert.equal(verifySayParameterCatalog(pc996Say, '996PC', sayHelpers), 39);
   assert.ok(
     verifyKeyedSayParameterCatalog(pc996Say, '996PC', sayHelpers) >= 250,
     'every documented 996PC key-value interface parameter must support hover'

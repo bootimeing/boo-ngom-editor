@@ -18,6 +18,13 @@
       <span id="zoomValue" class="zoom-value">100%</span>
       <button id="zoomIn" class="icon-button" title="放大" aria-label="放大">+</button>
       <button id="zoomReset" class="quiet-button">100%</button>
+      <button
+        id="canvasDiagnosticsToggle"
+        class="quiet-button"
+        type="button"
+        aria-pressed="false"
+        title="默认隐藏画布上的长篇诊断；详细原因仍可在右侧元素属性查看"
+      >显示诊断</button>
     </div>
     <div class="toolbar-group actions">
       <button id="undoButton" class="icon-button" title="撤销可视化草稿" aria-label="撤销">↶</button>
@@ -79,6 +86,17 @@
         </div>
         <span id="coordinateReadout">坐标 --, --</span>
       </div>
+      <section
+        id="actUiPreviewPanel"
+        class="act-ui-preview-panel hidden"
+        aria-label="#ACT 客户端界面动作静态预览"
+      >
+        <div class="act-ui-preview-heading">
+          <strong>#ACT 界面动作</strong>
+          <span id="actUiPreviewCount">0</span>
+        </div>
+        <div id="actUiPreviewList" class="act-ui-preview-list"></div>
+      </section>
       <div id="canvasViewport" class="canvas-viewport" tabindex="0">
         <div id="canvasStage" class="canvas-stage">
           <div id="dialogCanvas" class="dialog-canvas">
@@ -110,6 +128,18 @@
         </div>
         <div class="field wide"><label>坐标模式</label><span id="coordinateMode"></span></div>
         <div class="field wide"><label>显示内容</label><span id="elementText"></span></div>
+        <div id="elementLocalPreview" class="field wide local-text-preview-field hidden">
+          <label for="elementLocalPreviewValue">本地预览文字</label>
+          <input
+            id="elementLocalPreviewValue"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="预览文字"
+            aria-describedby="elementLocalPreviewState"
+          >
+          <small id="elementLocalPreviewState" class="local-text-preview-state"></small>
+        </div>
         <div class="field wide"><label>素材</label><span id="assetState"></span></div>
         <div class="field wide"><label>参数</label><div id="elementParameters" class="parameter-list"></div></div>
         <div id="elementWarning" class="element-warning hidden"></div>

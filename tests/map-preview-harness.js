@@ -4,8 +4,16 @@ const path = require('node:path');
 
 const {
   collectOriginalMapViewport,
+  originalMapAnimationFrameCount,
+  originalMapAnimationFrameReferences,
+  originalMapAnimationSequenceKey,
   parseOriginalMap,
 } = require('../out/utils/original-map');
+const {
+  listArchiveIndexSummaries,
+  loadArchiveAssetTable,
+  readArchiveImagePng,
+} = require('../out/utils/archive-index');
 const {
   loadCachedPatchAssetTable,
   patchImagePath,
@@ -14,7 +22,9 @@ const {
 const port = Number(process.env.BOO_TEST_PORT || 18767);
 const workspaceRoot = process.env.BOO_TEST_MIRSERVER || 'D:\\MirServer新GOM';
 const mapId = process.env.BOO_TEST_MAP_ID || '0103';
-const mapPath = path.join(workspaceRoot, 'Mir200', 'Map', `${mapId}.map`);
+const mapPath = process.env.BOO_TEST_MAP_PATH
+  ? path.resolve(process.env.BOO_TEST_MAP_PATH)
+  : path.join(workspaceRoot, 'Mir200', 'Map', `${mapId}.map`);
 const viewerPath = path.join(__dirname, '..', 'media', 'map-preview.html');
 const sidebarDetailPath = path.join(__dirname, '..', 'media', 'sidebar-detail.html');
 const cacheRoot = path.join(
@@ -23,6 +33,15 @@ const cacheRoot = path.join(
   'cache',
   'patch-cache'
 );
+const archiveIndexRoot = process.env.BOO_TEST_ARCHIVE_INDEX_ROOT || path.join(
+  process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Local'),
+  'BOO-NGOM-Editor',
+  'cache',
+  'archive-index-v1'
+);
+const clientRoot = process.env.BOO_TEST_CLIENT_ROOT
+  ? path.resolve(process.env.BOO_TEST_CLIENT_ROOT)
+  : '';
 
 function normalizeArchiveName(value) {
   return path.basename(String(value || ''), path.extname(String(value || ''))).toLowerCase();
@@ -57,6 +76,24 @@ function readCachedPaks() {
   return results;
 }
 
+function isPathInside(filePath, rootPath) {
+  const relative = path.relative(path.resolve(rootPath), path.resolve(filePath));
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+function readIndexedArchives() {
+  const results = new Map();
+  if (!fs.existsSync(archiveIndexRoot)) return results;
+  const summaries = listArchiveIndexSummaries(archiveIndexRoot)
+    .filter(summary => !clientRoot || isPathInside(summary.pakPath, clientRoot))
+    .sort((left, right) => Number(left.createdAt || 0) - Number(right.createdAt || 0));
+  for (const summary of summaries) {
+    if (!fs.existsSync(summary.pakPath)) continue;
+    results.set(normalizeArchiveName(summary.pakName), summary);
+  }
+  return results;
+}
+
 function json(response, value) {
   response.writeHead(200, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -71,6 +108,7 @@ function fail(response, status, message) {
 }
 
 function bridgeScript(model) {
+  const originalGeneration = 1;
   const mapData = {
     type: 'mapData',
     map: {
@@ -189,11 +227,30 @@ window.acquireVsCodeApi=function(){return{postMessage:function(message){
       send({type:'originalMapProgress',requestId:requestId,percent:42,label:'正在解析地图单元'});
     },120);
     setTimeout(function(){fetch('/api/model').then(function(response){return response.json()}).then(function(data){
-      send(Object.assign({type:'originalMapReady',requestId:requestId},data));
-      return fetch('/api/map');
-    }).then(function(response){return response.json()}).then(function(data){
-      send(Object.assign({type:'originalMapData',requestId:requestId},data));
-    }).catch(function(error){send({type:'originalMapError',requestId:requestId,message:String(error)})})},260);
+      send(Object.assign({
+        type:'originalMapReady',requestId:requestId,generation:${originalGeneration},
+        chunkCellWidth:16,chunkCellHeight:16
+      },data));
+    }).catch(function(error){send({
+      type:'originalMapError',requestId:requestId,generation:${originalGeneration},message:String(error)
+    })})},260);
+  }
+  if(message.type==='loadOriginalMapViewport'&&message.generation===${originalGeneration}){
+    var viewport=message.viewport||{};
+    var query=new URLSearchParams({
+      left:String(viewport.left),top:String(viewport.top),
+      right:String(viewport.right),bottom:String(viewport.bottom)
+    });
+    fetch('/api/map?'+query.toString()).then(function(response){return response.json()}).then(function(data){
+      send(Object.assign({
+        type:'originalMapViewportData',requestId:message.requestId,
+        generation:${originalGeneration},viewportSeq:message.viewportSeq,
+        viewport:viewport,prefetch:message.prefetch===true
+      },data));
+    }).catch(function(error){send({
+      type:'originalMapError',requestId:message.requestId,
+      generation:${originalGeneration},viewportSeq:message.viewportSeq,message:String(error)
+    })});
   }
   if(message.type==='updateNpc')send({type:'npcSaved',requestId:message.requestId,npc:message.npc});
   if(message.type==='updateSpawn')send({type:'spawnSaved',requestId:message.requestId,spawn:message.spawn});
@@ -249,7 +306,12 @@ async function main() {
   if (!fs.existsSync(mapPath)) throw new Error(`测试 MAP 不存在: ${mapPath}`);
   const model = await parseOriginalMap(fs.readFileSync(mapPath));
   const cachedPaks = readCachedPaks();
+  const indexedArchives = readIndexedArchives();
+  const indexedArchivesById = new Map(
+    [...indexedArchives.values()].map(summary => [summary.archiveId, summary])
+  );
   const assetTables = new Map();
+  const indexedAssetTables = new Map();
   const viewerHtml = fs.readFileSync(viewerPath, 'utf8');
 
   function assetTable(pak) {
@@ -257,6 +319,14 @@ async function main() {
     if (cached) return cached;
     const table = loadCachedPatchAssetTable(pak);
     assetTables.set(pak.manifestPath, table);
+    return table;
+  }
+
+  function indexedAssetTable(summary) {
+    const cached = indexedAssetTables.get(summary.archiveId);
+    if (cached) return cached;
+    const table = loadArchiveAssetTable(archiveIndexRoot, summary.archiveId);
+    indexedAssetTables.set(summary.archiveId, table);
     return table;
   }
 
@@ -293,31 +363,108 @@ async function main() {
       return;
     }
     if (url.pathname === '/api/map') {
-      const references = collectOriginalMapViewport(model, {
+      const requestedViewport = ['left', 'top', 'right', 'bottom'].every(
+        name => url.searchParams.has(name) && Number.isFinite(Number(url.searchParams.get(name)))
+      ) ? {
+        left: Number(url.searchParams.get('left')),
+        top: Number(url.searchParams.get('top')),
+        right: Number(url.searchParams.get('right')),
+        bottom: Number(url.searchParams.get('bottom')),
+      } : {
         left: 0,
         top: 0,
         right: model.width - 1,
         bottom: model.height - 1,
-      });
+      };
+      const references = collectOriginalMapViewport(model, requestedViewport);
+      const baseResourceKeys = new Set(references.map(reference => reference.resourceKey));
+      const uniqueReferences = new Map();
+      for (const reference of references) {
+        if (!uniqueReferences.has(reference.resourceKey)) {
+          uniqueReferences.set(reference.resourceKey, reference);
+        }
+      }
+      const animationSequences = new Map();
+      const skippedAnimationSequences = new Set();
+      const incompleteAnimationSequences = new Set();
+      const animationFrameResourceKeys = new Set();
+      let extraAnimationResources = 0;
+      let extraAnimationDecodedBytes = 0;
+      const planAnimation = reference => {
+        if (reference.layer !== 'object' || originalMapAnimationFrameCount(reference.animationFrame) <= 1) return;
+        const sequenceKey = originalMapAnimationSequenceKey(reference);
+        if (animationSequences.has(sequenceKey)
+          || skippedAnimationSequences.has(sequenceKey)
+          || incompleteAnimationSequences.has(sequenceKey)) return;
+        const frameReferences = originalMapAnimationFrameReferences(reference);
+        const indexed = indexedArchives.get(normalizeArchiveName(reference.archiveName));
+        const pak = cachedPaks.get(normalizeArchiveName(reference.archiveName));
+        if (!indexed && !pak) {
+          incompleteAnimationSequences.add(sequenceKey);
+          return;
+        }
+        const table = indexed ? indexedAssetTable(indexed) : assetTable(pak);
+        const complete = frameReferences.every(frame => {
+          const index = frame.imageIndex;
+          if (index < 0 || index >= table.slotCount || !table.present[index]) return false;
+          if (table.blank[index] || indexed) return true;
+          return fs.existsSync(patchImagePath(pak, index));
+        });
+        if (!complete) {
+          incompleteAnimationSequences.add(sequenceKey);
+          return;
+        }
+        const extras = frameReferences.filter(frame => !uniqueReferences.has(frame.resourceKey));
+        const decodedBytes = extras.reduce((total, frame) => {
+          const index = frame.imageIndex;
+          if (table.blank[index]) return total;
+          return total + Math.max(1, table.width[index] || 1)
+            * Math.max(1, table.height[index] || 1) * 4;
+        }, 0);
+        if (extraAnimationResources + extras.length > 4096
+          || extraAnimationDecodedBytes + decodedBytes > 256 * 1024 * 1024) {
+          skippedAnimationSequences.add(sequenceKey);
+          return;
+        }
+        extraAnimationResources += extras.length;
+        extraAnimationDecodedBytes += decodedBytes;
+        animationSequences.set(sequenceKey, frameReferences.map(frame => frame.resourceKey));
+        for (const frame of frameReferences) {
+          animationFrameResourceKeys.add(frame.resourceKey);
+          if (!uniqueReferences.has(frame.resourceKey)) uniqueReferences.set(frame.resourceKey, frame);
+        }
+      };
+      for (const interior of [true, false]) {
+        for (const reference of references) {
+          const isInterior = reference.x > 0 && reference.y > 0
+            && reference.x < model.width - 1 && reference.y < model.height - 1;
+          if (isInterior === interior) planAnimation(reference);
+        }
+      }
       const resources = [];
       const resourceIds = new Map();
       const missingArchives = new Set();
       let missingImages = 0;
-      for (const reference of references) {
-        if (resourceIds.has(reference.resourceKey)) continue;
+      for (const reference of uniqueReferences.values()) {
+        const indexed = indexedArchives.get(normalizeArchiveName(reference.archiveName));
         const pak = cachedPaks.get(normalizeArchiveName(reference.archiveName));
-        if (!pak) {
+        if (!indexed && !pak) {
           missingArchives.add(reference.archiveName);
           continue;
         }
-        const table = assetTable(pak);
+        const table = indexed ? indexedAssetTable(indexed) : assetTable(pak);
         const index = reference.imageIndex;
-        if (index < 0 || index >= table.slotCount || !table.present[index] || table.blank[index]) {
-          if (index >= table.slotCount || !table.present[index]) missingImages++;
+        const missing = index < 0 || index >= table.slotCount || !table.present[index];
+        const blank = !missing && Boolean(table.blank[index]);
+        if (missing) {
+          missingImages++;
           continue;
         }
-        const imagePath = patchImagePath(pak, index);
-        if (!fs.existsSync(imagePath)) {
+        if (blank && !animationFrameResourceKeys.has(reference.resourceKey)) {
+          continue;
+        }
+        const imagePath = indexed ? '' : patchImagePath(pak, index);
+        if (!blank && !indexed && !fs.existsSync(imagePath)) {
           missingImages++;
           continue;
         }
@@ -325,29 +472,98 @@ async function main() {
         resourceIds.set(reference.resourceKey, resourceId);
         resources.push({
           key: reference.resourceKey,
-          url: `/asset/${encodeURIComponent(normalizeArchiveName(reference.archiveName))}/${index}`,
-          width: table.width[index] || 1,
-          height: table.height[index] || 1,
-          offsetX: table.offsetX[index] || 0,
-          offsetY: table.offsetY[index] || 0,
+          url: blank
+            ? ''
+            : indexed
+              ? `/archive/${indexed.archiveId}/${index}`
+              : `/asset/${encodeURIComponent(normalizeArchiveName(reference.archiveName))}/${index}`,
+          width: blank ? 1 : table.width[index] || 1,
+          height: blank ? 1 : table.height[index] || 1,
+          offsetX: blank ? 0 : table.offsetX[index] || 0,
+          offsetY: blank ? 0 : table.offsetY[index] || 0,
+          blank,
+          animationOnly: !baseResourceKeys.has(reference.resourceKey),
         });
       }
       const layers = { tile: [], smTile: [], object: [] };
+      const objectAnimationFrames = [];
+      const objectAnimationTicks = [];
+      const objectAnimationSetIds = [];
+      const objectAnimationSets = [];
+      const animationSetIdsBySequence = new Map();
+      let animatedObjectCount = 0;
       for (const reference of references) {
         const resourceId = resourceIds.get(reference.resourceKey);
         if (resourceId === undefined) continue;
         layers[reference.layer].push(reference.x, reference.y, resourceId);
+        if (reference.layer === 'object') {
+          objectAnimationFrames.push(reference.animationFrame);
+          objectAnimationTicks.push(reference.animationTick);
+          let animationSetId = -1;
+          if (originalMapAnimationFrameCount(reference.animationFrame) > 1) {
+            const sequenceKey = originalMapAnimationSequenceKey(reference);
+            const cachedSetId = animationSetIdsBySequence.get(sequenceKey);
+            if (cachedSetId !== undefined) {
+              animationSetId = cachedSetId;
+            } else {
+              const frameKeys = animationSequences.get(sequenceKey);
+              const frameIds = frameKeys && frameKeys.map(key => resourceIds.get(key));
+              if (frameIds && frameIds.every(id => id !== undefined)) {
+                animationSetId = objectAnimationSets.length;
+                objectAnimationSets.push(frameIds);
+              } else if (frameKeys) {
+                incompleteAnimationSequences.add(sequenceKey);
+              }
+              animationSetIdsBySequence.set(sequenceKey, animationSetId);
+            }
+          }
+          objectAnimationSetIds.push(animationSetId);
+          if (animationSetId >= 0) animatedObjectCount++;
+        }
       }
       const warnings = [];
       if (missingArchives.size) warnings.push(`未缓存 ${[...missingArchives].join('、')}`);
       if (missingImages) warnings.push(`${missingImages} 个图片序号缺失`);
+      if (incompleteAnimationSequences.size) {
+        warnings.push(`${incompleteAnimationSequences.size} 组 MAP 内嵌 Objects 连续帧不完整，已按首帧显示`);
+      }
+      if (skippedAnimationSequences.size) {
+        warnings.push(`${skippedAnimationSequences.size} 组 MAP 内嵌 Objects 连续帧超过 4096 张或 256 MiB 附加帧预算，已按首帧显示`);
+      }
       json(response, {
         resources,
         tiles: layers.tile,
         smTiles: layers.smTile,
         objects: layers.object,
+        objectAnimationFrames,
+        objectAnimationTicks,
+        objectAnimationSetIds,
+        objectAnimationSets,
+        animatedObjectCount,
         warning: warnings.join('；'),
       });
+      return;
+    }
+    const archiveAssetMatch = /^\/archive\/([a-f0-9]+)\/(\d+)$/.exec(url.pathname);
+    if (archiveAssetMatch) {
+      const summary = indexedArchivesById.get(archiveAssetMatch[1]);
+      if (!summary) {
+        fail(response, 404, 'Indexed asset not found');
+        return;
+      }
+      readArchiveImagePng({
+        extensionPath: path.resolve(__dirname, '..'),
+        indexRoot: archiveIndexRoot,
+        archiveId: summary.archiveId,
+        imageIndex: Number(archiveAssetMatch[2]),
+      }).then(data => {
+        response.writeHead(200, {
+          'Content-Type': 'image/png',
+          'Content-Length': data.length,
+          'Cache-Control': 'public, max-age=3600',
+        });
+        response.end(data);
+      }).catch(error => fail(response, 500, error instanceof Error ? error.message : String(error)));
       return;
     }
     const npcLookMatch = /^\/npc-look\/(\d+)\.webp$/.exec(url.pathname);

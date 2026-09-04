@@ -163,6 +163,313 @@ function main() {
     /assetTable!?\.width\[imageIndex\][\s\S]*assetTable!?\.height\[imageIndex\][\s\S]*assetTable!?\.offsetX\[imageIndex\][\s\S]*assetTable!?\.offsetY\[imageIndex\]/,
     'custom NPC frames must include cached dimensions and offsets'
   );
+  assert.match(
+    provider,
+    /objectAnimationFrames\.push\(animationControlSupported \? reference\.animationFrame : 0\)/,
+    'verified original-map object payloads must preserve the MAP animation/blend byte per placement'
+  );
+  assert.match(
+    provider,
+    /objectAnimationTicks\.push\(animationControlSupported \? reference\.animationTick : 0\)/,
+    'verified original-map object payloads must preserve the MAP animation tick per placement'
+  );
+  assert.match(
+    provider,
+    /blendAnchorRows: reference\.layer === 'object'[\s\S]*originalMapObjectBlendAnchorRows\([\s\S]*definition\.id,[\s\S]*session\.model\.animationProfile[\s\S]*\)/,
+    'the Provider must transmit the engine/profile-gated client anchor only with object resources'
+  );
+  assert.match(provider, /ORIGINAL_MAP_EXTRA_ANIMATION_RESOURCE_LIMIT = 4096/);
+  assert.match(provider, /ORIGINAL_MAP_EXTRA_ANIMATION_DECODED_BYTE_LIMIT = 256 \* 1024 \* 1024/);
+  assert.match(
+    provider,
+    /originalMapAnimationProfileSupportsPlayback\([\s\S]*definition\.id,[\s\S]*session\.model\.animationProfile[\s\S]*\)/,
+    'the provider must gate animation planning on the explicit engine/MAP profile capability'
+  );
+  assert.match(
+    provider,
+    /const resolveArchive = \(archiveName: string\)[\s\S]*this\.resolveOriginalArchive\([\s\S]*archiveResolutions\.set\(archiveName, resolution\)/,
+    'the animation planner archive cache must delegate to the production resolver instead of recursing'
+  );
+  assert.match(
+    provider,
+    /const complete = frameReferences\.every[\s\S]*if \(!complete\)[\s\S]*const decodedBytes = extraReferences\.reduce[\s\S]*extraAnimationDecodedBytes \+ decodedBytes/,
+    'animation sequences must be validated before count and decoded-memory budgets are consumed'
+  );
+  assert.match(provider, /objectAnimationSets\.push\(frameResourceIds\)/);
+  assert.match(provider, /animationOnly: !baseResourceKeys\.has\(reference\.resourceKey\)/);
+  assert.match(provider, /scanStartupPermanentMapEffects\(envirDirectory\)/);
+  assert.match(
+    provider,
+    /loadPakIndex\(workspaceRoot\)\?\.pakList[\s\S]*selectCustomNpcArchive\([\s\S]*effect\.wilIndex/,
+    'permanent MAPEFFECT WIL indexes must resolve through EffectImageList and the strict cached archive selector'
+  );
+  assert.match(
+    provider,
+    /effect\.startImage \+ frameOffset/,
+    'MAPEFFECT startImage is a direct logical slot and must not be decremented'
+  );
+  assert.match(
+    provider,
+    /const complete = frameIndices\.every[\s\S]*if \(!complete\)[\s\S]*const decodedBytes = newFrameIndices\.reduce/,
+    'MAPEFFECT sequences must be atomically validated before consuming the shared animation budget'
+  );
+  assert.match(provider, /permanentMapEffects,[\s\S]*permanentMapEffectSets,/);
+  assert.match(
+    provider,
+    /diagnosticCounts\['noncanonical-tail'\][\s\S]*diagnosticCounts\['conditional-mapeffect'\][\s\S]*严格启动脚本预览另有/,
+    'strict MAPEFFECT omissions must be disclosed instead of presenting the accepted subset as complete'
+  );
+  assert.match(
+    provider,
+    /message\?\.type === 'refresh'\)[\s\S]*this\.clearOriginalMapSession\(\);[\s\S]*this\.postCurrentMap\(\);/,
+    'refresh must invalidate cached script and EffectImageList-derived original-map data'
+  );
+  assert.match(html, /function scheduleOriginalMapAnimation\(\)/);
+  assert.match(html, /layer\.animationIntervalsMs=\[\.\.\.intervalsMs\]/);
+  assert.match(html, /永久 MAPEFFECT 脚本定义/);
+  const originalDrawSource = extractFunction(html, 'drawOriginalMap');
+  assert.ok(
+    originalDrawSource.indexOf("drawOriginalMapResource(ctx,resource,'object'")
+      < originalDrawSource.indexOf('drawPermanentMapEffects(layer,elapsedMs)'),
+    'permanent MAPEFFECT must draw after MAP Objects'
+  );
+  assert.ok(
+    originalDrawSource.indexOf('drawPermanentMapEffects(layer,elapsedMs)')
+      < originalDrawSource.indexOf('drawSafeZones()'),
+    'safe-zone overlays must remain above permanent MAPEFFECT'
+  );
+  assert.match(html, /document\.addEventListener\('visibilitychange'/);
+  assert.match(html, /animationTimer=setTimeout[\s\S]*renderOriginalMapAnimationFrame\(\)/);
+  assert.match(
+    html,
+    /const currentRequest=\(\)=>data\.requestId===state\.original\.requestId[\s\S]*while\(cursor<indices\.length&&currentRequest\(\)\)[\s\S]*await record\.promise;[\s\S]*if\(!currentRequest\(\)\)return/,
+    'stale background animation loads must stop before they can repopulate a newer map cache'
+  );
+  assert.match(html, /function releaseOriginalMapBase\(\)/);
+
+  const drawCalls = [];
+  const objectCompositeCalls = [];
+  const navigatorCalls = [];
+  const mapLayer = {
+    resources: [
+      { meta: { width: 96, height: 64, offsetX: 7, offsetY: -44 }, image: { id: 'tile', complete: true } },
+      { meta: { width: 48, height: 32, offsetX: 7, offsetY: -44 }, image: { id: 'smTile', complete: true } },
+      { meta: { width: 48, height: 88, offsetX: 7, offsetY: -44 }, image: { id: 'object', complete: true } },
+      { meta: { width: 48, height: 90, offsetX: 9, offsetY: -40 }, image: { id: 'object-frame-2', complete: true } },
+      { meta: { width: 48, height: 92, offsetX: 11, offsetY: -38 }, image: { id: 'object-frame-3', complete: true } },
+    ],
+    tiles: [10, 20, 0],
+    smTiles: [11, 21, 1],
+    objects: [12, 22, 2, 13, 23, 2],
+    objectAnimationFrames: [35, 0xa3],
+    objectAnimationTicks: [0, 1],
+    objectAnimationSetIds: [-1, 0],
+    objectAnimationSets: [[2, 3, 4]],
+    objectAnimationSetReady: [true],
+  };
+  const placementContext = {
+    state: {
+      original: { active: true, layer: mapLayer },
+      image: null,
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1,
+      worldW: 1920,
+      worldH: 1280,
+    },
+    viewport: { clientWidth: 1920, clientHeight: 1280 },
+    ctx: {
+      globalCompositeOperation: 'source-over',
+      fillRect() {},
+      save() {
+        this.savedComposite = this.globalCompositeOperation;
+      },
+      restore() {
+        this.globalCompositeOperation = this.savedComposite;
+      },
+      drawImage(image, left, top, width, height) {
+        drawCalls.push([image.id, left, top, width, height]);
+        objectCompositeCalls.push(this.globalCompositeOperation);
+      },
+    },
+    drawSafeZones() {},
+    mapNavigator: { hidden: false },
+    mapNavigatorContext: {
+      setTransform() {},
+      clearRect() {},
+      fillRect() {},
+      strokeRect() {},
+      drawImage(image, left, top, width, height) {
+        navigatorCalls.push([image.id, left, top, width, height]);
+      },
+    },
+    ensureMapNavigatorCanvasSize: () => ({ width: 1920, height: 1280, dpr: 1 }),
+    mapNavigatorGeometry: () => ({
+      width: 1920,
+      height: 1280,
+      scale: 1,
+      left: 0,
+      top: 0,
+      mapWidth: 1920,
+      mapHeight: 1280,
+    }),
+    renderMapNavigatorViewport() {},
+  };
+  vm.createContext(placementContext);
+  vm.runInContext(extractFunction(html, 'originalMapPlacement'), placementContext);
+  vm.runInContext(extractFunction(html, 'originalMapResourceReady'), placementContext);
+  vm.runInContext(extractFunction(html, 'originalMapObjectResource'), placementContext);
+  vm.runInContext(extractFunction(html, 'originalMapObjectRowRanges'), placementContext);
+  vm.runInContext(extractFunction(html, 'originalMapObjectRowPadding'), placementContext);
+  vm.runInContext(extractFunction(html, 'drawOriginalMapResource'), placementContext);
+  vm.runInContext(extractFunction(html, 'renderMapNavigator'), placementContext);
+  const verifiedBlendPlacement = placementContext.originalMapPlacement(
+    'object',
+    23,
+    61,
+    { key: 'objects111:14954', width: 328, height: 358, offsetX: 0, offsetY: 0, blendAnchorRows: 3 },
+    0x8a
+  );
+  assert.equal(verifiedBlendPlacement.worldX, 23 * 48);
+  assert.equal(
+    verifiedBlendPlacement.worldY,
+    (61 + 1) * 32 - 3 * 32,
+    'verified bit7 effects must use the resource-provided client anchor instead of full bitmap height'
+  );
+  assert.equal(
+    placementContext.originalMapPlacement(
+      'object',
+      23,
+      61,
+      { key: 'objects111:14954', width: 328, height: 358, offsetX: 0, offsetY: 0, blendAnchorRows: 3 },
+      0x0a
+    ).worldY,
+    (61 + 1) * 32 - 358,
+    'the same resource without bit7 must retain ordinary bottom anchoring'
+  );
+  assert.equal(
+    placementContext.originalMapPlacement(
+      'object',
+      23,
+      61,
+      { key: 'objects111:15840', width: 980, height: 900, offsetX: 0, offsetY: 0, blendAnchorRows: 3 },
+      0x86
+    ).worldY,
+    verifiedBlendPlacement.worldY,
+    'verified bit7 placement must stay fixed when another effect frame has a very different height'
+  );
+  placementContext.drawOriginalMapResource(placementContext.ctx, mapLayer.resources[0], 'tile', 10, 20, 0);
+  placementContext.drawOriginalMapResource(placementContext.ctx, mapLayer.resources[1], 'smTile', 11, 21, 0);
+  placementContext.drawOriginalMapResource(placementContext.ctx, mapLayer.resources[2], 'object', 12, 22, 35);
+  const frameAtCounter2 = placementContext.originalMapObjectResource(
+    mapLayer,
+    1,
+    mapLayer.resources[2],
+    2
+  );
+  placementContext.drawOriginalMapResource(placementContext.ctx, frameAtCounter2, 'object', 13, 23, 0xa3);
+  assert.deepEqual(
+    drawCalls,
+    [
+      ['tile', 480, 640, 97, 65],
+      ['smTile', 528, 672, 49, 33],
+      ['object', 576, 648, 48, 88],
+      ['object-frame-2', 633, 638, 48, 90],
+    ],
+    'animation must use the current frame metadata while preserving ordinary and blend placement paths'
+  );
+  assert.deepEqual(
+    objectCompositeCalls,
+    ['source-over', 'source-over', 'source-over', 'lighter'],
+    'only bit7 MAP Objects must use the additive DrawBlend composite path'
+  );
+  assert.equal(
+    placementContext.ctx.globalCompositeOperation,
+    'source-over',
+    'bit7 MAP Object drawing must restore the caller composite mode'
+  );
+  assert.deepEqual(
+    [0, 1, 2, 3, 4, 5, 6].map(counter => placementContext.originalMapObjectResource(
+      mapLayer,
+      1,
+      mapLayer.resources[2],
+      counter
+    ).image.id),
+    ['object', 'object', 'object-frame-2', 'object-frame-2', 'object-frame-3', 'object-frame-3', 'object'],
+    'tick 1 must hold each frame for two 100ms global animation counts'
+  );
+  const rowRanges = placementContext.originalMapObjectRowRanges(mapLayer.objects);
+  assert.deepEqual(
+    [Array.from(rowRanges[22]), Array.from(rowRanges[23])],
+    [[0, 3], [3, 6]],
+    'object placements must be row indexed so animation redraws do not scan the complete map'
+  );
+  const rowPadding = placementContext.originalMapObjectRowPadding([
+      { key: 'tiles:0', height: 4096, offsetY: -4096 },
+      { key: 'objects2:1', height: 1400, offsetY: -64, blendAnchorRows: 3 },
+      { key: 'objects2:2', height: 32, offsetY: 96 },
+      { key: 'objects111:14954', height: 358, offsetY: 0, blendAnchorRows: 3 },
+    ]);
+  assert.deepEqual(
+    [rowPadding.lookbehind, rowPadding.lookahead],
+    [41, 47],
+    'row culling must union ordinary and fixed-anchor extents when one resource can use either placement mode'
+  );
+  placementContext.renderMapNavigator();
+  assert.deepEqual(
+    navigatorCalls,
+    [['tile', 480, 640, 96, 64]],
+    'the original-map navigator must use the same unshifted tile placement as the main canvas'
+  );
+
+  const effectDraws = [];
+  const effectContext = {
+    state: { offsetX: 0, offsetY: 0, scale: 1 },
+    viewport: { clientWidth: 1920, clientHeight: 1280 },
+    ctx: {
+      globalCompositeOperation: 'xor',
+      imageSmoothingEnabled: true,
+      save() {
+        this.savedComposite = this.globalCompositeOperation;
+      },
+      restore() {
+        this.globalCompositeOperation = this.savedComposite;
+      },
+      drawImage(image, left, top, width, height) {
+        effectDraws.push([image.id, left, top, width, height, this.globalCompositeOperation]);
+      },
+    },
+  };
+  const effectResource = {
+    meta: { width: 20, height: 10, offsetX: -7, offsetY: -9 },
+    image: { id: 'map-effect', complete: true },
+    blank: false,
+    failed: false,
+  };
+  const effectLayer = {
+    resources: [effectResource],
+    permanentMapEffectSets: [[0]],
+    permanentMapEffectSetReady: [true],
+    permanentMapEffects: [
+      { x: 3, y: 4, speedMs: 150, drawMode: 0, frameSetId: 0 },
+      { x: 10, y: 10, speedMs: 150, drawMode: 1, frameSetId: 0 },
+    ],
+  };
+  vm.createContext(effectContext);
+  vm.runInContext(extractFunction(html, 'originalMapResourceReady'), effectContext);
+  vm.runInContext(extractFunction(html, 'originalMapEffectResource'), effectContext);
+  vm.runInContext(extractFunction(html, 'drawPermanentMapEffects'), effectContext);
+  effectContext.drawPermanentMapEffects(effectLayer, 0);
+  assert.deepEqual(
+    effectDraws,
+    [['map-effect', 137, 119, 20, 10, 'source-over']],
+    'mode 0 MAPEFFECT must use x*48/y*32 plus per-frame offsets, while unverified mode 1 is skipped'
+  );
+  assert.equal(
+    effectContext.ctx.globalCompositeOperation,
+    'xor',
+    'MAPEFFECT drawing must restore the caller composite mode'
+  );
 
   const context = {
     state: { original: { active: true }, offsetX: 100, offsetY: 200, scale: 0.5 },

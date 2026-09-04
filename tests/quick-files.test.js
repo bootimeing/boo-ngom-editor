@@ -6,6 +6,8 @@ function main() {
     buildQuickFileCandidates,
     createCustomQuickFileDefinition,
     customQuickFilePathError,
+    findEnvirRootForPath,
+    mergeQuestDiaryTextFileCandidates,
     normalizeCustomQuickFilePaths,
     normalizeMir200RelativePath,
     QUICK_FILE_DEFINITIONS,
@@ -45,6 +47,35 @@ function main() {
     fromActiveDocument[0],
     path.resolve('D:\\MirServer\\Mir200\\Envir\\MapQuest_Def\\QManage.txt')
   );
+  assert.equal(
+    findEnvirRootForPath('D:\\MirServer\\Mir200\\Envir\\QuestDiary\\一级\\二级\\按钮.txt'),
+    path.resolve('D:\\MirServer\\Mir200\\Envir')
+  );
+  assert.equal(
+    findEnvirRootForPath('D:\\MirServer\\登录器\\按钮.txt'),
+    undefined,
+    'paths outside Envir must not acquire a cross-server fallback boundary'
+  );
+
+  const questDiaryRoot = path.resolve('D:\\MirServer\\Mir200\\Envir\\QuestDiary');
+  const mergedQuestDiaryFiles = mergeQuestDiaryTextFileCandidates(
+    questDiaryRoot,
+    [
+      path.join(questDiaryRoot, '按钮10.txt'),
+      path.join(questDiaryRoot, '一级', '二级', '按钮2.TXT'),
+      path.join(questDiaryRoot, '一级', '配置.ini'),
+      path.resolve('D:\\MirServer翎风\\Mir200\\Envir\\QuestDiary\\越界.txt'),
+    ],
+    [
+      path.join(questDiaryRoot, '一级', '二级', '按钮2.TXT'),
+      path.join(questDiaryRoot, '按钮1.txt'),
+    ]
+  );
+  assert.deepEqual(mergedQuestDiaryFiles, [
+    path.join(questDiaryRoot, '按钮1.txt'),
+    path.join(questDiaryRoot, '按钮10.txt'),
+    path.join(questDiaryRoot, '一级', '二级', '按钮2.TXT'),
+  ]);
 
   const robotManage = QUICK_FILE_DEFINITIONS.at(-1);
   const nestedServer = buildQuickFileCandidates(

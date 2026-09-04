@@ -1,0 +1,65 @@
+export type LegendColorStatus =
+  | 'standard'
+  | 'compatibility'
+  | 'unset'
+  | 'out-of-range'
+  | 'invalid';
+
+export interface LegendColorResolution {
+  index: number;
+  color?: string;
+  status: LegendColorStatus;
+}
+
+// GOM, LFM, and 996PC publish the same 254 assigned cells. The original
+// palette leaves indices 32 and 255 without an RGB value, so both remain
+// undefined here instead of inheriting a browser background or guessed color.
+const DOCUMENTED_COLOR_TOKENS = `
+000000 800000 008000 808000 000080 800080 008080 C0C0C0 558097 9DB9C8 7B7373 2D2929 5A5252 635A5A 423939 1D1818
+181010 291818 100808 F27971 E1675F FF5A5A FF3131 D65A52 941000 942918 390800 731000 B51800 BD6352 421810 FFAA99
+UNSET 733929 A54A31 947B73 BD5231 522110 7B3118 2D1810 8C4A31 942900 BD3100 C67352 6B3118 C66B42 CE4A00 A56339
+5A3118 2A1000 150800 3A1800 080000 290000 4A0000 9D0000 DC0000 DE0000 FB0000 9C7352 946B4A 734A29 523118 8C4A18
+884411 4A2100 211810 D6945A C66B21 EF6B00 FF7700 A59484 423121 181008 291808 211000 392918 8C6339 422910 6B4218
+7B4A18 944A00 8C847B 6B635A 4A4239 292118 463929 B5A594 7B6B5A CEB194 A58C73 8C735A B59473 D6A573 EFA54A EFC68C
+7B6342 6B5639 BD945A 633900 D6C6AD 524229 946318 EFD6AD A58C63 635A4A BDA57B 5A4218 BD8C31 353129 948463 7B6B4A
+A58C5A 5A4A29 9C7B39 423110 EFAD21 181000 292100 9C6B00 94845A 524218 6B5A29 7B6321 9C7B21 DEA500 5A5239 312910
+CEBD7B 635A39 94844A C6A529 109C18 428C4A 318C42 109429 081810 081818 082910 184229 A5B5AD 6B7373 182929 18424A
+31424A 63C6DE 44DDFF 8CD6EF 736B39 F7DE39 F7EF8C F7E700 6B6B5A 5A8CA5 39B5EF 4A9CCE 3184B5 31526B DEDED6 BDBDB5
+8C8C84 F7F7DE 000818 081839 081029 081800 082900 0052A5 007BDE 10294A 10396B 10528C 215AA5 10315A 104284 315284
+182131 4A5A7B 526BA5 293963 104ADE 292921 4A4A39 292918 4A4A29 7B7B42 9C9C4A 5A5A29 424214 393900 595900 CA352C
+6B7321 293100 313910 313918 424A00 526318 5A7329 314A18 182100 183100 183910 63844A 6BBD4A 63B54A 63BD4A 5A9C4A
+4A8C39 63C64A 63D64A 52844A 317329 63C65A 52BD4A 10FF00 182918 4A884A 4AE74A 005A00 008800 009400 00DE00 00EE00
+00FB00 4A5A94 6373B5 7B8CD6 6B7BD6 7788FF C6C6CE 94949C 9C94C6 313139 291884 180084 4A4252 52427B 635A73 CEB5F7
+8C7B9C 7722CC DDAAFF F0B42A DF009F E317B3 FFFBF0 A0A0A4 808080 FF0000 00FF00 FFFF00 0000FF FF00FF 00FFFF UNSET
+`.trim().split(/\s+/);
+
+if (DOCUMENTED_COLOR_TOKENS.length !== 256) {
+  throw new Error(`Legend palette must contain 256 slots, got ${DOCUMENTED_COLOR_TOKENS.length}`);
+}
+
+export const LEGEND_STANDARD_COLORS: ReadonlyArray<string | undefined> = Object.freeze(
+  DOCUMENTED_COLOR_TOKENS.map(token => (
+    token === 'UNSET' ? undefined : `#${token.toLowerCase()}`
+  ))
+);
+
+export function resolveLegendColorIndex(index: number): LegendColorResolution {
+  if (!Number.isFinite(index) || !Number.isInteger(index)) {
+    return { index, status: 'invalid' };
+  }
+  if (index < 0 || index > 255) {
+    return { index, status: 'out-of-range' };
+  }
+  const color = LEGEND_STANDARD_COLORS[index];
+  if (color) return { index, color, status: 'standard' };
+
+  // Although cell 255 has no RGB in the original table, engine manuals and
+  // real scripts explicitly describe/use 255 as white. Keep that established
+  // runtime convention separate from the documented palette data.
+  if (index === 255) return { index, color: '#ffffff', status: 'compatibility' };
+  return { index, status: 'unset' };
+}
+
+export function legendColor(index: number): string | undefined {
+  return resolveLegendColorIndex(index).color;
+}

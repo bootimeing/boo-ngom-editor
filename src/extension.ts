@@ -38,6 +38,10 @@ import {
   ARCHIVE_RESOURCE_SCHEME,
   webviewResourceRoots,
 } from './utils/archive-resource-provider';
+import {
+  OriginalMapTileResourceProvider,
+  ORIGINAL_MAP_TILE_RESOURCE_SCHEME,
+} from './utils/original-map-tile-resource-provider';
 import { disposeGmBridge, ensureGmBridge } from './utils/gm-bridge';
 import { TableEditorProvider } from './providers/table-editor';
 import { PatchManagerProvider } from './providers/patch-manager';
@@ -147,6 +151,17 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.registerFileSystemProvider(
       ARCHIVE_RESOURCE_SCHEME,
       archiveResourceProvider,
+      { isCaseSensitive: true, isReadonly: true }
+    )
+  );
+  const originalMapTileResourceProvider = new OriginalMapTileResourceProvider(
+    cacheMigration.roots.originalMapTiles
+  );
+  context.subscriptions.push(
+    originalMapTileResourceProvider,
+    vscode.workspace.registerFileSystemProvider(
+      ORIGINAL_MAP_TILE_RESOURCE_SCHEME,
+      originalMapTileResourceProvider,
       { isCaseSensitive: true, isReadonly: true }
     )
   );

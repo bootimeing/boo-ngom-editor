@@ -25,16 +25,20 @@ import {
 import { decodeTextFile, readFileGBK } from './utils/text';
 import {
   findAutoRunRobotLabelAt,
+  findScriptLabelInFirstAvailableCandidate,
+  findScriptLabelInPrimaryOrFallbackCandidates,
   findScriptLabelPosition,
   resolveRobotManageFile,
 } from './utils/robot-definition';
 import {
+  findScriptCommandCallbackAt,
   findScriptLabelDefinitions,
   findScriptLabelReferences,
   findScriptLabelReferencesInText,
   findUndefinedScriptLabelReferences,
   isScriptCommentLine,
   normalizeScriptLabelKey,
+  ScriptCommandCallbackReference,
 } from './utils/script-labels';
 import { findHostScriptLabelKeys } from './utils/script-call-context';
 import {
@@ -78,6 +82,12 @@ import { registerSymbolProvider } from './providers/symbol';
 import { registerCodeLensProvider } from './providers/codelens';
 import { registerFColorDecorator, registerMerchantTableDecorator } from './providers/decorator';
 import { detectEngineDetails, resolveEngineRoot } from './utils/engine-detect';
+import {
+  buildQuickFileCandidates,
+  findEnvirRootForPath,
+  mergeQuestDiaryTextFileCandidates,
+  QUICK_FILE_DEFINITIONS,
+} from './utils/quick-files';
 import {
   buildLanguageIndex,
   commandKey,
@@ -1324,7 +1334,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       { language: 'plaintext', scheme: 'file', pattern: '**/*.txt' }
     ],
     {
-      async provideDefinition(document, position) {
+      async provideDefinition(document, position, cancellationToken) {
         const line = document.lineAt(position.line).text;
         const charPos = position.character;
 
@@ -1347,6 +1357,19 @@ export function activateAssistant(context: vscode.ExtensionContext) {
             }
           }
           return null;
+        }
+
+        // SetOnTimer/AddButton 的静态触发编号与新 GOM AddDlg 直接 QF 字段统一跳转。
+        const callbackContext = blockCache.getContext(document, position.line);
+        const callbackEngine = normalizeEngineId(
+          vscode.workspace.getConfiguration('boo', document.uri)
+            .get<string>('engine', languageIndex.engine)
+        );
+        const commandCallback = callbackContext.inSay || callbackContext.inCondition
+          ? undefined
+          : findScriptCommandCallbackAt(line, charPos, callbackEngine);
+        if (commandCallback) {
+          return findScriptCommandCallbackTarget(document, commandCallback, cancellationToken);
         }
 
         const scriptLabelReferences = findScriptLabelReferences(line);
@@ -5515,6 +5538,162 @@ function getBestCreateDir(wsRoot: string, ...extraDirs: string[]): string | null
     try { if (fs.existsSync(base)) return base; } catch {}
   }
   return null;
+}
+
+/**
+ * 定位 SetOnTimer/AddButton/新 GOM AddDlg 对应的全局回调标签。
+ * QF 型回调锁定源文档所属 Envir：QFunction 优先，未命中才递归查 QuestDiary。
+ * Definition 查询只读，不创建缺失文件。
+ */
+async function findScriptCommandCallbackTarget(
+  sourceDocument: vscode.TextDocument,
+  callback: ScriptCommandCallbackReference,
+  cancellationToken?: vscode.CancellationToken
+): Promise<vscode.Location | vscode.Location[] | null> {
+  if (callback.kind === 'button' || callback.kind === 'addDlg') {
+    const envirRoot = findEnvirRootForPath(sourceDocument.uri.fsPath);
+    if (!envirRoot) return null;
+    return findQFunctionCallbackTargets(envirRoot, callback, cancellationToken);
+  }
+
+  const definition = QUICK_FILE_DEFINITIONS.find(
+    item => item.fileName.toLowerCase() === callback.targetFileName.toLowerCase()
+  );
+  if (!definition) return null;
+
+  const sourceFolder = vscode.workspace.getWorkspaceFolder(sourceDocument.uri);
+  const workspaceFolder = sourceFolder || vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) return null;
+
+  const workspaceRoot = workspaceFolder.uri.fsPath;
+  const candidates = buildQuickFileCandidates(
+    workspaceRoot,
+    resolveEngineRoot(workspaceRoot),
+    sourceDocument.uri.fsPath,
+    definition
+  );
+  try {
+    const target = await findScriptLabelInFirstAvailableCandidate(
+      candidates,
+      callback.label,
+      async candidate => {
+        const key = path.resolve(candidate).toLowerCase();
+        const openDocument = vscode.workspace.textDocuments.find(document => (
+          document.uri.scheme === 'file'
+          && path.resolve(document.uri.fsPath).toLowerCase() === key
+        ));
+        if (!openDocument && !fs.existsSync(candidate)) return undefined;
+
+        const targetDocument = openDocument
+          || await vscode.workspace.openTextDocument(vscode.Uri.file(candidate));
+        return { value: targetDocument, text: targetDocument.getText() };
+      }
+    );
+    if (!target) return null;
+    return new vscode.Location(
+      target.value.uri,
+      new vscode.Position(target.position.line, target.position.character)
+    );
+  } catch (e) {
+    console.warn('[BOO] 命令回调标签跳转失败:', e instanceof Error ? e.message : String(e));
+    return null;
+  }
+}
+
+/**
+ * AddButton 与新 GOM AddDlg 的回调定义既可能直接位于 QFunction-0，也可能
+ * 由 QFunction 通过 #CALL 拆到 QuestDiary。QFunction 中存在目标标签时拥有绝对优先级；
+ * 只有缺文件或当前文本缺标签时才建立并扫描 QuestDiary 候选清单。
+ */
+async function findQFunctionCallbackTargets(
+  envirRoot: string,
+  callback: ScriptCommandCallbackReference,
+  cancellationToken?: vscode.CancellationToken
+): Promise<vscode.Location | vscode.Location[] | null> {
+  const qFunctionPath = path.join(envirRoot, 'Market_Def', 'QFunction-0.txt');
+  const questDiaryRoot = path.join(envirRoot, 'QuestDiary');
+  const openDocuments = new Map<string, vscode.TextDocument>();
+  for (const document of vscode.workspace.textDocuments) {
+    if (document.uri.scheme !== 'file') continue;
+    openDocuments.set(scriptDefinitionPathKey(document.uri.fsPath), document);
+  }
+
+  try {
+    const targets = await findScriptLabelInPrimaryOrFallbackCandidates(
+      qFunctionPath,
+      () => findQuestDiaryTextFiles(questDiaryRoot, cancellationToken),
+      callback.label,
+      async candidate => {
+        if (cancellationToken?.isCancellationRequested) return undefined;
+        const openDocument = openDocuments.get(scriptDefinitionPathKey(candidate));
+        if (openDocument) {
+          return { value: openDocument.uri, text: openDocument.getText() };
+        }
+
+        const candidateUri = vscode.Uri.file(candidate);
+        try {
+          const raw = await vscode.workspace.fs.readFile(candidateUri);
+          return { value: candidateUri, text: decodeTextFile(raw).text };
+        } catch {
+          // 单个缺失、损坏或暂时不可读的脚本不应中止其余 QD 候选。
+          return undefined;
+        }
+      }
+    );
+    if (cancellationToken?.isCancellationRequested || targets.length === 0) return null;
+
+    const locations = targets.map(target => new vscode.Location(
+      target.value,
+      new vscode.Position(target.position.line, target.position.character)
+    ));
+    return locations.length === 1 ? locations[0] : locations;
+  } catch (e) {
+    console.warn('[BOO] QFunction 回调标签跳转失败:', e instanceof Error ? e.message : String(e));
+    return null;
+  }
+}
+
+/**
+ * 异步枚举同一 QuestDiary 下任意深度的 .txt，并合并尚未落盘的已打开 file 文档。
+ * 结果按相对路径稳定排序，避免把文件系统枚举顺序误当成定义优先级。
+ */
+async function findQuestDiaryTextFiles(
+  questDiaryRoot: string,
+  cancellationToken?: vscode.CancellationToken
+): Promise<string[]> {
+  let diskPaths: string[] = [];
+  if (!cancellationToken?.isCancellationRequested) {
+    try {
+      const diskUris = await vscode.workspace.findFiles(
+        new vscode.RelativePattern(
+          vscode.Uri.file(questDiaryRoot),
+          '**/*.[tT][xX][tT]'
+        ),
+        null,
+        undefined,
+        cancellationToken
+      );
+      diskPaths = diskUris
+        .filter(uri => uri.scheme === 'file')
+        .map(uri => uri.fsPath);
+    } catch {
+      // QuestDiary 不存在或扫描被取消时，仍允许下面合并同目录的已打开文档。
+    }
+  }
+
+  if (cancellationToken?.isCancellationRequested) return [];
+  const openDocumentPaths = vscode.workspace.textDocuments
+    .filter(document => document.uri.scheme === 'file')
+    .map(document => document.uri.fsPath);
+  return mergeQuestDiaryTextFileCandidates(
+    questDiaryRoot,
+    diskPaths,
+    openDocumentPaths
+  );
+}
+
+function scriptDefinitionPathKey(filePath: string): string {
+  return path.resolve(filePath).toLowerCase();
 }
 
 /**

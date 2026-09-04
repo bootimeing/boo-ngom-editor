@@ -1,5 +1,7 @@
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { EngineId } from '../types';
 import {
   NestedConfigValueRequest,
   NestedConfigValueResult,
@@ -57,12 +59,12 @@ export class ScriptDataResolver {
   private readonly databases = new Map<string, CachedDatabaseSources>();
   private sqlModulePromise: Promise<SqlModule> | undefined;
 
-  async prepareFor(sourceFile: string): Promise<void> {
+  async prepareFor(sourceFile: string, engine?: EngineId): Promise<void> {
     const envirRoot = findAncestorDirectory(sourceFile, 'Envir');
     if (!envirRoot) return;
-    const candidates = databaseCandidates(envirRoot);
+    const candidates = databaseCandidates(envirRoot, engine);
     const stamp = fileSetStamp(candidates);
-    const key = pathKey(envirRoot);
+    const key = databaseCacheKey(envirRoot, engine);
     const cached = this.databases.get(key);
     if (cached?.stamp === stamp) return;
 
@@ -87,7 +89,7 @@ export class ScriptDataResolver {
     }
     for (const filePath of candidates) {
       if (/\.mdb$/i.test(filePath)) sources.push(...openAccessItemSources(filePath));
-      else if (/cfg_item\.xlsx?$/i.test(filePath)) {
+      else if (/cfg_item\.xls$/i.test(filePath)) {
         const source = openBiff8ItemSource(filePath);
         if (source) sources.push(source);
       }
@@ -95,42 +97,38 @@ export class ScriptDataResolver {
     this.databases.set(key, { stamp, sources });
   }
 
-  optionsFor(sourceFile: string): NestedVariableAnalysisOptions {
+  optionsFor(sourceFile: string, engine?: EngineId): NestedVariableAnalysisOptions {
     return {
       resolveConfigValues: request => this.resolveConfig(sourceFile, request),
       resolveTableData: request => this.resolveTable(sourceFile, request),
       resolveListData: request => this.resolveList(sourceFile, request),
-      resolveDatabaseField: request => this.resolveDatabaseField(sourceFile, request),
+      resolveDatabaseField: request => this.resolveDatabaseField(sourceFile, request, engine),
     };
   }
 
   resolveItemFieldByIndex(
     sourceFile: string,
     itemIndex: number,
-    field: string
+    field: string,
+    engine?: EngineId
   ): string | undefined {
     if (!Number.isInteger(itemIndex) || itemIndex < 0 || !field.trim()) return undefined;
     const envirRoot = findAncestorDirectory(sourceFile, 'Envir');
     if (!envirRoot) return undefined;
-    const sources = this.databases.get(pathKey(envirRoot))?.sources || [];
-    for (const source of sources) {
-      if (!source.lookupByIndex) continue;
-      try {
-        const value = source.lookupByIndex(itemIndex, field);
-        if (value !== undefined) return value;
-      } catch {
-        // Continue with the next configured item database.
-      }
-    }
-    return undefined;
+    const sources = this.databases.get(databaseCacheKey(envirRoot, engine))?.sources || [];
+    return resolveUniqueDatabaseValue(
+      sources,
+      source => source.lookupByIndex?.(itemIndex, field)
+    );
   }
 
   resolveItemFieldByName(
     sourceFile: string,
     itemName: string,
-    field: string
+    field: string,
+    engine?: EngineId
   ): string | undefined {
-    return this.resolveDatabaseField(sourceFile, { itemName, field })?.value;
+    return this.resolveDatabaseField(sourceFile, { itemName, field }, engine)?.value;
   }
 
   dispose(): void {
@@ -206,24 +204,19 @@ export class ScriptDataResolver {
   private resolveDatabaseField(
     sourceFile: string,
     request: NestedDatabaseFieldRequest,
+    engine?: EngineId
   ): NestedDatabaseFieldResult | undefined {
     const envirRoot = findAncestorDirectory(sourceFile, 'Envir');
     if (!envirRoot) return undefined;
     const itemName = stripQuotes(request.itemName).trim();
     const field = stripQuotes(request.field).trim();
     if (!itemName || !field || /<\$/i.test(itemName) || /<\$/i.test(field)) return undefined;
-    const sources = this.databases.get(pathKey(envirRoot))?.sources || [];
-    for (const source of sources) {
-      if (!source.lookup) continue;
-      let value: string | undefined;
-      try {
-        value = source.lookup(itemName, field);
-      } catch {
-        value = undefined;
-      }
-      if (value !== undefined) return { value, complete: true };
-    }
-    return undefined;
+    const sources = this.databases.get(databaseCacheKey(envirRoot, engine))?.sources || [];
+    const value = resolveUniqueDatabaseValue(
+      sources,
+      source => source.lookup?.(itemName, field)
+    );
+    return value === undefined ? undefined : { value, complete: true };
   }
 
   private resolveDataFile(sourceFile: string, rawPath: string): string | undefined {
@@ -277,29 +270,74 @@ export class ScriptDataResolver {
   }
 }
 
-function databaseCandidates(envirRoot: string): string[] {
+function databaseCandidates(envirRoot: string, engine?: EngineId): string[] {
   const serverRoot = path.dirname(path.dirname(envirRoot));
   const legacyDirectory = path.join(serverRoot, 'MUD2', 'db');
   const dataDirectory = path.join(envirRoot, 'Data');
   const result: string[] = [];
-  if (isDirectory(legacyDirectory)) {
+  if (engine !== '996PC' && isDirectory(legacyDirectory)) {
     for (const name of fs.readdirSync(legacyDirectory)) {
       if (/\.(?:db|mdb)$/i.test(name)) result.push(path.join(legacyDirectory, name));
     }
   }
-  if (isDirectory(dataDirectory)) {
+  if (engine !== 'GOM' && engine !== 'GEE' && isDirectory(dataDirectory)) {
     for (const name of fs.readdirSync(dataDirectory)) {
-      if (/^cfg_item\.xlsx?$/i.test(name)) result.push(path.join(dataDirectory, name));
+      if (/^cfg_item\.xls$/i.test(name)) result.push(path.join(dataDirectory, name));
     }
   }
   return uniquePaths(result).sort((left, right) => left.localeCompare(right));
 }
 
+function databaseCacheKey(envirRoot: string, engine?: EngineId): string {
+  return `${pathKey(envirRoot)}|${engine || 'ANY'}`;
+}
+
+/**
+ * A server folder can contain stale copies or migrated item databases beside
+ * the active one.  Returning the first matching row makes the preview depend
+ * on filename order and can map one database IDX to the wrong Looks image.
+ * Accept identical evidence from several sources, but reject conflicting
+ * values so ITEMSHOW remains unresolved instead of drawing the wrong item.
+ */
+function resolveUniqueDatabaseValue(
+  sources: readonly DatabaseFieldSource[],
+  lookup: (source: DatabaseFieldSource) => string | undefined
+): string | undefined {
+  let resolved: string | undefined;
+  for (const source of sources) {
+    let value: string | undefined;
+    try {
+      value = lookup(source);
+    } catch {
+      value = undefined;
+    }
+    if (value === undefined) continue;
+    if (resolved !== undefined && resolved !== value) return undefined;
+    resolved = value;
+  }
+  return resolved;
+}
+
 function fileSetStamp(files: readonly string[]): string {
   return files.map(filePath => {
     try {
-      const stat = fs.statSync(filePath);
-      return `${pathKey(filePath)}:${stat.size}:${stat.mtimeMs}`;
+      const stat = fs.statSync(filePath, { bigint: true });
+      // Item databases are authoritative for IDX -> Looks. Size and timestamps
+      // can survive an in-place replacement, so include exact file bytes in the
+      // identity instead of allowing a stale open database to draw another
+      // item. Only the engine-selected item DB candidates are hashed here.
+      const contentSha256 = crypto.createHash('sha256')
+        .update(fs.readFileSync(filePath))
+        .digest('hex');
+      return [
+        pathKey(filePath),
+        stat.size,
+        stat.mtimeNs,
+        stat.ctimeNs,
+        stat.birthtimeNs,
+        stat.ino,
+        contentSha256,
+      ].join(':');
     } catch {
       return `${pathKey(filePath)}:missing`;
     }
@@ -327,12 +365,18 @@ function openSqliteItemSources(SQL: SqlModule, filePath: string): DatabaseFieldS
         if (!column) return undefined;
         const statement = database.prepare(
           `SELECT ${quoteIdentifier(column)} AS value FROM ${quoteIdentifier(tableName)} `
-          + `WHERE TRIM(${quoteIdentifier(nameColumn)}) = ? LIMIT 1`
+          + `WHERE TRIM(${quoteIdentifier(nameColumn)}) = ?`
         );
         try {
           statement.bind([itemName]);
-          if (!statement.step()) return undefined;
-          return normalizeDatabaseValue(statement.getAsObject().value);
+          let value: string | undefined;
+          let matches = 0;
+          while (statement.step()) {
+            matches++;
+            if (matches > 1) return undefined;
+            value = normalizeDatabaseValue(statement.getAsObject().value);
+          }
+          return matches === 1 ? value : undefined;
         } finally {
           statement.free();
         }
@@ -343,12 +387,18 @@ function openSqliteItemSources(SQL: SqlModule, filePath: string): DatabaseFieldS
         if (!column) return undefined;
         const statement = database.prepare(
           `SELECT ${quoteIdentifier(column)} AS value FROM ${quoteIdentifier(tableName)} `
-          + `WHERE ${quoteIdentifier(indexColumn)} = ? LIMIT 1`
+          + `WHERE ${quoteIdentifier(indexColumn)} = ?`
         );
         try {
           statement.bind([itemIndex]);
-          if (!statement.step()) return undefined;
-          return normalizeDatabaseValue(statement.getAsObject().value);
+          let value: string | undefined;
+          let matches = 0;
+          while (statement.step()) {
+            matches++;
+            if (matches > 1) return undefined;
+            value = normalizeDatabaseValue(statement.getAsObject().value);
+          }
+          return matches === 1 ? value : undefined;
         } finally {
           statement.free();
         }
@@ -389,23 +439,34 @@ function openAccessItemSources(filePath: string): DatabaseFieldSource[] {
       const columnLookup = createColumnLookup(columns);
       const rows = new Map<string, Record<string, unknown>>();
       const rowsByIndex = new Map<number, Record<string, unknown>>();
+      const ambiguousNames = new Set<string>();
+      const ambiguousIndexes = new Set<number>();
       for (const row of table.getData()) {
         if (nameColumn) {
           const name = String(row[nameColumn] ?? '').trim().toLocaleUpperCase();
-          if (name && !rows.has(name)) rows.set(name, row);
+          if (name) {
+            if (rows.has(name)) ambiguousNames.add(name);
+            else rows.set(name, row);
+          }
         }
         if (indexColumn) {
           const itemIndex = Number(row[indexColumn]);
-          if (Number.isInteger(itemIndex) && !rowsByIndex.has(itemIndex)) rowsByIndex.set(itemIndex, row);
+          if (Number.isInteger(itemIndex)) {
+            if (rowsByIndex.has(itemIndex)) ambiguousIndexes.add(itemIndex);
+            else rowsByIndex.set(itemIndex, row);
+          }
         }
       }
       result.push({
         lookup(itemName, field) {
           const column = lookupColumn(columnLookup, field);
-          const row = rows.get(itemName.trim().toLocaleUpperCase());
+          const key = itemName.trim().toLocaleUpperCase();
+          if (ambiguousNames.has(key)) return undefined;
+          const row = rows.get(key);
           return column && row ? normalizeDatabaseValue(row[column]) : undefined;
         },
         lookupByIndex(itemIndex, field) {
+          if (ambiguousIndexes.has(itemIndex)) return undefined;
           const column = lookupColumn(columnLookup, field);
           const row = rowsByIndex.get(itemIndex);
           return column && row ? normalizeDatabaseValue(row[column]) : undefined;
@@ -431,15 +492,21 @@ function openBiff8ItemSource(filePath: string): DatabaseFieldSource | undefined 
     const columnLookup = createColumnLookup(columns);
     const itemRows = new Map<string, string[]>();
     const itemRowsByIndex = new Map<number, string[]>();
+    const ambiguousNames = new Set<string>();
+    const ambiguousIndexes = new Set<number>();
     for (const row of rows.slice(3)) {
       if (nameIndex >= 0) {
         const name = String(row[nameIndex] ?? '').trim().toLocaleUpperCase();
-        if (name && !itemRows.has(name)) itemRows.set(name, row);
+        if (name) {
+          if (itemRows.has(name)) ambiguousNames.add(name);
+          else itemRows.set(name, row);
+        }
       }
       if (itemIndexColumn >= 0) {
         const itemIndex = Number(row[itemIndexColumn]);
-        if (Number.isInteger(itemIndex) && !itemRowsByIndex.has(itemIndex)) {
-          itemRowsByIndex.set(itemIndex, row);
+        if (Number.isInteger(itemIndex)) {
+          if (itemRowsByIndex.has(itemIndex)) ambiguousIndexes.add(itemIndex);
+          else itemRowsByIndex.set(itemIndex, row);
         }
       }
     }
@@ -447,10 +514,13 @@ function openBiff8ItemSource(filePath: string): DatabaseFieldSource | undefined 
       lookup(itemName, field) {
         const column = lookupColumn(columnLookup, field);
         const columnIndex = column ? columns.indexOf(column) : -1;
-        const row = itemRows.get(itemName.trim().toLocaleUpperCase());
+        const key = itemName.trim().toLocaleUpperCase();
+        if (ambiguousNames.has(key)) return undefined;
+        const row = itemRows.get(key);
         return row && columnIndex >= 0 ? normalizeDatabaseValue(row[columnIndex]) : undefined;
       },
       lookupByIndex(itemIndex, field) {
+        if (ambiguousIndexes.has(itemIndex)) return undefined;
         const column = lookupColumn(columnLookup, field);
         const columnIndex = column ? columns.indexOf(column) : -1;
         const row = itemRowsByIndex.get(itemIndex);

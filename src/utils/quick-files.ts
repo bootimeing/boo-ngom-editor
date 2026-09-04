@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { isPathInside } from './path';
 
 export interface QuickFileDefinition {
   fileName: string;
@@ -105,6 +106,50 @@ export function buildQuickFileCandidates(
   return uniquePaths(envirRoots.map(envirRoot => (
     path.join(envirRoot, envirRelativePath)
   )));
+}
+
+/**
+ * 返回脚本文件所属的最近一级 Envir 目录。
+ *
+ * 定义跳转必须先锁定这一边界，避免一个工作区同时包含多套 MirServer 时
+ * 从当前服务端回退到另一套服务端的 QFunction/QuestDiary。
+ */
+export function findEnvirRootForPath(filePath: string): string | undefined {
+  const envirRoot = findNamedAncestor(path.dirname(path.resolve(filePath)), 'envir');
+  return envirRoot || undefined;
+}
+
+/**
+ * 合并磁盘枚举与已打开文档中的 QuestDiary 文本文件，并做目录围栏、去重和稳定排序。
+ * 候选路径本身可以位于任意深度；只有 .txt（大小写不敏感）会被保留。
+ */
+export function mergeQuestDiaryTextFileCandidates(
+  questDiaryRoot: string,
+  ...candidateGroups: readonly (readonly string[])[]
+): string[] {
+  const candidates = new Map<string, string>();
+  for (const group of candidateGroups) {
+    for (const candidate of group) {
+      const resolved = path.resolve(candidate);
+      if (
+        path.extname(resolved).toLowerCase() !== '.txt'
+        || !isPathInside(questDiaryRoot, resolved)
+      ) {
+        continue;
+      }
+      candidates.set(resolved.toLowerCase(), resolved);
+    }
+  }
+
+  return Array.from(candidates.values()).sort((left, right) => {
+    const leftRelative = path.relative(questDiaryRoot, left).replace(/\\/g, '/');
+    const rightRelative = path.relative(questDiaryRoot, right).replace(/\\/g, '/');
+    const naturalOrder = leftRelative.localeCompare(rightRelative, 'zh-CN', {
+      numeric: true,
+      sensitivity: 'base',
+    });
+    return naturalOrder || leftRelative.localeCompare(rightRelative);
+  });
 }
 
 export function quickFileDisplayPath(definition: QuickFileDefinition): string {

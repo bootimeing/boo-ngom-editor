@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { EngineId } from '../types';
@@ -23,12 +24,19 @@ import {
   resolveCachedPatchArchiveByName,
   SavedPatchManagerState,
 } from '../utils/patch-cache';
-import { getPatchCacheRoot } from '../utils/cache-storage';
+import {
+  getOriginalMapTileCacheRoot,
+  getPatchCacheRoot,
+} from '../utils/cache-storage';
 import {
   ARCHIVE_RESOURCE_ROOT,
   archiveResourceUri,
   cachedPatchImageUri,
 } from '../utils/archive-resource-provider';
+import {
+  ORIGINAL_MAP_TILE_RESOURCE_ROOT,
+  originalMapTileResourceUri,
+} from '../utils/original-map-tile-resource-provider';
 import {
   appendMapMarkerLines,
   deleteMapMarkerLine,
@@ -64,8 +72,15 @@ import { ArchiveExtension } from '../utils/archive-types';
 import { clearPakCache, loadPakIndex } from '../utils/pak';
 import {
   collectOriginalMapViewport,
+  originalMapAnimationFrameCount,
+  originalMapAnimationFrameReferences,
+  originalMapAnimationProfileSupportsPlayback,
+  originalMapAnimationSequenceKey,
+  originalMapObjectBlendAnchorRows,
+  permanentMapEffectFramesIntersectViewport,
   OriginalMapDrawReference,
   OriginalMapModel,
+  OriginalMapViewport,
   parseOriginalMap,
 } from '../utils/original-map';
 import {
@@ -102,14 +117,54 @@ import {
   resolveOfficialNpcAnimationPlan,
   selectOfficialNpcArchiveFile,
 } from '../utils/official-npc';
+import {
+  PermanentMapEffectDefinition,
+  scanStartupPermanentMapEffects,
+} from '../utils/map-effects';
+import { ARCHIVE_INDEX_DECODER_REVISION } from '../utils/archive-index';
+import {
+  createOriginalMapTileIdentity,
+  ensureOriginalMapTileManifest,
+  OriginalMapTileIdentity,
+  originalMapTileDescriptor,
+  parseOriginalMapTileChunkId,
+  pruneOriginalMapTileCache,
+  readOriginalMapTile,
+  writeOriginalMapTileAtomic,
+} from '../utils/original-map-tile-cache';
 
 const MARKER_FILE_STATE_KEY = 'boo.mapPreview.markerFile';
 const MARKER_FILE_PATHS_STATE_KEY = 'boo.mapPreview.markerFilesByWorkspace';
+const ORIGINAL_MAP_EXTRA_ANIMATION_RESOURCE_LIMIT = 4096;
+const ORIGINAL_MAP_EXTRA_ANIMATION_DECODED_BYTE_LIMIT = 256 * 1024 * 1024;
+const ORIGINAL_MAP_CHUNK_CELL_WIDTH = 16;
+const ORIGINAL_MAP_CHUNK_CELL_HEIGHT = 16;
+const ORIGINAL_MAP_VIEWPORT_CHUNK_LIMIT = 36;
+const ORIGINAL_MAP_STATIC_RENDERER_REVISION = 'browser-canvas-static-v1';
+const ORIGINAL_MAP_STATIC_PLACEMENT_REVISION = 'tile-sm-top-left-48x32-seam1-v1';
+const ORIGINAL_MAP_STATIC_BLEND_REVISION = 'source-over-nearest-v1';
+const ORIGINAL_MAP_STATIC_CHUNK_REVISION = 'cells-16x16-lod0-v1';
+const ORIGINAL_MAP_TILE_DATA_URL_PREFIX = 'data:image/png;base64,';
+const ORIGINAL_MAP_TILE_UPLOAD_BASE64_LIMIT = 24 * 1024 * 1024;
+const ORIGINAL_MAP_TILE_PRUNE_WRITE_INTERVAL = 32;
+const ORIGINAL_MAP_TILE_PRUNE_TIME_INTERVAL_MS = 5 * 60 * 1000;
 
 interface MapPreviewMessage {
   type?: string;
   key?: string;
   requestId?: number;
+  generation?: number;
+  viewportSeq?: number;
+  viewport?: {
+    left?: number;
+    top?: number;
+    right?: number;
+    bottom?: number;
+  };
+  prefetch?: boolean;
+  cacheKey?: string;
+  chunkId?: string;
+  pngDataUrl?: string;
   marker?: {
     lineNumber?: number;
     mapName?: string;
@@ -191,9 +246,38 @@ interface ResolvedNpcAnimation {
 
 interface OriginalMapSession {
   mapKey: string;
+  engineId: EngineId;
   filePath: string;
   model: OriginalMapModel;
-  data?: OriginalMapData;
+  requestId: number;
+  generation: number;
+  latestViewportSeq: number;
+  mapSha256: string;
+  sourceContext?: OriginalMapSourceContext;
+  sourceContextPromise?: Promise<OriginalMapSourceContext>;
+  staticCacheIdentity?: OriginalMapTileIdentity | null;
+  staticCacheIdentityPromise?: Promise<OriginalMapTileIdentity | undefined>;
+}
+
+interface OriginalMapSourceContext {
+  definition: ReturnType<typeof getEngineDefinition>;
+  clientLayout: ClientResourceLayout | undefined;
+  resourceRoots: string[];
+  supportedExtensions: ArchiveExtension[];
+  archiveFiles: string[];
+  sourceScanWarning: string;
+}
+
+interface ResolvedOriginalStaticChunk {
+  chunkId: string;
+  column: number;
+  row: number;
+  worldX: number;
+  worldY: number;
+  width: number;
+  height: number;
+  cached: boolean;
+  url: string;
 }
 
 interface ResolvedOriginalResource {
@@ -203,6 +287,9 @@ interface ResolvedOriginalResource {
   height: number;
   offsetX: number;
   offsetY: number;
+  blendAnchorRows?: number;
+  blank: boolean;
+  animationOnly: boolean;
 }
 
 type OriginalArchiveResolution = CachedPatchArchiveResolution
@@ -213,7 +300,33 @@ interface OriginalMapData {
   tiles: number[];
   smTiles: number[];
   objects: number[];
+  objectAnimationFrames: number[];
+  objectAnimationTicks: number[];
+  objectAnimationSetIds: number[];
+  objectAnimationSets: number[][];
+  permanentMapEffects: ResolvedPermanentMapEffect[];
+  permanentMapEffectSets: number[][];
+  animatedObjectCount: number;
+  permanentMapEffectCount: number;
   warning: string;
+}
+
+interface ResolvedPermanentMapEffect {
+  x: number;
+  y: number;
+  speedMs: number;
+  drawMode: 0;
+  frameSetId: number;
+}
+
+interface PlannedPermanentMapEffectSequence {
+  frameResourceKeys: string[];
+}
+
+interface PlannedPermanentMapEffectResource {
+  pak: CachedPatchPak;
+  table: CachedPatchAssetTable;
+  imageIndex: number;
 }
 
 interface MerchantNpcReveal {
@@ -236,6 +349,9 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   private originalMapSession: OriginalMapSession | undefined;
   private originalMapVersion = 0;
   private readonly originalAssetTables = new Map<string, CachedPatchAssetTable>();
+  private originalMapTileWritesSincePrune = 0;
+  private originalMapTileLastPruneAt = Date.now();
+  private originalMapTilePruneScheduled = false;
   private pendingNpcReveal: MerchantNpcReveal | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {
@@ -440,6 +556,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
             this.context.extensionUri,
             vscode.Uri.file(getPatchCacheRoot(this.context)),
             ARCHIVE_RESOURCE_ROOT,
+            ORIGINAL_MAP_TILE_RESOURCE_ROOT,
           ],
         }
       );
@@ -453,6 +570,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
           this.panelReady = true;
           this.postCurrentMap();
         } else if (message?.type === 'refresh') {
+          this.clearOriginalMapSession();
           this.postCurrentMap();
         } else if (message?.type === 'updateMarker') {
           this.enqueueMarkerUpdate(message as MapPreviewMessage);
@@ -462,8 +580,12 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
           void this.requestMarkerDeletion(message as MapPreviewMessage);
         } else if (message?.type === 'loadOriginalMap') {
           void this.loadOriginalMap(message as MapPreviewMessage);
+        } else if (message?.type === 'loadOriginalMapViewport') {
+          void this.loadOriginalMapViewport(message as MapPreviewMessage);
+        } else if (message?.type === 'storeOriginalMapTile') {
+          void this.storeOriginalMapTile(message as MapPreviewMessage);
         } else if (message?.type === 'cancelOriginalMap') {
-          this.originalMapVersion++;
+          this.cancelOriginalMap(message as MapPreviewMessage);
         } else if (message?.type === 'updateNpc') {
           this.enqueueNpcUpdate(message as MapPreviewMessage);
         } else if (message?.type === 'moveNpcToMap') {
@@ -559,6 +681,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       this.context.extensionUri,
       vscode.Uri.file(getPatchCacheRoot(this.context)),
       ARCHIVE_RESOURCE_ROOT,
+      ORIGINAL_MAP_TILE_RESOURCE_ROOT,
     ];
     if (cachedImage?.imagePath) localResourceRoots.push(vscode.Uri.file(cachedImage.pak.cacheDir));
     for (const cacheDir of entities.resourceRoots) {
@@ -1426,10 +1549,34 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     this.originalAssetTables.clear();
   }
 
-  private postOriginalProgress(requestId: number, percent: number, label: string): void {
+  private cancelOriginalMap(message: MapPreviewMessage): void {
+    const generation = message.generation;
+    const session = this.originalMapSession;
+    if (
+      !session
+      || !Number.isSafeInteger(generation)
+      || Number(generation) <= 0
+      || generation !== session.generation
+      || generation !== this.originalMapVersion
+    ) return;
+    const nextGeneration = ++this.originalMapVersion;
+    session.generation = nextGeneration;
+    session.requestId = 0;
+    session.latestViewportSeq = -1;
+  }
+
+  private postOriginalProgress(
+    requestId: number,
+    percent: number,
+    label: string,
+    generation?: number,
+    viewportSeq?: number
+  ): void {
     void this.panel?.webview.postMessage({
       type: 'originalMapProgress',
       requestId,
+      generation,
+      viewportSeq,
       percent: Math.max(0, Math.min(100, Math.round(percent))),
       label,
     });
@@ -1439,6 +1586,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     void this.panel?.webview.postMessage({
       type: 'originalMapReady',
       requestId,
+      generation: session.generation,
       mapKey: session.mapKey,
       fileName: path.basename(session.filePath),
       format: session.model.format,
@@ -1448,86 +1596,854 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       pixelHeight: session.model.height * 32,
       archiveCount: session.model.archiveNames.length,
       referenceCount: session.model.referenceCount,
+      chunkCellWidth: ORIGINAL_MAP_CHUNK_CELL_WIDTH,
+      chunkCellHeight: ORIGINAL_MAP_CHUNK_CELL_HEIGHT,
     });
   }
 
   private async loadOriginalMap(message: MapPreviewMessage): Promise<void> {
-    const requestId = Number(message.requestId) || 0;
+    const requestId = message.requestId;
     const map = this.currentMap;
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!map || !workspaceRoot || !this.panel) return;
+    if (
+      !map
+      || !workspaceRoot
+      || !this.panel
+      || !Number.isSafeInteger(requestId)
+      || Number(requestId) <= 0
+    ) return;
+    const normalizedRequestId = Number(requestId);
     const version = ++this.originalMapVersion;
     try {
+      const engineId = normalizeEngineId(
+        vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+      );
       let session = this.originalMapSession?.mapKey === map.key
+        && this.originalMapSession.engineId === engineId
         ? this.originalMapSession
         : undefined;
       if (!session) {
-        this.postOriginalProgress(requestId, 3, '正在定位原始 MAP');
-        const engine = normalizeEngineId(
-          vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
-        );
+        this.originalMapSession = undefined;
+        this.postOriginalProgress(normalizedRequestId, 3, '正在定位原始 MAP', version);
         const mapPath = findMapPath(
           workspaceRoot,
           [map.originalMapId, map.mapId],
-          this.clientResourceLayout(engine)?.mapRoots || []
+          this.clientResourceLayout(engineId)?.mapRoots || []
         );
         if (!mapPath) throw new Error(`未找到 ${map.originalMapId} 或 ${map.mapId}.map`);
-        this.postOriginalProgress(requestId, 8, `正在读取 ${path.basename(mapPath)}`);
+        this.postOriginalProgress(normalizedRequestId, 8, `正在读取 ${path.basename(mapPath)}`, version);
         const fileData = await fs.promises.readFile(mapPath);
         if (version !== this.originalMapVersion || this.currentMap?.key !== map.key) return;
+        const mapSha256 = crypto.createHash('sha256').update(fileData).digest('hex');
         const model = await parseOriginalMap(fileData, (completed, total) => {
-          if (version !== this.originalMapVersion) return;
+          if (version !== this.originalMapVersion) {
+            throw new Error('原始地图加载已取消');
+          }
           this.postOriginalProgress(
-            requestId,
+            normalizedRequestId,
             10 + (completed / Math.max(1, total)) * 35,
-            `正在解析地图单元 ${completed}/${total}`
+            `正在解析地图单元 ${completed}/${total}`,
+            version
           );
         });
         if (version !== this.originalMapVersion || this.currentMap?.key !== map.key) return;
-        session = { mapKey: map.key, filePath: mapPath, model };
+        session = {
+          mapKey: map.key,
+          engineId,
+          filePath: mapPath,
+          model,
+          requestId: normalizedRequestId,
+          generation: version,
+          latestViewportSeq: -1,
+          mapSha256,
+        };
         this.originalMapSession = session;
       } else {
-        this.postOriginalProgress(requestId, 45, '原始地图结构已缓存');
+        session.requestId = normalizedRequestId;
+        session.generation = version;
+        session.latestViewportSeq = -1;
+        this.postOriginalProgress(normalizedRequestId, 45, '原始地图结构已缓存', version);
       }
-      this.postOriginalMapReady(requestId, session);
-      if (!session.data) {
-        session.data = await this.resolveOriginalMapData(session, requestId, version);
-      }
-      if (version !== this.originalMapVersion || this.currentMap?.key !== map.key) return;
-      this.postOriginalProgress(requestId, 80, '完整地图素材已准备，正在传送到预览界面');
-      await this.panel.webview.postMessage({
-        type: 'originalMapData',
-        requestId,
-        ...session.data,
-      });
+      this.postOriginalMapReady(normalizedRequestId, session);
     } catch (error) {
       if (version !== this.originalMapVersion) return;
       void this.panel?.webview.postMessage({
         type: 'originalMapError',
-        requestId,
+        requestId: normalizedRequestId,
+        generation: version,
         message: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
+  private async loadOriginalMapViewport(message: MapPreviewMessage): Promise<void> {
+    const session = this.originalMapSession;
+    const requestId = message.requestId;
+    const generation = message.generation;
+    const viewportSeq = message.viewportSeq;
+    if (
+      !session
+      || !Number.isSafeInteger(requestId)
+      || Number(requestId) <= 0
+      || !Number.isSafeInteger(generation)
+      || Number(generation) <= 0
+      || !Number.isSafeInteger(viewportSeq)
+      || Number(viewportSeq) < 0
+      || requestId !== session.requestId
+      || generation !== session.generation
+      || generation !== this.originalMapVersion
+      || Number(viewportSeq) <= session.latestViewportSeq
+    ) return;
+
+    session.latestViewportSeq = Number(viewportSeq);
+    let viewport: OriginalMapViewport;
+    const prefetch = message.prefetch === true;
+    try {
+      viewport = this.normalizeOriginalMapViewport(session.model, message.viewport, prefetch);
+    } catch (error) {
+      void this.panel?.webview.postMessage({
+        type: 'originalMapError',
+        requestId,
+        generation,
+        viewportSeq,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+
+    const version = Number(generation);
+    try {
+      const staticIdentity = await this.prepareOriginalMapStaticCache(session);
+      if (!this.isOriginalMapViewportCurrent(session, version, Number(viewportSeq))) return;
+      const staticChunks = this.resolveOriginalMapStaticChunks(
+        session,
+        viewport,
+        staticIdentity
+      );
+      const includeStaticSources = staticChunks.some(chunk => !chunk.cached);
+      const data = await this.resolveOriginalMapData(
+        session,
+        Number(requestId),
+        version,
+        viewport,
+        Number(viewportSeq),
+        includeStaticSources
+      );
+      if (!this.isOriginalMapViewportCurrent(session, version, Number(viewportSeq))) return;
+      await this.panel?.webview.postMessage({
+        type: 'originalMapViewportData',
+        requestId,
+        generation,
+        viewportSeq,
+        viewport,
+        prefetch,
+        ...data,
+        staticCacheKey: staticIdentity?.cacheKey || '',
+        staticCacheEnabled: Boolean(staticIdentity),
+        staticChunks,
+        staticSourceIncluded: includeStaticSources,
+      });
+    } catch (error) {
+      if (!this.isOriginalMapViewportCurrent(session, version, Number(viewportSeq))) return;
+      void this.panel?.webview.postMessage({
+        type: 'originalMapError',
+        requestId,
+        generation,
+        viewportSeq,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async storeOriginalMapTile(message: MapPreviewMessage): Promise<void> {
+    const session = this.originalMapSession;
+    const requestId = message.requestId;
+    const generation = message.generation;
+    const viewportSeq = message.viewportSeq;
+    if (
+      !session
+      || !Number.isSafeInteger(requestId)
+      || requestId !== session.requestId
+      || !Number.isSafeInteger(generation)
+      || generation !== session.generation
+      || generation !== this.originalMapVersion
+      || !Number.isSafeInteger(viewportSeq)
+      || viewportSeq !== session.latestViewportSeq
+      || typeof message.cacheKey !== 'string'
+      || typeof message.chunkId !== 'string'
+      || typeof message.pngDataUrl !== 'string'
+    ) return;
+    const identity = session.staticCacheIdentity || undefined;
+    if (!identity || message.cacheKey !== identity.cacheKey) return;
+    try {
+      if (
+        !message.pngDataUrl.startsWith(ORIGINAL_MAP_TILE_DATA_URL_PREFIX)
+        || message.pngDataUrl.length > ORIGINAL_MAP_TILE_UPLOAD_BASE64_LIMIT
+      ) {
+        throw new Error('静态地图切片消息格式或大小无效');
+      }
+      const encoded = message.pngDataUrl.slice(ORIGINAL_MAP_TILE_DATA_URL_PREFIX.length);
+      if (
+        encoded.length === 0
+        || encoded.length % 4 !== 0
+        || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)
+      ) {
+        throw new Error('静态地图切片 base64 无效');
+      }
+      const png = Buffer.from(encoded, 'base64');
+      if (png.toString('base64') !== encoded) {
+        throw new Error('静态地图切片 base64 不是 canonical 编码');
+      }
+      const { column, row } = parseOriginalMapTileChunkId(message.chunkId);
+      const descriptor = originalMapTileDescriptor(
+        session.model.width,
+        session.model.height,
+        column,
+        row
+      );
+      const result = writeOriginalMapTileAtomic(
+        getOriginalMapTileCacheRoot(this.context),
+        identity.cacheKey,
+        descriptor.chunkId,
+        descriptor.width,
+        descriptor.height,
+        png
+      );
+      if (!this.isOriginalMapViewportCurrent(session, Number(generation), Number(viewportSeq))) {
+        return;
+      }
+      await this.panel?.webview.postMessage({
+        type: 'originalMapTileStored',
+        requestId,
+        generation,
+        viewportSeq,
+        cacheKey: identity.cacheKey,
+        chunkId: descriptor.chunkId,
+        status: result.status,
+        byteLength: result.byteLength,
+      });
+      if (result.status === 'published') {
+        this.scheduleOriginalMapTilePrune(identity.cacheKey);
+      }
+    } catch (error) {
+      if (!this.isOriginalMapViewportCurrent(session, Number(generation), Number(viewportSeq))) {
+        return;
+      }
+      void this.panel?.webview.postMessage({
+        type: 'originalMapTileStoreError',
+        requestId,
+        generation,
+        viewportSeq,
+        cacheKey: message.cacheKey,
+        chunkId: message.chunkId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private scheduleOriginalMapTilePrune(
+    fallbackProtectedKey: string,
+    recordWrite = true
+  ): void {
+    if (recordWrite) this.originalMapTileWritesSincePrune++;
+    const elapsed = Date.now() - this.originalMapTileLastPruneAt;
+    if (
+      this.originalMapTilePruneScheduled
+      || (
+        this.originalMapTileWritesSincePrune < ORIGINAL_MAP_TILE_PRUNE_WRITE_INTERVAL
+        && elapsed < ORIGINAL_MAP_TILE_PRUNE_TIME_INTERVAL_MS
+      )
+    ) return;
+
+    this.originalMapTilePruneScheduled = true;
+    const scheduledWriteCount = this.originalMapTileWritesSincePrune;
+    setImmediate(() => {
+      try {
+        const currentKey = this.originalMapSession?.staticCacheIdentity?.cacheKey
+          || fallbackProtectedKey;
+        pruneOriginalMapTileCache(getOriginalMapTileCacheRoot(this.context), {
+          protectedKeys: new Set([currentKey]),
+        });
+      } catch (error) {
+        console.warn(
+          '[BOO] 原始地图持久切片缓存清理失败:',
+          error instanceof Error ? error.message : String(error)
+        );
+      } finally {
+        this.originalMapTileLastPruneAt = Date.now();
+        this.originalMapTileWritesSincePrune = Math.max(
+          0,
+          this.originalMapTileWritesSincePrune - scheduledWriteCount
+        );
+        this.originalMapTilePruneScheduled = false;
+        if (this.originalMapTileWritesSincePrune >= ORIGINAL_MAP_TILE_PRUNE_WRITE_INTERVAL) {
+          this.scheduleOriginalMapTilePrune(fallbackProtectedKey, false);
+        }
+      }
+    });
+  }
+
+  private normalizeOriginalMapViewport(
+    model: OriginalMapModel,
+    value: MapPreviewMessage['viewport'],
+    prefetch: boolean
+  ): OriginalMapViewport {
+    const coordinates = [value?.left, value?.top, value?.right, value?.bottom];
+    if (!coordinates.every(coordinate => Number.isSafeInteger(coordinate))) {
+      throw new Error('原始地图视口坐标必须是有限整数');
+    }
+    const [rawLeft, rawTop, rawRight, rawBottom] = coordinates as number[];
+    if (rawLeft > rawRight || rawTop > rawBottom) {
+      throw new Error('原始地图视口边界无效');
+    }
+    const left = Math.max(0, Math.min(model.width - 1, rawLeft));
+    const top = Math.max(0, Math.min(model.height - 1, rawTop));
+    const right = Math.max(0, Math.min(model.width - 1, rawRight));
+    const bottom = Math.max(0, Math.min(model.height - 1, rawBottom));
+
+    let firstChunkX = Math.floor(left / ORIGINAL_MAP_CHUNK_CELL_WIDTH);
+    let firstChunkY = Math.floor(top / ORIGINAL_MAP_CHUNK_CELL_HEIGHT);
+    let lastChunkX = Math.floor(right / ORIGINAL_MAP_CHUNK_CELL_WIDTH);
+    let lastChunkY = Math.floor(bottom / ORIGINAL_MAP_CHUNK_CELL_HEIGHT);
+    const maximumChunkX = Math.floor((model.width - 1) / ORIGINAL_MAP_CHUNK_CELL_WIDTH);
+    const maximumChunkY = Math.floor((model.height - 1) / ORIGINAL_MAP_CHUNK_CELL_HEIGHT);
+    if (prefetch) {
+      firstChunkX = Math.max(0, firstChunkX - 1);
+      firstChunkY = Math.max(0, firstChunkY - 1);
+      lastChunkX = Math.min(maximumChunkX, lastChunkX + 1);
+      lastChunkY = Math.min(maximumChunkY, lastChunkY + 1);
+    }
+    const chunkCount = (lastChunkX - firstChunkX + 1) * (lastChunkY - firstChunkY + 1);
+    if (chunkCount > ORIGINAL_MAP_VIEWPORT_CHUNK_LIMIT) {
+      throw new Error(
+        `原始地图视口需要 ${chunkCount} 个分块，超过 ${ORIGINAL_MAP_VIEWPORT_CHUNK_LIMIT} 个安全上限`
+      );
+    }
+    return {
+      left: firstChunkX * ORIGINAL_MAP_CHUNK_CELL_WIDTH,
+      top: firstChunkY * ORIGINAL_MAP_CHUNK_CELL_HEIGHT,
+      right: Math.min(
+        model.width - 1,
+        (lastChunkX + 1) * ORIGINAL_MAP_CHUNK_CELL_WIDTH - 1
+      ),
+      bottom: Math.min(
+        model.height - 1,
+        (lastChunkY + 1) * ORIGINAL_MAP_CHUNK_CELL_HEIGHT - 1
+      ),
+    };
+  }
+
+  private async originalMapSourceContext(
+    session: OriginalMapSession
+  ): Promise<OriginalMapSourceContext> {
+    if (session.sourceContext) return session.sourceContext;
+    if (session.sourceContextPromise) return session.sourceContextPromise;
+    const load = (async (): Promise<OriginalMapSourceContext> => {
+      const definition = getEngineDefinition(session.engineId);
+      const clientLayout = this.clientResourceLayout(definition.id);
+      const resourceRoots = [...(clientLayout?.dataRoots || [])];
+      const supportedExtensions = [...uiEditorArchiveExtensions(definition.id)];
+      let archiveFiles: string[] = [];
+      let sourceScanWarning = '';
+      if (resourceRoots.length > 0) {
+        try {
+          archiveFiles = await scanClientArchiveFiles(resourceRoots, supportedExtensions);
+        } catch (error) {
+          sourceScanWarning = error instanceof Error ? error.message : String(error);
+        }
+      }
+      const context: OriginalMapSourceContext = {
+        definition,
+        clientLayout,
+        resourceRoots,
+        supportedExtensions,
+        archiveFiles,
+        sourceScanWarning,
+      };
+      session.sourceContext = context;
+      return context;
+    })();
+    session.sourceContextPromise = load;
+    try {
+      return await load;
+    } finally {
+      if (session.sourceContextPromise === load) session.sourceContextPromise = undefined;
+    }
+  }
+
+  private async prepareOriginalMapStaticCache(
+    session: OriginalMapSession
+  ): Promise<OriginalMapTileIdentity | undefined> {
+    if (session.staticCacheIdentity !== undefined) {
+      return session.staticCacheIdentity || undefined;
+    }
+    if (session.staticCacheIdentityPromise) return session.staticCacheIdentityPromise;
+    const prepare = (async (): Promise<OriginalMapTileIdentity | undefined> => {
+      try {
+        const source = await this.originalMapSourceContext(session);
+        if (source.resourceRoots.length === 0 || source.sourceScanWarning) {
+          session.staticCacheIdentity = null;
+          return undefined;
+        }
+        const staticArchiveNames = session.model.archiveNames.filter(name => (
+          /^(?:tiles|smtiles)\d*$/i.test(name)
+        ));
+        const archives = staticArchiveNames.map(archiveName => {
+          const resolution = this.resolveOriginalArchive(
+            archiveName,
+            source.archiveFiles,
+            source.resourceRoots,
+            source.supportedExtensions,
+            true
+          );
+          if (
+            (resolution.status === 'ready' || resolution.status === 'shared-cache')
+            && resolution.pak.archiveId
+          ) {
+            return { archiveName, archiveId: resolution.pak.archiveId, status: 'direct' };
+          }
+          return {
+            archiveName,
+            status: resolution.status === 'ready' || resolution.status === 'shared-cache'
+              ? 'legacy'
+              : resolution.status,
+          };
+        });
+        if (archives.some(binding => !binding.archiveId)) {
+          session.staticCacheIdentity = null;
+          return undefined;
+        }
+        const identity = createOriginalMapTileIdentity({
+          mapSha256: session.mapSha256,
+          engine: session.engineId,
+          profile: session.model.animationProfile,
+          mapWidth: session.model.width,
+          mapHeight: session.model.height,
+          archives,
+          decoderRevision: ARCHIVE_INDEX_DECODER_REVISION,
+          rendererRevision: ORIGINAL_MAP_STATIC_RENDERER_REVISION,
+          placementRevision: ORIGINAL_MAP_STATIC_PLACEMENT_REVISION,
+          blendRevision: ORIGINAL_MAP_STATIC_BLEND_REVISION,
+          chunkRevision: ORIGINAL_MAP_STATIC_CHUNK_REVISION,
+        });
+        ensureOriginalMapTileManifest(getOriginalMapTileCacheRoot(this.context), identity);
+        session.staticCacheIdentity = identity;
+        return identity;
+      } catch (error) {
+        console.warn(
+          '[BOO] 原始地图持久切片缓存已降级为当前视口流式绘制:',
+          error instanceof Error ? error.message : String(error)
+        );
+        session.staticCacheIdentity = null;
+        return undefined;
+      }
+    })();
+    session.staticCacheIdentityPromise = prepare;
+    try {
+      return await prepare;
+    } finally {
+      if (session.staticCacheIdentityPromise === prepare) {
+        session.staticCacheIdentityPromise = undefined;
+      }
+    }
+  }
+
+  private resolveOriginalMapStaticChunks(
+    session: OriginalMapSession,
+    viewport: OriginalMapViewport,
+    identity: OriginalMapTileIdentity | undefined
+  ): ResolvedOriginalStaticChunk[] {
+    const firstColumn = Math.floor(viewport.left / ORIGINAL_MAP_CHUNK_CELL_WIDTH);
+    const lastColumn = Math.floor(viewport.right / ORIGINAL_MAP_CHUNK_CELL_WIDTH);
+    const firstRow = Math.floor(viewport.top / ORIGINAL_MAP_CHUNK_CELL_HEIGHT);
+    const lastRow = Math.floor(viewport.bottom / ORIGINAL_MAP_CHUNK_CELL_HEIGHT);
+    const cacheRoot = getOriginalMapTileCacheRoot(this.context);
+    const chunks: ResolvedOriginalStaticChunk[] = [];
+    for (let row = firstRow; row <= lastRow; row++) {
+      for (let column = firstColumn; column <= lastColumn; column++) {
+        const descriptor = originalMapTileDescriptor(
+          session.model.width,
+          session.model.height,
+          column,
+          row
+        );
+        const cached = Boolean(identity && readOriginalMapTile({
+          cacheRoot,
+          cacheKey: identity.cacheKey,
+          chunkId: descriptor.chunkId,
+          mapWidth: session.model.width,
+          mapHeight: session.model.height,
+        }));
+        const url = cached && identity && this.panel
+          ? this.panel.webview.asWebviewUri(
+            originalMapTileResourceUri(identity.cacheKey, descriptor.chunkId)
+          ).toString()
+          : '';
+        chunks.push({ ...descriptor, cached, url });
+      }
+    }
+    return chunks;
+  }
+
+  private isOriginalMapViewportCurrent(
+    session: OriginalMapSession,
+    generation: number,
+    viewportSeq: number
+  ): boolean {
+    return this.originalMapSession === session
+      && this.originalMapVersion === generation
+      && session.generation === generation
+      && session.latestViewportSeq === viewportSeq
+      && this.currentMap?.key === session.mapKey;
+  }
+
   private async resolveOriginalMapData(
     session: OriginalMapSession,
     requestId: number,
-    version: number
+    version: number,
+    viewport: OriginalMapViewport,
+    viewportSeq: number,
+    includeStaticSources = true
   ): Promise<OriginalMapData> {
     const map = this.currentMap;
-    if (!this.panel || !map || session.mapKey !== map.key) throw new Error('原始地图会话已失效');
-    this.postOriginalProgress(requestId, 47, '正在整理完整地图素材引用');
-    const references = collectOriginalMapViewport(session.model, {
-      left: 0,
-      top: 0,
-      right: session.model.width - 1,
-      bottom: session.model.height - 1,
-    });
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!this.panel || !map || !workspaceRoot || session.mapKey !== map.key) {
+      throw new Error('原始地图会话已失效');
+    }
+    if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
+      throw new Error('原始地图视口加载已取消');
+    }
+    this.postOriginalProgress(
+      requestId,
+      47,
+      '正在整理当前区域素材引用',
+      version,
+      viewportSeq
+    );
+    const references = collectOriginalMapViewport(session.model, viewport).filter(reference => (
+      includeStaticSources || reference.layer === 'object'
+    ));
+    const baseResourceKeys = new Set<string>();
     const uniqueReferences = new Map<string, OriginalMapDrawReference>();
     for (const reference of references) {
+      baseResourceKeys.add(reference.resourceKey);
       if (!uniqueReferences.has(reference.resourceKey)) {
         uniqueReferences.set(reference.resourceKey, reference);
+      }
+    }
+    this.postOriginalProgress(
+      requestId,
+      48,
+      '正在核对当前区域客户端素材',
+      version,
+      viewportSeq
+    );
+    const source = await this.originalMapSourceContext(session);
+    if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
+      throw new Error('原始地图视口加载已取消');
+    }
+    const {
+      definition,
+      clientLayout,
+      resourceRoots,
+      supportedExtensions,
+      archiveFiles,
+      sourceScanWarning,
+    } = source;
+    const animationControlSupported = originalMapAnimationProfileSupportsPlayback(
+      definition.id,
+      session.model.animationProfile
+    );
+
+    const animationSequences = new Map<string, string[]>();
+    const skippedAnimationSequences = new Set<string>();
+    const incompleteAnimationSequences = new Set<string>();
+    const unsupportedAnimationSequences = new Set<string>();
+    const animationFrameResourceKeys = new Set<string>();
+    const archiveResolutions = new Map<string, OriginalArchiveResolution>();
+    let unsupportedAnimationControlCount = 0;
+    let extraAnimationResourceCount = 0;
+    let extraAnimationDecodedBytes = 0;
+    const resolveArchive = (archiveName: string): OriginalArchiveResolution => {
+      const cached = archiveResolutions.get(archiveName);
+      if (cached) return cached;
+      const resolution = this.resolveOriginalArchive(
+        archiveName,
+        archiveFiles,
+        resourceRoots,
+        supportedExtensions,
+        !sourceScanWarning
+      );
+      archiveResolutions.set(archiveName, resolution);
+      return resolution;
+    };
+    const planAnimationSequence = (reference: OriginalMapDrawReference): void => {
+      if (reference.layer !== 'object') return;
+      const frameCount = originalMapAnimationFrameCount(reference.animationFrame);
+      if (!animationControlSupported) {
+        if (reference.animationFrame !== 0) unsupportedAnimationControlCount++;
+        if (frameCount > 1) {
+          unsupportedAnimationSequences.add(originalMapAnimationSequenceKey(reference));
+        }
+        return;
+      }
+      if (frameCount <= 1) return;
+      const sequenceKey = originalMapAnimationSequenceKey(reference);
+      if (
+        animationSequences.has(sequenceKey)
+        || skippedAnimationSequences.has(sequenceKey)
+        || incompleteAnimationSequences.has(sequenceKey)
+      ) return;
+      const frameReferences = originalMapAnimationFrameReferences(reference);
+      const resolution = resolveArchive(reference.archiveName);
+      if (resolution.status !== 'ready' && resolution.status !== 'shared-cache') {
+        incompleteAnimationSequences.add(sequenceKey);
+        return;
+      }
+      const pak = resolution.pak;
+      const table = this.originalAssetTable(pak);
+      const complete = frameReferences.every(frameReference => {
+        const index = frameReference.imageIndex;
+        if (index < 0 || index >= table.slotCount || !table.present[index]) return false;
+        if (table.blank[index] || pak.archiveId) return true;
+        return fs.existsSync(patchImagePath(pak, index));
+      });
+      if (!complete) {
+        incompleteAnimationSequences.add(sequenceKey);
+        return;
+      }
+      const extraReferences = frameReferences.filter(
+        frameReference => !uniqueReferences.has(frameReference.resourceKey)
+      );
+      const decodedBytes = extraReferences.reduce((total, frameReference) => {
+        const index = frameReference.imageIndex;
+        if (table.blank[index]) return total;
+        const width = Math.max(1, Number(table.width[index]) || 1);
+        const height = Math.max(1, Number(table.height[index]) || 1);
+        return total + width * height * 4;
+      }, 0);
+      if (
+        extraAnimationResourceCount + extraReferences.length
+        > ORIGINAL_MAP_EXTRA_ANIMATION_RESOURCE_LIMIT
+        || extraAnimationDecodedBytes + decodedBytes
+        > ORIGINAL_MAP_EXTRA_ANIMATION_DECODED_BYTE_LIMIT
+      ) {
+        skippedAnimationSequences.add(sequenceKey);
+        return;
+      }
+      extraAnimationResourceCount += extraReferences.length;
+      extraAnimationDecodedBytes += decodedBytes;
+      animationSequences.set(
+        sequenceKey,
+        frameReferences.map(frameReference => frameReference.resourceKey)
+      );
+      for (const frameReference of frameReferences) {
+        animationFrameResourceKeys.add(frameReference.resourceKey);
+        if (!uniqueReferences.has(frameReference.resourceKey)) {
+          uniqueReferences.set(frameReference.resourceKey, frameReference);
+        }
+      }
+    };
+    // Prefer visible map interior sequences when a damaged perimeter would otherwise consume the budget.
+    for (const interior of [true, false]) {
+      for (const reference of references) {
+        const isInterior = reference.x > 0
+          && reference.y > 0
+          && reference.x < session.model.width - 1
+          && reference.y < session.model.height - 1;
+        if (isInterior === interior) planAnimationSequence(reference);
+      }
+    }
+
+    const plannedPermanentMapEffectSequences = new Map<
+      string,
+      PlannedPermanentMapEffectSequence
+    >();
+    const plannedPermanentMapEffectResources = new Map<
+      string,
+      PlannedPermanentMapEffectResource
+    >();
+    const permanentMapEffectPlacements: Array<{
+      definition: PermanentMapEffectDefinition;
+      sequenceKey: string;
+    }> = [];
+    const missingPermanentMapEffectArchives = new Set<string>();
+    const incompletePermanentMapEffectSequences = new Set<string>();
+    const skippedPermanentMapEffectSequences = new Set<string>();
+    let outOfBoundsPermanentMapEffects = 0;
+    let mapEffectScanWarning = '';
+    if (definition.id === 'GOM') {
+      const envirDirectory = findEnvirDirectory(workspaceRoot);
+      if (envirDirectory) {
+        try {
+          const scan = scanStartupPermanentMapEffects(envirDirectory);
+          const blockingDiagnosticCodes = new Set([
+            'entry-not-found',
+            'file-read-failed',
+            'unsupported-encoding',
+            'file-outside-envir',
+            'file-budget-exceeded',
+            'byte-budget-exceeded',
+            'depth-budget-exceeded',
+            'call-budget-exceeded',
+            'effect-budget-exceeded',
+            'label-not-found',
+            'duplicate-label',
+            'malformed-label-block',
+            'unsupported-control-flow',
+            'dynamic-call',
+            'unsupported-call',
+            'call-target-not-found',
+            'call-outside-envir',
+            'call-cycle',
+            'delete-after-create-unsupported',
+          ]);
+          const blockingDiagnostic = scan.diagnostics.find(item => (
+            blockingDiagnosticCodes.has(item.code)
+          ));
+          if (scan.truncated) {
+            mapEffectScanWarning = '启动脚本扫描达到安全预算，未显示不完整结果';
+          } else if (blockingDiagnostic) {
+            mapEffectScanWarning = blockingDiagnostic.message;
+          }
+          if (!scan.truncated) {
+            const strictOmissions: string[] = [];
+            const nonCanonicalTailCount = scan.diagnosticCounts['noncanonical-tail'] || 0;
+            const conditionalMapEffectCount = scan.diagnosticCounts['conditional-mapeffect'] || 0;
+            if (nonCanonicalTailCount) {
+              strictOmissions.push(`${nonCanonicalTailCount} 条非 canonical 尾参数定义`);
+            }
+            if (conditionalMapEffectCount) {
+              strictOmissions.push(`${conditionalMapEffectCount} 条条件 MAPEFFECT`);
+            }
+            if (strictOmissions.length) {
+              const omissionWarning = `严格启动脚本预览另有 ${strictOmissions.join('、')}未纳入`;
+              mapEffectScanWarning = mapEffectScanWarning
+                ? `${mapEffectScanWarning}；${omissionWarning}`
+                : omissionWarning;
+            }
+          }
+          const effectImageArchives = loadPakIndex(workspaceRoot)?.pakList || [];
+          const patchPaks = this.activePatchPaks(definition.id, clientLayout);
+          for (const effect of scan.definitions) {
+            if (!sameLogicalMapId(effect.mapName, map.mapId)) continue;
+            if (
+              effect.x < 0
+              || effect.y < 0
+              || effect.x >= session.model.width
+              || effect.y >= session.model.height
+            ) {
+              outOfBoundsPermanentMapEffects++;
+              continue;
+            }
+            // The current verified Startup set uses normal alpha drawing only. Unknown client
+            // blend equations must not be approximated as an equivalent mode.
+            if (effect.drawMode !== 0) continue;
+            const selected = selectCustomNpcArchive(
+              effect.wilIndex,
+              effectImageArchives,
+              patchPaks
+            );
+            const pak = selected.archive;
+            if (!pak) {
+              missingPermanentMapEffectArchives.add(
+                selected.expectedPakName
+                  ? `WIL ${effect.wilIndex} (${selected.expectedPakName})`
+                  : `WIL ${effect.wilIndex}`
+              );
+              continue;
+            }
+            const archiveIdentity = path.normalize(pak.manifestPath).toLowerCase();
+            const sequenceKey = `${archiveIdentity}\u0000${effect.startImage}\u0000${effect.frameCount}`;
+            if (
+              incompletePermanentMapEffectSequences.has(sequenceKey)
+              || skippedPermanentMapEffectSequences.has(sequenceKey)
+            ) continue;
+            let table: CachedPatchAssetTable;
+            try {
+              table = this.originalAssetTable(pak);
+            } catch (error) {
+              console.warn(
+                '[BOO] 永久 MAPEFFECT 素材索引读取失败:',
+                error instanceof Error ? error.message : String(error)
+              );
+              incompletePermanentMapEffectSequences.add(sequenceKey);
+              continue;
+            }
+            const frameIndices = Array.from(
+              { length: effect.frameCount },
+              (_, frameOffset) => effect.startImage + frameOffset
+            );
+            const complete = frameIndices.every(imageIndex => {
+              if (
+                imageIndex < 0
+                || imageIndex >= table.slotCount
+                || !table.present[imageIndex]
+              ) return false;
+              if (table.blank[imageIndex] || pak.archiveId) return true;
+              return fs.existsSync(patchImagePath(pak, imageIndex));
+            });
+            if (!complete) {
+              incompletePermanentMapEffectSequences.add(sequenceKey);
+              continue;
+            }
+            const intersectsViewport = permanentMapEffectFramesIntersectViewport(
+              effect.x,
+              effect.y,
+              frameIndices.map(imageIndex => ({
+                width: table.width[imageIndex] || 1,
+                height: table.height[imageIndex] || 1,
+                offsetX: table.offsetX[imageIndex] || 0,
+                offsetY: table.offsetY[imageIndex] || 0,
+                blank: Boolean(table.blank[imageIndex]),
+              })),
+              viewport
+            );
+            if (!intersectsViewport) continue;
+            const existingSequence = plannedPermanentMapEffectSequences.get(sequenceKey);
+            if (existingSequence) {
+              permanentMapEffectPlacements.push({ definition: effect, sequenceKey });
+              continue;
+            }
+            const frameResourceKeys = frameIndices.map(
+              imageIndex => permanentMapEffectResourceKey(pak, imageIndex)
+            );
+            const newFrameIndices = frameIndices.filter((imageIndex, frameOffset) => (
+              !plannedPermanentMapEffectResources.has(frameResourceKeys[frameOffset])
+            ));
+            const decodedBytes = newFrameIndices.reduce((total, imageIndex) => {
+              if (table.blank[imageIndex]) return total;
+              const width = Math.max(1, Number(table.width[imageIndex]) || 1);
+              const height = Math.max(1, Number(table.height[imageIndex]) || 1);
+              return total + width * height * 4;
+            }, 0);
+            if (
+              extraAnimationResourceCount + newFrameIndices.length
+                > ORIGINAL_MAP_EXTRA_ANIMATION_RESOURCE_LIMIT
+              || extraAnimationDecodedBytes + decodedBytes
+                > ORIGINAL_MAP_EXTRA_ANIMATION_DECODED_BYTE_LIMIT
+            ) {
+              skippedPermanentMapEffectSequences.add(sequenceKey);
+              continue;
+            }
+            extraAnimationResourceCount += newFrameIndices.length;
+            extraAnimationDecodedBytes += decodedBytes;
+            for (let frameOffset = 0; frameOffset < frameIndices.length; frameOffset++) {
+              const resourceKey = frameResourceKeys[frameOffset];
+              if (!plannedPermanentMapEffectResources.has(resourceKey)) {
+                plannedPermanentMapEffectResources.set(resourceKey, {
+                  pak,
+                  table,
+                  imageIndex: frameIndices[frameOffset],
+                });
+              }
+            }
+            plannedPermanentMapEffectSequences.set(sequenceKey, { frameResourceKeys });
+            permanentMapEffectPlacements.push({ definition: effect, sequenceKey });
+          }
+        } catch (error) {
+          mapEffectScanWarning = error instanceof Error ? error.message : String(error);
+        }
       }
     }
     const referencesByArchive = new Map<string, OriginalMapDrawReference[]>();
@@ -1535,22 +2451,6 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       const list = referencesByArchive.get(reference.archiveName) || [];
       list.push(reference);
       referencesByArchive.set(reference.archiveName, list);
-    }
-
-    const definition = getEngineDefinition(
-      vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
-    );
-    const resourceRoots = this.clientResourceLayout(definition.id)?.dataRoots || [];
-    const supportedExtensions = uiEditorArchiveExtensions(definition.id);
-    let archiveFiles: string[] = [];
-    let sourceScanWarning = '';
-    if (resourceRoots.length > 0) {
-      this.postOriginalProgress(requestId, 48, '正在核对客户端地图素材');
-      try {
-        archiveFiles = await scanClientArchiveFiles(resourceRoots, supportedExtensions);
-      } catch (error) {
-        sourceScanWarning = error instanceof Error ? error.message : String(error);
-      }
     }
 
     const resources: ResolvedOriginalResource[] = [];
@@ -1563,16 +2463,10 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     let archiveNumber = 0;
     let resolvedReferenceNumber = 0;
     for (const [archiveName, archiveReferences] of referencesByArchive) {
-      if (version !== this.originalMapVersion || this.currentMap?.key !== map.key) {
+      if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
         throw new Error('原始地图加载已取消');
       }
-      const resolution = this.resolveOriginalArchive(
-        archiveName,
-        archiveFiles,
-        resourceRoots,
-        supportedExtensions,
-        !sourceScanWarning
-      );
+      const resolution = resolveArchive(archiveName);
       if (resolution.status === 'missing-source') {
         missingSourceArchives.add(archiveName);
       } else if (resolution.status === 'not-indexed') {
@@ -1585,37 +2479,49 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         const table = this.originalAssetTable(pak);
         for (const reference of archiveReferences) {
           const index = reference.imageIndex;
-          if (
-            index < 0
-            || index >= table.slotCount
-            || !table.present[index]
-            || table.blank[index]
-          ) {
-            if (index >= table.slotCount || !table.present[index]) missingImages++;
+          const missing = index < 0 || index >= table.slotCount || !table.present[index];
+          const blank = !missing && Boolean(table.blank[index]);
+          if (missing) {
+            missingImages++;
+          } else if (blank && !animationFrameResourceKeys.has(reference.resourceKey)) {
+            // Static blank slots do not need a resource; animation blanks must retain their timing slot.
           } else {
             const imagePath = patchImagePath(pak, index);
-            if (!pak.archiveId && !fs.existsSync(imagePath)) {
+            if (!blank && !pak.archiveId && !fs.existsSync(imagePath)) {
               missingImages++;
             } else {
               const resourceId = resources.length;
               resourceIds.set(reference.resourceKey, resourceId);
               resources.push({
                 key: reference.resourceKey,
-                url: this.panel.webview.asWebviewUri(
-                  pak.archiveId
-                    ? archiveResourceUri(pak.archiveId, index)
-                    : vscode.Uri.file(imagePath)
-                ).toString(),
-                width: table.width[index] || 1,
-                height: table.height[index] || 1,
-                offsetX: table.offsetX[index] || 0,
-                offsetY: table.offsetY[index] || 0,
+                url: blank
+                  ? ''
+                  : this.panel.webview.asWebviewUri(
+                    pak.archiveId
+                      ? archiveResourceUri(pak.archiveId, index)
+                      : vscode.Uri.file(imagePath)
+                  ).toString(),
+                width: blank ? 1 : table.width[index] || 1,
+                height: blank ? 1 : table.height[index] || 1,
+                offsetX: blank ? 0 : table.offsetX[index] || 0,
+                offsetY: blank ? 0 : table.offsetY[index] || 0,
+                blendAnchorRows: reference.layer === 'object'
+                  ? originalMapObjectBlendAnchorRows(
+                    definition.id,
+                    session.model.animationProfile
+                  )
+                  : undefined,
+                blank,
+                animationOnly: !baseResourceKeys.has(reference.resourceKey),
               });
             }
           }
           resolvedReferenceNumber++;
           if (resolvedReferenceNumber % 2000 === 0) {
             await new Promise<void>(resolve => setImmediate(resolve));
+            if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
+              throw new Error('原始地图视口加载已取消');
+            }
           }
         }
       }
@@ -1623,14 +2529,48 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       this.postOriginalProgress(
         requestId,
         50 + (archiveNumber / Math.max(1, referencesByArchive.size)) * 27,
-        `正在读取完整素材包 ${archiveNumber}/${referencesByArchive.size}`
+        `正在读取当前区域素材包 ${archiveNumber}/${referencesByArchive.size}`,
+        version,
+        viewportSeq
       );
       await new Promise<void>(resolve => setImmediate(resolve));
+      if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
+        throw new Error('原始地图视口加载已取消');
+      }
+    }
+
+    for (const [resourceKey, planned] of plannedPermanentMapEffectResources) {
+      const { pak, table, imageIndex } = planned;
+      const blank = Boolean(table.blank[imageIndex]);
+      const resourceId = resources.length;
+      resourceIds.set(resourceKey, resourceId);
+      resources.push({
+        key: resourceKey,
+        url: blank
+          ? ''
+          : this.panel.webview.asWebviewUri(
+            pak.archiveId
+              ? archiveResourceUri(pak.archiveId, imageIndex)
+              : vscode.Uri.file(patchImagePath(pak, imageIndex))
+          ).toString(),
+        width: blank ? 1 : table.width[imageIndex] || 1,
+        height: blank ? 1 : table.height[imageIndex] || 1,
+        offsetX: blank ? 0 : table.offsetX[imageIndex] || 0,
+        offsetY: blank ? 0 : table.offsetY[imageIndex] || 0,
+        blank,
+        animationOnly: true,
+      });
     }
 
     const tiles: number[] = [];
     const smTiles: number[] = [];
     const objects: number[] = [];
+    const objectAnimationFrames: number[] = [];
+    const objectAnimationTicks: number[] = [];
+    const objectAnimationSetIds: number[] = [];
+    const objectAnimationSets: number[][] = [];
+    const animationSetIdsBySequence = new Map<string, number>();
+    let animatedObjectCount = 0;
     for (let index = 0; index < references.length; index++) {
       const reference = references[index];
       const resourceId = resourceIds.get(reference.resourceKey);
@@ -1641,10 +2581,70 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
             ? smTiles
             : objects;
         target.push(reference.x, reference.y, resourceId);
+        if (reference.layer === 'object') {
+          objectAnimationFrames.push(animationControlSupported ? reference.animationFrame : 0);
+          objectAnimationTicks.push(animationControlSupported ? reference.animationTick : 0);
+          let animationSetId = -1;
+          if (
+            animationControlSupported
+            && originalMapAnimationFrameCount(reference.animationFrame) > 1
+          ) {
+            const sequenceKey = originalMapAnimationSequenceKey(reference);
+            const cachedSetId = animationSetIdsBySequence.get(sequenceKey);
+            if (cachedSetId !== undefined) {
+              animationSetId = cachedSetId;
+            } else {
+              const frameKeys = animationSequences.get(sequenceKey);
+              const frameResourceIds = frameKeys?.map(key => resourceIds.get(key));
+              if (
+                frameResourceIds
+                && frameResourceIds.every((id): id is number => id !== undefined)
+              ) {
+                animationSetId = objectAnimationSets.length;
+                objectAnimationSets.push(frameResourceIds);
+              } else if (frameKeys) {
+                incompleteAnimationSequences.add(sequenceKey);
+              }
+              animationSetIdsBySequence.set(sequenceKey, animationSetId);
+            }
+          }
+          objectAnimationSetIds.push(animationSetId);
+          if (animationSetId >= 0) animatedObjectCount++;
+        }
       }
       if (index > 0 && index % 10000 === 0) {
         await new Promise<void>(resolve => setImmediate(resolve));
+        if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
+          throw new Error('原始地图视口加载已取消');
+        }
       }
+    }
+    const permanentMapEffectSets: number[][] = [];
+    const permanentMapEffectSetIds = new Map<string, number>();
+    const permanentMapEffects: ResolvedPermanentMapEffect[] = [];
+    for (const placement of permanentMapEffectPlacements) {
+      let frameSetId = permanentMapEffectSetIds.get(placement.sequenceKey);
+      if (frameSetId === undefined) {
+        const sequence = plannedPermanentMapEffectSequences.get(placement.sequenceKey);
+        const frameResourceIds = sequence?.frameResourceKeys.map(key => resourceIds.get(key));
+        if (
+          !frameResourceIds
+          || !frameResourceIds.every((id): id is number => id !== undefined)
+        ) {
+          incompletePermanentMapEffectSequences.add(placement.sequenceKey);
+          continue;
+        }
+        frameSetId = permanentMapEffectSets.length;
+        permanentMapEffectSets.push(frameResourceIds);
+        permanentMapEffectSetIds.set(placement.sequenceKey, frameSetId);
+      }
+      permanentMapEffects.push({
+        x: placement.definition.x,
+        y: placement.definition.y,
+        speedMs: placement.definition.speedMs,
+        drawMode: 0,
+        frameSetId,
+      });
     }
     const warnings: string[] = [];
     if (resourceRoots.length === 0) {
@@ -1665,11 +2665,61 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       warnings.push(`复用共享官方缓存 ${formatArchiveNames(sharedCacheArchives)}`);
     }
     if (missingImages) warnings.push(`${missingImages} 个图片序号缺失`);
+    if (unsupportedAnimationControlCount) {
+      warnings.push(
+        `${unsupportedAnimationControlCount} 处 MAP Objects 控制字节未通过 ${definition.shortLabel} / ${session.model.animationProfile} profile 验证，已忽略控制字节并按普通首帧显示${unsupportedAnimationSequences.size ? `（含 ${unsupportedAnimationSequences.size} 组疑似连续帧）` : ''}`
+      );
+    }
+    if (incompleteAnimationSequences.size) {
+      warnings.push(`${incompleteAnimationSequences.size} 组 MAP 内嵌 Objects 连续帧不完整，已按首帧显示`);
+    }
+    if (skippedAnimationSequences.size) {
+      warnings.push(
+        `${skippedAnimationSequences.size} 组 MAP 内嵌 Objects 连续帧超过 ${ORIGINAL_MAP_EXTRA_ANIMATION_RESOURCE_LIMIT} 张或 256 MiB 附加帧预算，已按首帧显示`
+      );
+    }
+    if (mapEffectScanWarning) {
+      warnings.push(`永久 MAPEFFECT 启动脚本扫描失败：${mapEffectScanWarning}`);
+    }
+    if (missingPermanentMapEffectArchives.size) {
+      warnings.push(
+        `永久 MAPEFFECT 缺少 ${formatArchiveNames(missingPermanentMapEffectArchives)}`
+      );
+    }
+    if (incompletePermanentMapEffectSequences.size) {
+      warnings.push(
+        `${incompletePermanentMapEffectSequences.size} 组永久 MAPEFFECT 连续帧不完整，已跳过`
+      );
+    }
+    if (skippedPermanentMapEffectSequences.size) {
+      warnings.push(
+        `${skippedPermanentMapEffectSequences.size} 组永久 MAPEFFECT 超过共享的 ${ORIGINAL_MAP_EXTRA_ANIMATION_RESOURCE_LIMIT} 张或 256 MiB 动画预算，已跳过`
+      );
+    }
+    if (outOfBoundsPermanentMapEffects) {
+      warnings.push(`${outOfBoundsPermanentMapEffects} 条永久 MAPEFFECT 坐标超出当前 MAP，已跳过`);
+    }
+    if (permanentMapEffects.length) {
+      warnings.push(
+        '永久 MAPEFFECT 仅为 QManage [@Startup] 静态可达、全员可见脚本定义预览，不代表 M2 当前实时状态'
+      );
+    }
+    if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
+      throw new Error('原始地图视口加载已取消');
+    }
     return {
       resources,
       tiles,
       smTiles,
       objects,
+      objectAnimationFrames,
+      objectAnimationTicks,
+      objectAnimationSetIds,
+      objectAnimationSets,
+      permanentMapEffects,
+      permanentMapEffectSets,
+      animatedObjectCount,
+      permanentMapEffectCount: permanentMapEffects.length,
       warning: warnings.join('；'),
     };
   }
@@ -1780,6 +2830,14 @@ function formatArchiveNames(values: Iterable<string>, maximum = 8): string {
   const names = [...values];
   const visible = names.slice(0, maximum).join('、');
   return names.length > maximum ? `${visible} 等 ${names.length} 个` : visible;
+}
+
+function sameLogicalMapId(left: string, right: string): boolean {
+  return String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
+}
+
+function permanentMapEffectResourceKey(pak: CachedPatchPak, imageIndex: number): string {
+  return `mapeffect:${path.normalize(pak.manifestPath).toLowerCase()}:${imageIndex}`;
 }
 
 function findEnvirFile(workspaceRoot: string, fileName: string): string | undefined {

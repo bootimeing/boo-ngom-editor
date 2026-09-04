@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { EngineId } from '../types';
+import { resolveMonsterRepresentativeAsset } from './monster-image';
 import { decodeTextFile, encodeTextFile, PreservedTextEncoding } from './text';
 
 export type DatabaseDetailKind = 'item' | 'monster' | 'skill' | 'other';
@@ -219,13 +220,13 @@ export function describeMonsterBodyAppearance(
   if (race === 156) {
     return describeSmartMonsterAppearance(envirDirectory, monsterName, engine);
   }
-  if (appr === undefined || appr < 0) {
+  const representative = resolveMonsterRepresentativeAsset(appr);
+  if (!representative) {
     return missingMonsterBody('怪物数据库没有有效的 Appr 字段');
   }
-  const pakNumber = Math.floor(appr / 10) + 1;
-  const imageIndex = (appr % 10) * 360 + 40;
   const extension = engine === '996PC' ? 'jpk' : 'pak';
-  const pakName = `Mon${pakNumber}`;
+  const pakName = representative.archiveName;
+  const imageIndex = representative.imageIndex;
   return {
     source: 'archive',
     pakName,

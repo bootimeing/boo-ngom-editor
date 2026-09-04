@@ -17,6 +17,9 @@ function main() {
     readme.startsWith(`# BOO 可视化编辑器 V${manifest.version}\n`),
     'README 标题版本必须与 package.json 一致'
   );
+  assert.match(readme, /## V4\.3\.4 更新重点/);
+  assert.match(readme, /ITEMSHOW[^\n]*IDX[^\n]*Looks/);
+  assert.match(readme, /## 安装/);
 
   const featureHeadings = [
     '### 传奇脚本助手',
@@ -28,6 +31,7 @@ function main() {
     '### 文件、表格与多区同步',
     '### M2 在线重载',
     '### 常用辅助工具',
+    '### DeepSeek Harness AI 助手',
   ];
   let previous = readme.indexOf('## 功能总览');
   for (const heading of featureHeadings) {
@@ -56,6 +60,9 @@ function main() {
   assert.match(script, /自定义检测命令、执行命令、界面语句、引擎函数和系统常量/);
   assert.match(script, /CHECKTEXTLIST/);
   assert.match(script, /AutoRunRobot\.txt/);
+  assert.match(script, /SETONTIMER ID/);
+  assert.match(script, /ADDBUTTON ID/);
+  assert.match(script, /ADDDLG/);
   assert.match(script, /实时语法检查/);
   assert.match(script, /变量 `STR\(\)` 包裹/);
   assert.match(script, /代码折叠、文档结构、CodeLens 和语义高亮/);
@@ -67,19 +74,31 @@ function main() {
   assert.match(variables, /动态编号不会导致整个候选列表不可用/);
 
   const ui = section(readme, featureHeadings[2], featureHeadings[3]);
-  assert.match(ui, /PAK、JPK、WIL、WZL/);
-  assert.match(ui, /WIL\/WZL 当前提供只读预览/);
+  assert.match(ui, /#### 常规 UI 编辑器/);
+  assert.match(ui, /#### Ctrl\+F12 NPC 对话画布/);
   assert.match(ui, /`Ctrl\+F12`/);
   assert.match(ui, /与原 UI 编辑器互不影响/);
+  assert.match(ui, /ITEMSHOW[^\n]*IDX[^\n]*Looks/);
+  assert.match(ui, /只在 Webview 内本地预览/);
+  assert.match(ui, /不提交服务器/);
 
   const patches = section(readme, featureHeadings[3], featureHeadings[4]);
   assert.match(patches, /传奇客户端目录/);
   assert.match(patches, /自定义补丁/);
+  assert.match(patches, /PAK、JPK、WIL、WZL/);
+  assert.match(patches, /WIL\/WZL 当前只读/);
+  assert.match(patches, /SafePointEffect/);
 
   const maps = section(readme, featureHeadings[5], featureHeadings[6]);
   assert.match(maps, /原始地图/);
   assert.match(maps, /Merchant\.txt/);
   assert.match(maps, /MonGen\.txt/);
+  assert.match(maps, /当前可视区域/);
+  assert.match(maps, /持久瓦片/);
+  assert.match(maps, /bit7 DrawBlend/);
+  assert.match(maps, /永久 `MAPEFFECT`/);
+  assert.match(maps, /不代表 M2 当前实时状态/);
+  assert.doesNotMatch(maps, /完成后缩放和平移直接复用已加载内容/);
 
   const synchronization = section(readme, featureHeadings[6], featureHeadings[7]);
   assert.match(synchronization, /“快捷工具”中提供独立“脚本同步”入口/);
@@ -88,6 +107,10 @@ function main() {
   const reload = section(readme, featureHeadings[7], featureHeadings[8]);
   assert.match(reload, /连续保存请求会自动合并/);
   assert.match(reload, /等待当前菜单命令完成/);
+
+  const deepseek = section(readme, featureHeadings[9], '## 安装');
+  assert.match(deepseek, /独立 DeepSeek 入口/);
+  assert.match(deepseek, /本机 DeepSeek Harness/);
 
   assert.match(readme, /按工作区添加或移除 Mir200 相对路径/);
   assert.match(readme, /选择“添加自定义文件”后输入相对于 `Mir200` 的路径/);

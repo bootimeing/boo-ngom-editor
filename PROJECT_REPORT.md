@@ -1,24 +1,24 @@
 # BOO 可视化编辑器项目报告
 
-> 报告日期：2026-08-25  
-> 当前版本：V4.3.3  
+> 报告日期：2026-09-04  
+> 当前版本：V4.3.4  
 > 项目类型：Visual Studio Code 扩展  
 > 发布标识：`boo1213.boo-NGOM-editor`
 
 ## 1. 项目概览
 
-BOO 可视化编辑器面向传奇 GM、版本制作人员和脚本开发者，将多引擎脚本语言服务、UI 编辑、补丁资源、数据库、地图预览、脚本同步和 M2 重载集中到 VS Code。
+BOO 可视化编辑器面向传奇 GM、版本制作人员和脚本开发者，将多引擎脚本语言服务、UI 编辑、补丁资源、数据库、地图预览、脚本同步、M2 重载和本地 AI 助手集中到 VS Code。
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 扩展版本 | V4.3.3 |
+| 扩展版本 | V4.3.4 |
 | VS Code 要求 | `^1.68.0` |
-| TypeScript 源文件 | 100 个，32,568 行 |
-| 自动回归文件 | 82 个 `*.test.js` |
+| TypeScript 源文件 | 108 个，51,832 行 |
+| 自动回归文件 | 171 个 `*.test.js`，其中 43 个浏览器测试 |
 | 注册命令 | 47 个 |
 | 内置主题 | 19 套 |
 | 生产依赖闭包 | 解包后验证 60 个实际包节点 |
-| 当前发布包 | `boo-ngom-editor-4.3.3.vsix` |
+| 当前发布包 | `artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.4.vsix` |
 
 ## 2. 目录结构
 
@@ -126,30 +126,40 @@ SQLite、MDB、CSV 和 BIFF8 XLS 使用独立 Provider。数据库与普通表�
 - README 按脚本、变量、UI、资源、数据库、地图、同步和 M2 模块归类，并增加相应结构回归。
 - 发布包与 V4.3.2 相比只新增 13 个预期运行文件、没有删除文件；新增内容为 NPC 独立面板、`src/ui-dialog` 编译模块、重载队列和变量候选模块。
 
+### 4.7 2026-09-04 V4.3.4 发布
+
+- Ctrl+F12 NPC 对话画布补齐主背景、AddDlg、输入、菜单/ListView、物品、进度、动画和本地动作预览；动态显示占位与素材、数据库、坐标、计时和动作参数严格隔离。
+- `ITEMSHOW` 固定使用 `IDX → 当前引擎数据库 Looks → Items/ItemsN 槽位` 链路；动态编号、数据库歧义和过期缓存均拒绝猜测。
+- 原始地图切换为按视口分批加载、邻区预取与 Tiles/SmTiles 持久瓦片；已验证的 GOM profile 支持 Objects 动画、bit7 DrawBlend 和永久 `MAPEFFECT` 安全子集。
+- 增加静态 `SETONTIMER`、`ADDBUTTON` 和新 GOM `ADDDLG` 回调目标跳转，并按源脚本所属服务端限制查找范围。
+- README 增加版本重点、安装、严格边界和最新地图加载说明；新增 `CHANGELOG.md`，专项报告与最终验收截图统一归档到 `docs/reports/`。
+- `.gitignore` 明确排除 pytest 与截图中间工件；VSIX 增加 `THIRD_PARTY_NOTICES.md`，包内验证器将 README、许可证和第三方声明列为必需文件。
+
 ## 5. 当前验证结果
 
 | 检查 | 结果 |
 | --- | --- |
 | 严格 TypeScript | 通过：`--noUnusedLocals --noUnusedParameters` |
-| ESLint | 0 错误，19 条 `require-atomic-updates` 提示 |
-| 完整回归 | `npm run test:all` 通过 |
-| Edge 页面冒烟 | 通过：表格 30 行/660 单元格；数据库 20 行；NPC 面板 12 个 DOM 控件并使用真实缓存素材 |
+| ESLint | 0 错误，21 条 `require-atomic-updates` 提示 |
+| 完整回归 | `npm run test:all` 退出码 0；Ctrl+F12 严格矩阵 76/76 通过 |
+| 浏览器回归 | Ctrl+F12、原始地图与相关核心用例由 Chrome `152.0.7977.82` 实跑通过；两个旧 Edge 表格用例因无 DOM 按既有规则 SKIP，不记为 PASS |
 | npm 安全审计 | 0 个已知漏洞 |
 | Python 源码测试依赖 | `requirements-test.txt` 固定 PyCryptodome 3.23.0 与 Unicorn 2.1.4；GitHub Actions 使用 Python 3.12 安装 |
 | GitHub Actions 运行时 | checkout、Node、Python 与产物上传均使用官方 v7 Action |
 | PAK 自包含运行时 | 通过 |
 | 自定义引擎语言 | 解包 VSIX 实测：自定义检测命令与界面语句进入当前引擎索引，参数悬停有效且不混入其他引擎 |
 | 变量与个人标识候选 | 解包 VSIX 实测：已确认编号被排除；动态引用不再清空 U 类或个人标识候选；结果保持升序 |
-| NPC 脚本可视化 | 解包 VSIX 实测：默认界面、`#SAY/#ELSESAY`、条件分支、GOTO 变量求值、三引擎界面语句、坐标回写与 DOM 交互通过 |
+| NPC 脚本可视化 | 76 项严格矩阵通过；最终 VSIX 的 38 文件本地运行闭包完整，动态值门禁、IDX→Looks、坐标逆写和本地动作边界通过 |
+| 最终 VSIX Ctrl+F12 | `BOO_NPC_DIALOG_RUNTIME_ROOT` 指向最终解包 `extension/` 后再次执行严格矩阵，76/76 通过 |
 | 官方 NPC 客户端素材 | 真实 `npc.wzl` 至 `npc4.wzl`：164 个外观、775 张正面帧，164 个外观逐项 PNG 解码通过 |
 | 原始地图 NPC 动画 | 每帧图片预载并解码后原子切换，图片、尺寸和偏移保持同帧；解包 VSIX 使用真实 `npc.wzl#490`、`npc2.wzl#80` 复验通过 |
 | NPC 顶戴与多行名称 | 解包 VSIX 实测：顶戴配置解析、角色格偏移、脚本偏移和反向多行名称均通过 |
-| 旧 GAMEOFMIR PAK | 1,376 槽、368 图、RGBA SHA-256 100% 匹配 |
+| 旧 GAMEOFMIR PAK | 本轮固定样本登记路径已不存在，未复跑；此前 1,376 槽、368 图、RGBA SHA-256 100% 匹配证据保留，且本版未修改 PakBridge 源码或冻结运行时 |
 | GAMEOFMIR2 单块异常兼容 | 真实包 1,659 槽、1,654 个有效块；异常序号 1,260 保留为空白占位，源码与自包含运行时结果一致 |
 | GEEPAK2 真实包 | 未执行：本机未提供 `BOO_GEE2_PAK_PASSWORD` |
 | M2 原生源码重建 | 通过，生成 322,560 字节 x64 EXE；隔离 M2 测试等待 2,016 ms 后确认命令完成 |
-| VSIX 生产依赖 | 60 个包节点、SQL.js、XLS、Tabulator、原生 M2 全部通过 |
-| VSIX 源码一致性 | 1,618 个普通包内文件与工作区逐文件 SHA-256 一致；仅排除 3 个 VSCE 已知转换文件 |
+| VSIX 生产依赖 | 60 个包节点、Ctrl+F12 38 文件闭包、SQL.js、XLS、Tabulator、原生 M2 及项目声明文件全部通过 |
+| VSIX 内容 | 1,632 个 ZIP 条目；`extension/` 1,630 个文件、58,011,264 字节；源码、测试、截图、报告和真实样本意外条目为 0 |
 | 目录结构守卫 | 通过；无旧目录、旧包、候选包或回滚包残留 |
 
 ## 6. 构建与发布
@@ -171,22 +181,23 @@ npm run verify:packaged-dependencies -- "<解包后的 extension 目录>"
 
 当前正式发布包：
 
-- 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.3.vsix`
-- 大小：21,356,359 字节
-- 压缩包条目：1,623
-- SHA-256：`3AECA44DF19AEFFCD7247D5EE07A9F5A281600F82347EE6F5B6CB6B3510AAC33`
+- 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.4.vsix`
+- 大小：21,546,119 字节
+- 压缩包条目：1,632
+- 解包 `extension/`：1,630 个文件，58,011,264 字节
+- SHA-256：`F76F92B8B6A7F8BA13E0779D75A40D5CA1B5AC0BE5AE981E4A9FF2DCC83BBD30`
 
 上一版回滚包：
 
-- 路径：`D:\BOO项目备份\VSIX发布回滚\boo-ngom-editor-4.3.2.vsix`
-- 大小：21,269,998 字节
-- 压缩包条目：1,610
-- SHA-256：`1DAF86FBDFB16B04E3A9F4E66E2F513310030E143D3FD722D4BB07AEE59DAD12`
+- 路径：`D:\BOO项目备份\VSIX发布回滚\boo-ngom-editor-4.3.3-release-before-4.3.4-20260826.vsix`
+- 大小：21,356,359 字节
+- SHA-256：`3AECA44DF19AEFFCD7247D5EE07A9F5A281600F82347EE6F5B6CB6B3510AAC33`
 
 ## 7. 已知边界
 
 1. VSIX 仍包含 PakBridge 自包含 Python 运行时，这是格式兼容能力的必要成本；没有真实包回归证据时不得裁剪。
-2. 19 条 ESLint 并发提示不是当前构建错误，但涉及数据库、补丁管理和异步面板状态，后续应按模块逐项验证后处理。
+2. 21 条 ESLint 并发提示不是当前构建错误，但涉及数据库、补丁管理、地图加载和异步面板状态，后续应按模块逐项验证后处理。
 3. GEEPAK2 真实加密样本需要单独提供测试密码环境变量，不能把缺少凭据记为运行时通过。
 4. GAMEOFMIR2 异常序号 1,260 的高熵数据块仍属于未识别素材格式；当前只保留逻辑空位，未声称已解码其内容。
 5. NPC 独立面板可以静态求值脚本、配置和表格中的确定值；依赖在线角色、随机数、插件或外部服务的运行时内容只能显示默认值或锁定占位。
+6. Ctrl+F12 与永久 MAPEFFECT 均是安全离线预览，不代表游戏客户端像素、窗口生命周期或 M2 当前在线状态完全等价。

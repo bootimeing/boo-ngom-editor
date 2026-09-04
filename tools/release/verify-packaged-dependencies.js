@@ -2,9 +2,117 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createRequire } = require('node:module');
+const ts = require('typescript');
 
 const sourceRoot = path.resolve(__dirname, '..', '..');
 const packagedRoot = process.argv[2] ? path.resolve(process.argv[2]) : '';
+
+const REQUIRED_NPC_DIALOG_RUNTIME_FILES = Object.freeze([
+  'data/static-language.json',
+  'media/npc-dialog-visual.css',
+  'media/npc-dialog-visual.html',
+  'media/npc-dialog-visual.js',
+  'out/providers/npc-dialog-visual.js',
+  'out/ui-dialog/adddlg-companion.js',
+  'out/ui-dialog/item-preview.js',
+  'out/ui-dialog/item-tooltip.js',
+  'out/ui-dialog/model.js',
+  'out/ui-dialog/offsets.js',
+  'out/ui-dialog/progress-preview.js',
+  'out/ui-dialog/source-parser.js',
+  'out/ui-dialog/source-patcher.js',
+  'out/ui-dialog/statement-catalog.js',
+  'out/ui-dialog/variable-resolver.js',
+]);
+const REQUIRED_NPC_DIALOG_DYNAMIC_ENTRY_FILES = Object.freeze([
+  'out/utils/archive-image-worker.js',
+]);
+
+function verifyRequiredPackagedFiles(root, relativePaths, label) {
+  const missing = relativePaths.filter(relative => !fs.existsSync(path.join(root, relative)));
+  assert.deepEqual(missing, [], `${label} packaged runtime files are missing:\n${missing.join('\n')}`);
+}
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative === '' || (!path.isAbsolute(relative) && relative !== '..'
+    && !relative.startsWith(`..${path.sep}`));
+}
+
+function packagedRelative(root, absolute) {
+  return path.relative(root, absolute).replaceAll('\\', '/');
+}
+
+function verifyLocalModuleClosure(root, entryPaths, dynamicEntryPaths = [], label = 'Runtime') {
+  const resolvedRoot = path.resolve(root);
+  const pending = [...entryPaths, ...dynamicEntryPaths].map(relative => ({
+    absolute: path.resolve(resolvedRoot, ...relative.split('/')),
+    requestedBy: '<entry>',
+    specifier: relative,
+  }));
+  const visited = new Set();
+  const problems = [];
+
+  while (pending.length) {
+    const request = pending.shift();
+    if (!isPathInside(resolvedRoot, request.absolute)) {
+      problems.push(`${request.requestedBy}: ${request.specifier} resolves outside packaged root`);
+      continue;
+    }
+    const relative = packagedRelative(resolvedRoot, request.absolute);
+    if (visited.has(relative)) continue;
+    if (!fs.existsSync(request.absolute) || !fs.statSync(request.absolute).isFile()) {
+      problems.push(`${request.requestedBy}: cannot resolve ${request.specifier}`);
+      continue;
+    }
+    visited.add(relative);
+
+    if (!/\.(?:c?js|mjs)$/i.test(request.absolute)) continue;
+    const source = fs.readFileSync(request.absolute, 'utf8');
+    const sourceFile = ts.createSourceFile(
+      request.absolute,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.JS
+    );
+    const localRequire = createRequire(request.absolute);
+    const visit = node => {
+      if (ts.isCallExpression(node)
+        && ts.isIdentifier(node.expression)
+        && node.expression.text === 'require'
+        && node.arguments.length === 1
+        && ts.isStringLiteralLike(node.arguments[0])) {
+        const specifier = node.arguments[0].text;
+        if (specifier.startsWith('./') || specifier.startsWith('../')) {
+          let resolved;
+          try {
+            resolved = localRequire.resolve(specifier);
+          } catch {
+            problems.push(`${relative}: cannot resolve ${specifier}`);
+          }
+          if (resolved) {
+            const absolute = path.resolve(resolved);
+            if (!isPathInside(resolvedRoot, absolute)) {
+              problems.push(`${relative}: ${specifier} resolves outside packaged root`);
+            } else {
+              pending.push({ absolute, requestedBy: relative, specifier });
+            }
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+
+  assert.deepEqual(
+    problems,
+    [],
+    `${label} packaged local module closure is incomplete:\n${problems.join('\n')}`
+  );
+  return [...visited].sort();
+}
 
 function resolvePackageManifest(fromManifest, packageName) {
   let searchDirectory = path.dirname(fromManifest);
@@ -98,6 +206,18 @@ async function main() {
   const sourcePackage = JSON.parse(fs.readFileSync(sourceManifest, 'utf8'));
   const packagedPackage = JSON.parse(fs.readFileSync(packagedManifest, 'utf8'));
   assert.equal(packagedPackage.version, sourcePackage.version);
+  verifyRequiredPackagedFiles(
+    packagedRoot,
+    ['readme.md', 'LICENSE.txt', 'THIRD_PARTY_NOTICES.md'],
+    'Project notice'
+  );
+  verifyRequiredPackagedFiles(packagedRoot, REQUIRED_NPC_DIALOG_RUNTIME_FILES, 'Ctrl+F12');
+  const npcDialogModuleFiles = verifyLocalModuleClosure(
+    packagedRoot,
+    ['out/providers/npc-dialog-visual.js'],
+    REQUIRED_NPC_DIALOG_DYNAMIC_ENTRY_FILES,
+    'Ctrl+F12'
+  );
   const packageCount = verifyDependencyClosure(sourceManifest, packagedManifest);
 
   const packagedRequire = createRequire(packagedManifest);
@@ -164,10 +284,20 @@ async function main() {
     assert.equal(fs.existsSync(path.join(packagedRoot, relative)), false, `${relative} must not be packaged`);
   }
 
-  console.log(`Packaged runtime verification passed: ${packageCount} production packages, SQL.js, XLS, Tabulator, native M2.`);
+  console.log(`Packaged runtime verification passed: ${packageCount} production packages, `
+    + `Ctrl+F12 ${npcDialogModuleFiles.length}-file local closure, SQL.js, XLS, Tabulator, native M2.`);
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  REQUIRED_NPC_DIALOG_DYNAMIC_ENTRY_FILES,
+  REQUIRED_NPC_DIALOG_RUNTIME_FILES,
+  verifyLocalModuleClosure,
+  verifyRequiredPackagedFiles,
+};

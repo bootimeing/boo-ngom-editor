@@ -107,18 +107,18 @@
       "id": "playimg-absolute",
       "engineVariants": {
         "GOM": {
-          "label": "<&PLAYIMG:F:N:C:T:X:Y>",
-          "snippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}>",
-          "description": "使用绝对坐标播放动态图片",
+          "label": "<&PLAYIMG:F:N:C:T:X:Y:M:L:文字标题:R>",
+          "snippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0/1)}:${8:播放次数}:${9:文字标题}:${10:素材坐标偏移(0/1)}>",
+          "description": "使用绝对坐标播放动态图片，可设置绘制模式、次数、标题和素材坐标偏移",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框绝对坐标.htm"
           }
         },
         "GEE": {
-          "label": "<&PLAYIMG:F:N:C:T:X:Y>",
-          "snippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}>",
-          "description": "使用绝对坐标播放动态图片",
+          "label": "<&PLAYIMG:F:N:C:T:X:Y:M:备注文字:P>",
+          "snippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0-3)}:${8:备注文字}:${9:输入框ID列表}>",
+          "description": "使用绝对坐标播放动态图片，可设置绘制层、备注和提交输入框",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm"
@@ -130,18 +130,18 @@
       "id": "playimgex-absolute",
       "engineVariants": {
         "GOM": {
-          "label": "<&PLAYIMGEX:F:N:C:T:H:X:Y>",
-          "snippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}>",
-          "description": "使用绝对坐标按指定次数播放动态图片",
+          "label": "<&PLAYIMGEX:F:N:C:T:X:Y:M:L>",
+          "snippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0/1)}:${8:播放次数}>",
+          "description": "使用绝对坐标播放动态图片，可设置绘制模式和播放次数",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框容器.htm"
           }
         },
         "GEE": {
-          "label": "<&PLAYIMGEX:F:N:C:T:H:X:Y>",
-          "snippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}>",
-          "description": "使用绝对坐标按指定次数播放动态图片",
+          "label": "<&PLAYIMGEX:F:N:C:T:H:X:Y:M:备注文字:P>",
+          "snippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}:${8:绘制模式(0-3)}:${9:备注文字}:${10:输入框ID列表}>",
+          "description": "使用绝对坐标按指定次数播放动态图片，可设置绘制层、备注和提交输入框",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm"
@@ -307,7 +307,7 @@
       "engineVariants": {
         "GOM": {
           "label": "<&ITEMSHOW:D:F:X:Y:B:G:R:H:T:S:W>",
-          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:称号模式}:${10:内观素材}:${11:物品特效}>",
+          "snippet": "<&ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:称号模式}:${10:内观素材}:${11:物品特效}>",
           "description": "使用绝对坐标显示物品图片和属性，可设置数量、背景框、灰化、对齐、内观素材与物品特效",
           "source": {
             "revision": "2026-07-23",
@@ -316,7 +316,7 @@
         },
         "GEE": {
           "label": "<&ITEMSHOW:D:F:X:Y:Z:W:G:U/@Label>",
-          "snippet": "<&ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>",
+          "snippet": "<&ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>",
           "description": "使用绝对坐标显示物品图片和属性，可设置背景框、发光、灰化、数量单位和单击标签",
           "source": {
             "revision": "2026-07-23",
@@ -325,7 +325,7 @@
         },
         "996PC": {
           "label": "<ITEMSHOW:D:F:X:Y:B>",
-          "snippet": "<ITEMSHOW:${1:物品ID}:${2:数量}:${3:X}:${4:Y}:${5:显示背景(0/1)}>",
+          "snippet": "<ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:显示背景(0/1)}>",
           "description": "显示物品图片并在悬停时显示属性",
           "source": {
             "revision": "2026-07-23",
@@ -459,18 +459,18 @@
       "id": "image-number",
       "engineVariants": {
         "GOM": {
-          "label": "<&IMGNUM:N:VALUE:GAP:X:Y:D>",
-          "snippet": "<&IMGNUM:${1:开始图片}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:方向}>",
-          "description": "将数字转换为连续图片显示",
+          "label": "<&IMGNUM:START:VALUE:GAP:X:Y:INPUTIDS>",
+          "snippet": "<&IMGNUM:${1:开始图片}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:提交输入框ID}>",
+          "description": "从 NewopUI 起始图片后的 0-9 数字素材显示数值，可提交指定输入框 ID",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框数字转图片.htm"
           }
         },
         "GEE": {
-          "label": "<&IMGNUM:N:VALUE:GAP:X:Y:D>",
-          "snippet": "<&IMGNUM:${1:开始图片}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:方向}>",
-          "description": "将数字转换为连续图片显示",
+          "label": "<&IMGNUM:TYPE:VALUE:GAP:X:Y:INPUTIDS>",
+          "snippet": "<&IMGNUM:${1:数字类型(0-9)}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:提交输入框ID}>",
+          "description": "使用 NewopUI 1230-1329 中指定数字类型的素材显示数值，可提交指定输入框 ID",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/数字转换为图片显示标签.htm"
@@ -482,22 +482,28 @@
       "id": "progress-bar",
       "engineVariants": {
         "GOM": {
-          "label": "<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
-          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
+          "label": "<ProgressBar:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
+          "snippet": "<ProgressBar:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
           "description": "显示动态进度条",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm"
-          }
+          },
+          "markupAliases": [
+            "<&PROGRESSBAR"
+          ]
         },
         "GEE": {
-          "label": "<&PROGRESSBAR:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
-          "snippet": "<&PROGRESSBAR:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
+          "label": "<ProgressBar:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
+          "snippet": "<ProgressBar:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
           "description": "显示动态进度条",
           "source": {
             "revision": "2026-07-23",
             "page": "游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm"
-          }
+          },
+          "markupAliases": [
+            "<&PROGRESSBAR"
+          ]
         }
       }
     },
@@ -709,6 +715,40 @@
             },
             {
               "description": "以竖线分隔的多行文字"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "big-number-text",
+      "engineVariants": {
+        "GEE": {
+          "label": "<BigNum:数值:X:Y:{FColor=颜色;FSize=字号;FName=字体}>",
+          "snippet": "<BigNum:${1:数值}:${2:X}:${3:Y}:{FColor=${4:249};FSize=${5:9};FName=${6:微软雅黑}}>",
+          "description": "在 NPC 对话框按客户端大数单位规则显示数值",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/部分脚本实例/变量显示数字单位.htm"
+          },
+          "parameters": [
+            {
+              "description": "数值或变量"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "文字颜色"
+            },
+            {
+              "description": "字号"
+            },
+            {
+              "description": "字体名"
             }
           ]
         }
@@ -979,7 +1019,7 @@
       "id": "user-item-preview",
       "engineVariants": {
         "GOM": {
-          "label": "<UserItem:D:X:Y:Z:W:G:R:H:S:E/@Label>",
+          "label": "<UserItem:D:X:Y:Z:W:G:R:H:S:W/@Label>",
           "snippet": "<UserItem:${1:装备位置}:${2:X}:${3:Y}:${4:背景框}:${5:显示对象}:${6:灰化}:${7:对齐方式}:${8:自定义宽度}:${9:内观素材(0Items/1StdItem)}:${10:绘制特效(0/1)}/@${11:标签}>",
           "description": "在 NPC 对话框显示人物身上装备",
           "source": {
@@ -1208,9 +1248,9 @@
       "id": "input-memo",
       "engineVariants": {
         "GOM": {
-          "label": "<INPUTMEMO:ID:X:Y:宽度:高度:背景色:边框色:文字颜色:最小长度:最大长度:行高:自动换行:提示>",
-          "snippet": "<INPUTMEMO:${1:输入框ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:行高}:${12:自动换行(0/1)}:${13:提示信息}>",
-          "description": "在 NPC 对话框创建多行输入框",
+          "label": "<&INPUTMEMO:ID:X:Y:宽度:高度:背景色:边框色:文字颜色:最小长度:最大长度:行高:自动换行:提示>",
+          "snippet": "<&INPUTMEMO:${1:输入框ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:行高}:${12:自动换行(0/1)}:${13:提示信息}>",
+          "description": "在 NPC 对话框以绝对坐标创建多行输入框；不带 & 的旧写法按相对坐标兼容",
           "source": {
             "revision": "2026-08-24",
             "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm"
@@ -1424,6 +1464,10 @@
               "description": "图片序号"
             },
             {
+              "key": "img",
+              "description": "直接 PNG 路径；客户端素材根目录未公开"
+            },
+            {
               "key": "x",
               "description": "坐标X"
             },
@@ -1498,6 +1542,10 @@
             {
               "key": "opacity",
               "description": "透明度(0-255)"
+            },
+            {
+              "key": "reload",
+              "description": "刷新面板(0/1)"
             },
             {
               "key": "id",
@@ -1689,8 +1737,8 @@
       "id": "newui-text-996pc",
       "engineVariants": {
         "996PC": {
-          "label": "<Text|text=文字|x=X|y=Y|color=颜色|size=字号|link=@标签>",
-          "snippet": "<Text|text=${1:显示文字}|x=${2:X}|y=${3:Y}|color=${4:颜色}|size=${5:字号}|link=@${6:触发标签}>",
+          "label": "<Text|id=ID|x=X|y=Y|width=宽度|height=高度|text=文字|color=颜色|size=字号|outline=描边|outlinecolor=描边颜色|simplenum=0/1|scrollWidth=滚动宽度|scrollHeight=滚动高度|scrollWay=方向|scrollTime=秒|link=@标签>",
+          "snippet": "<Text|id=${1:ID}|x=${2:X}|y=${3:Y}|width=${4:宽度}|height=${5:高度}|text=${6:显示文字}|color=${7:颜色}|size=${8:字号}|outline=${9:描边宽度}|outlinecolor=${10:描边颜色}|tips=${11:悬停提示}|tipsx=${12:提示X偏移}|tipsy=${13:提示Y偏移}|simplenum=${14:0}|scrollWidth=${15:滚动区域宽度}|scrollHeight=${16:滚动区域高度}|scrollWay=${17:0}|scrollTime=${18:秒}|link=@${19:触发标签}>",
           "description": "996PC 新 NPC 面板文字组件",
           "source": {
             "revision": "2026-08-24",
@@ -2015,7 +2063,7 @@
       "engineVariants": {
         "996PC": {
           "label": "<ListView|children={子节点}|direction=方向|bounce=回弹|margin=间隔>",
-          "snippet": "<ListView|children={${1:子节点ID}}|direction=${2:方向(1竖向/2横向)}|bounce=${3:回弹}|margin=${4:子控件间隔}|cantouch=${5:可滑动(0/1)}>",
+          "snippet": "<ListView|children={${1:子节点ID}}|direction=${2:方向(1竖向/2横向)}|bounce=${3:回弹}|margin=${4:子控件间隔}|cantouch=${5:可滑动(0/1)}|Slider=${6:启用滑块(0/1)}|Sdbg=${7:滑块底图}|Sdupnimg=${8:上或左箭头正常图}|Sdupmimg=${9:上或左箭头悬停图}|Sduppimg=${10:上或左箭头按下图}|Sdnimg=${11:滑块正常图}|Sdmimg=${12:滑块悬停图}|Sdpimg=${13:滑块按下图}|Sddwnimg=${14:下或右箭头正常图}|Sddwmimg=${15:下或右箭头悬停图}|Sddwpimg=${16:下或右箭头按下图}>",
           "description": "996PC 新 NPC 面板滚动列表容器；ListView 不可嵌套",
           "source": {
             "revision": "2026-08-24",
@@ -2165,8 +2213,8 @@
       "id": "newui-checkbox-996pc",
       "engineVariants": {
         "996PC": {
-          "label": "<CheckBox|checkboxid=变量|wil=资源|pcnimg=未选|pcpimg=选中|default=状态|link=@标签>",
-          "snippet": "<CheckBox|checkboxid=${1:数字变量}|wil=${2:资源文件名}|pcnimg=${3:未选图片}|pcpimg=${4:选中图片}|default=${5:默认状态(0/1)}|link=@${6:触发标签}>",
+          "label": "<CheckBox|checkboxid=变量|wil=资源|pcnimg=未选|pcpimg=选中|default=状态|submit=提交|link=@标签>",
+          "snippet": "<CheckBox|checkboxid=${1:数字变量}|wil=${2:资源文件名}|pcnimg=${3:未选图片}|pcpimg=${4:选中图片}|default=${5:默认状态(0/1)}|submit=${6:提交参数}|link=@${7:触发标签}>",
           "description": "996PC 新 NPC 面板复选框组件",
           "source": {
             "revision": "2026-08-24",
@@ -2192,6 +2240,10 @@
             {
               "key": "default",
               "description": "默认选中状态(0/1)"
+            },
+            {
+              "key": "submit",
+              "description": "提交参数（手册列出，取值语义未公开）"
             },
             {
               "key": "link",
@@ -2749,7 +2801,7 @@
       "engineVariants": {
         "996PC": {
           "label": "<Input|inputid=ID|type=类型|width=宽度|height=高度|mincount=最小|maxcount=最大>",
-          "snippet": "<Input|inputid=${1:输入框ID(1-9)}|type=${2:类型(0文本/1数字/2密码/3绝对值数字)}|width=${3:宽度}|height=${4:高度}|mincount=${5:最小长度}|maxcount=${6:最大长度}|errortips=${7:错误提示}>",
+          "snippet": "<Input|inputid=${1:输入框ID(1-9)}|type=${2:类型(0文本/1数字/2密码/3绝对值数字)}|width=${3:宽度}|height=${4:高度}|color=${5:输入文字颜色}|size=${6:字号}|mincount=${7:最小长度}|maxcount=${8:最大长度}|errortips=${9:错误提示}|place=${10:空值提示}|placecolor=${11:提示颜色}|onlyCh=${12:仅中文(0/1)}|bgtype=${13:背景框(0/1)}>",
           "description": "996PC 新 NPC 面板输入框组件",
           "source": {
             "revision": "2026-08-24",
@@ -3074,8 +3126,8 @@
       "engineVariants": {
         "996PC": {
           "label": "<ItemShow|itemid=IDX|itemcount=数量|showtips=提示|bgtype=背景|link=@标签>",
-          "snippet": "<ItemShow|itemid=${1:物品IDX}|itemcount=${2:数量}|showtips=${3:显示属性(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>",
-          "description": "996PC 新 NPC 面板物品IDX展示组件",
+          "snippet": "<ItemShow|itemid=${1:数据库物品IDX}|itemcount=${2:数量}|showtips=${3:显示属性(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>",
+          "description": "996PC 新 NPC 面板数据库物品 IDX 展示组件",
           "source": {
             "revision": "2026-08-24",
             "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm"
@@ -3083,7 +3135,7 @@
           "parameters": [
             {
               "key": "itemid",
-              "description": "物品IDX"
+              "description": "数据库物品 IDX"
             },
             {
               "key": "itemname",
@@ -3116,6 +3168,10 @@
             {
               "key": "lock",
               "description": "显示锁图标(0/1)"
+            },
+            {
+              "key": "scale",
+              "description": "缩放比例"
             },
             {
               "key": "id",
@@ -3184,8 +3240,8 @@
       "id": "newui-equipshow-996pc",
       "engineVariants": {
         "996PC": {
-          "label": "<EquipShow|index=位置|showtips=提示|bgtype=背景|link=@标签>",
-          "snippet": "<EquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|bgtype=${3:背景图(0/1)}|link=@${4:触发标签}>",
+          "label": "<EquipShow|index=位置|showtips=提示|showstar=星级|bgtype=背景|link=@标签>",
+          "snippet": "<EquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|showstar=${3:显示星级(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>",
           "description": "996PC 新 NPC 面板人物装备位置展示组件",
           "source": {
             "revision": "2026-08-24",
@@ -3199,6 +3255,10 @@
             {
               "key": "showtips",
               "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
             },
             {
               "key": "bgtype",
@@ -3295,8 +3355,8 @@
       "id": "newui-heroequipshow-996pc",
       "engineVariants": {
         "996PC": {
-          "label": "<HEROEquipShow|index=位置|showtips=提示|bgtype=背景|link=@标签>",
-          "snippet": "<HEROEquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|bgtype=${3:背景图(0/1)}|link=@${4:触发标签}>",
+          "label": "<HEROEquipShow|index=位置|showtips=提示|showstar=星级|bgtype=背景|link=@标签>",
+          "snippet": "<HEROEquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|showstar=${3:显示星级(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>",
           "description": "996PC 新 NPC 面板英雄装备位置展示组件",
           "source": {
             "revision": "2026-08-24",
@@ -3310,6 +3370,10 @@
             {
               "key": "showtips",
               "description": "显示物品属性(0/1)"
+            },
+            {
+              "key": "showstar",
+              "description": "显示星级(0/1)"
             },
             {
               "key": "bgtype",
@@ -4363,6 +4427,37 @@
       }
     },
     {
+      "id": "textatlas-996pc",
+      "engineVariants": {
+        "996PC": {
+          "label": "<TextAtlas:F:N:X:Y:L>",
+          "snippet": "<TextAtlas:${1:WIL序号}:${2:起始图片}:${3:X}:${4:Y}:${5:数字或变量}>",
+          "description": "996PC 传统 NPC 面板连续数字图片艺术字",
+          "source": {
+            "revision": "2026-08-24",
+            "page": "游戏引擎反外挂系统/新增功能/艺术字效果.htm"
+          },
+          "parameters": [
+            {
+              "description": "WIL序号"
+            },
+            {
+              "description": "起始图片"
+            },
+            {
+              "description": "X"
+            },
+            {
+              "description": "Y"
+            },
+            {
+              "description": "数字或变量"
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "newui-textatlas-996pc",
       "engineVariants": {
         "996PC": {
@@ -4620,8 +4715,8 @@
       "id": "newui-costitem-996pc",
       "engineVariants": {
         "996PC": {
-          "label": "<CostItem|itemid=IDX|itemcount=数量|title=标题|color=颜色>",
-          "snippet": "<CostItem|itemid=${1:物品IDX}|itemcount=${2:数量}|title=${3:标题}|color=${4:数量颜色}>",
+          "label": "<CostItem|itemid=IDX|itemcount=数量|title=标题|titlecolor=标题颜色|color=数量颜色|fontsize=字号|itemscale=缩放>",
+          "snippet": "<CostItem|itemid=${1:物品IDX}|itemcount=${2:数量}|title=${3:标题}|titlecolor=${4:标题颜色}|color=${5:数量颜色}|fontsize=${6:字号}|itemscale=${7:缩放}>",
           "description": "996PC 新 NPC 面板货币需求展示组件",
           "source": {
             "revision": "2026-08-24",
@@ -4639,6 +4734,10 @@
             {
               "key": "title",
               "description": "标题文本；不配置使用默认标题"
+            },
+            {
+              "key": "titlecolor",
+              "description": "标题文本颜色"
             },
             {
               "key": "color",
@@ -4724,7 +4823,7 @@
       "engineVariants": {
         "996PC": {
           "label": "<LoadingBar|wil=资源|pcloadingbg=底图|pcloadingbar=进度图|startper=起始|endper=结束|link=@标签>",
-          "snippet": "<LoadingBar|wil=${1:资源文件名}|pcloadingbg=${2:进度条底图}|pcloadingbar=${3:进度条图片}|startper=${4:起始进度}|endper=${5:结束进度}|link=@${6:完成标签}>",
+          "snippet": "<LoadingBar|id=${1:ID}|x=${2:X}|y=${3:Y}|width=${4:宽度}|height=${5:高度}|wil=${6:资源文件名}|pcloadingbg=${7:进度条底图}|pcloadingbar=${8:进度条图片}|startper=${9:起始进度}|endper=${10:结束进度}|maxper=${11:最大进度}|interval=${12:0.05}|loadvalue=${13:10}|direction=${14:0}|offsetX=${15:0}|offsetY=${16:0}|size=${17:字号}|color=${18:文字颜色}|outline=${19:描边宽度}|outlinecolor=${20:描边颜色}|HideText=${21:0}|link=@${22:完成标签}>",
           "description": "996PC 新 NPC 面板动态进度条组件",
           "source": {
             "revision": "2026-08-24",

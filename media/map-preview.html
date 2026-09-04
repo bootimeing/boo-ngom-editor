@@ -319,8 +319,16 @@ const state={
   entityAnimationTimers:[],safeZoneAnimationTimer:0,safeZoneFrame:0,showSpawnRange:false,
   npcTargetMapKey:'',npcMoveRequest:0,pendingNpcMoveRequest:0,
   pendingNpcReveal:null,navigatorDragging:false,navigatorGeometry:null,
-  original:{active:false,ready:false,requestId:0,layer:null,imageCache:new Map(),warning:'',
-    fileName:'',format:'',pixelWidth:0,pixelHeight:0}
+  original:{active:false,ready:false,requestId:0,generation:0,viewportSeq:0,viewportTimer:0,prefetchTimer:0,
+    lastViewportKey:'',pendingViewportKey:'',chunkCellWidth:16,chunkCellHeight:16,
+    mapWidth:0,mapHeight:0,viewportLimited:false,appliedViewport:null,layer:null,
+    imageCache:new Map(),imageCacheBytes:0,loadingImageKeys:new Set(),loadingImageKeyCounts:new Map(),
+    staticChunkCache:new Map(),staticChunkCacheBytes:0,
+    loadingStaticChunkKeys:new Set(),loadingStaticChunkKeyCounts:new Map(),warning:'',
+    fileName:'',format:'',pixelWidth:0,pixelHeight:0,animationTimer:0,
+    animationStartedAt:0,animationCount:0,permanentMapEffectCount:0,
+    baseCanvas:null,baseContext:null,baseLayer:null,
+    baseWidth:0,baseHeight:0,baseOffsetX:0,baseOffsetY:0,baseScale:0}
 };
 
 function resize(){
@@ -329,12 +337,116 @@ function resize(){
   canvas.height=Math.max(1,Math.round(viewport.clientHeight*dpr));
   render();
   if(!mapNavigator.hidden)requestAnimationFrame(renderMapNavigator);
+  scheduleOriginalMapViewport(150);
 }
 function reset100(){
   state.scale=1;
   state.offsetX=Math.round((viewport.clientWidth-state.worldW)/2);
   state.offsetY=Math.round((viewport.clientHeight-state.worldH)/2);
   render();
+}
+function clearOriginalViewportTimer(){
+  if(state.original.viewportTimer)clearTimeout(state.original.viewportTimer);
+  state.original.viewportTimer=0;
+}
+function clearOriginalPrefetchTimer(){
+  if(state.original.prefetchTimer)clearTimeout(state.original.prefetchTimer);
+  state.original.prefetchTimer=0;
+}
+function computeOriginalMapViewport(){
+  if(!state.original.active||!state.original.generation)return null;
+  const mapWidth=Math.max(1,Math.trunc(Number(state.original.mapWidth)||0));
+  const mapHeight=Math.max(1,Math.trunc(Number(state.original.mapHeight)||0));
+  const scale=Math.max(.0001,Number(state.scale)||1);
+  const worldLeft=Math.max(0,Math.min(state.worldW,-state.offsetX/scale));
+  const worldTop=Math.max(0,Math.min(state.worldH,-state.offsetY/scale));
+  const worldRight=Math.max(worldLeft,Math.min(state.worldW,(viewport.clientWidth-state.offsetX)/scale));
+  const worldBottom=Math.max(worldTop,Math.min(state.worldH,(viewport.clientHeight-state.offsetY)/scale));
+  const cellLeft=Math.max(0,Math.min(mapWidth-1,Math.floor(worldLeft/48)));
+  const cellTop=Math.max(0,Math.min(mapHeight-1,Math.floor(worldTop/32)));
+  const cellRight=Math.max(cellLeft,Math.min(mapWidth-1,Math.floor(Math.max(worldLeft,worldRight-1)/48)));
+  const cellBottom=Math.max(cellTop,Math.min(mapHeight-1,Math.floor(Math.max(worldTop,worldBottom-1)/32)));
+  const chunkWidth=Math.max(1,Math.trunc(Number(state.original.chunkCellWidth)||16));
+  const chunkHeight=Math.max(1,Math.trunc(Number(state.original.chunkCellHeight)||16));
+  const maxChunkX=Math.floor((mapWidth-1)/chunkWidth),maxChunkY=Math.floor((mapHeight-1)/chunkHeight);
+  let firstChunkX=Math.floor(cellLeft/chunkWidth),lastChunkX=Math.floor(cellRight/chunkWidth);
+  let firstChunkY=Math.floor(cellTop/chunkHeight),lastChunkY=Math.floor(cellBottom/chunkHeight);
+  const centerChunkX=Math.floor((firstChunkX+lastChunkX)/2),centerChunkY=Math.floor((firstChunkY+lastChunkY)/2);
+  state.original.viewportLimited=false;
+  while((lastChunkX-firstChunkX+1)*(lastChunkY-firstChunkY+1)>36){
+    state.original.viewportLimited=true;
+    if(lastChunkX-firstChunkX>=lastChunkY-firstChunkY){
+      if(lastChunkX-centerChunkX>centerChunkX-firstChunkX)lastChunkX--;else firstChunkX++;
+    }else if(lastChunkY-centerChunkY>centerChunkY-firstChunkY)lastChunkY--;else firstChunkY++;
+  }
+  firstChunkX=Math.max(0,Math.min(maxChunkX,firstChunkX));lastChunkX=Math.max(firstChunkX,Math.min(maxChunkX,lastChunkX));
+  firstChunkY=Math.max(0,Math.min(maxChunkY,firstChunkY));lastChunkY=Math.max(firstChunkY,Math.min(maxChunkY,lastChunkY));
+  return{
+    left:firstChunkX*chunkWidth,
+    top:firstChunkY*chunkHeight,
+    right:Math.min(mapWidth-1,(lastChunkX+1)*chunkWidth-1),
+    bottom:Math.min(mapHeight-1,(lastChunkY+1)*chunkHeight-1)
+  };
+}
+function originalMapViewportKey(value){
+  return value?[value.left,value.top,value.right,value.bottom].join(':'):'';
+}
+function originalMapViewportContains(container,target){
+  return Boolean(container&&target&&container.left<=target.left&&container.top<=target.top&&
+    container.right>=target.right&&container.bottom>=target.bottom);
+}
+function expandedOriginalMapViewport(value){
+  if(!value)return null;
+  const chunkWidth=Math.max(1,Math.trunc(Number(state.original.chunkCellWidth)||16));
+  const chunkHeight=Math.max(1,Math.trunc(Number(state.original.chunkCellHeight)||16));
+  const mapWidth=Math.max(1,Math.trunc(Number(state.original.mapWidth)||1));
+  const mapHeight=Math.max(1,Math.trunc(Number(state.original.mapHeight)||1));
+  const firstX=Math.max(0,Math.floor(value.left/chunkWidth)-1);
+  const firstY=Math.max(0,Math.floor(value.top/chunkHeight)-1);
+  const lastX=Math.min(Math.floor((mapWidth-1)/chunkWidth),Math.floor(value.right/chunkWidth)+1);
+  const lastY=Math.min(Math.floor((mapHeight-1)/chunkHeight),Math.floor(value.bottom/chunkHeight)+1);
+  if((lastX-firstX+1)*(lastY-firstY+1)>36)return null;
+  return{
+    left:firstX*chunkWidth,top:firstY*chunkHeight,
+    right:Math.min(mapWidth-1,(lastX+1)*chunkWidth-1),
+    bottom:Math.min(mapHeight-1,(lastY+1)*chunkHeight-1)
+  };
+}
+function flushOriginalMapViewport(prefetch=false){
+  clearOriginalViewportTimer();
+  if(!prefetch)clearOriginalPrefetchTimer();
+  const target=computeOriginalMapViewport();if(!target)return;
+  const effectiveTarget=prefetch?expandedOriginalMapViewport(target):target;
+  if(!effectiveTarget||originalMapViewportContains(state.original.appliedViewport,effectiveTarget))return;
+  const key=originalMapViewportKey(target)+(prefetch?'|prefetch':'');
+  if(key===state.original.pendingViewportKey)return;
+  state.original.pendingViewportKey=key;
+  const viewportSeq=++state.original.viewportSeq;
+  vscode.postMessage({
+    type:'loadOriginalMapViewport',requestId:state.original.requestId,
+    generation:state.original.generation,viewportSeq,viewport:target,prefetch
+  });
+}
+function scheduleOriginalMapViewport(delay){
+  if(!state.original.active||!state.original.generation)return;
+  clearOriginalPrefetchTimer();
+  clearOriginalViewportTimer();
+  const wait=Math.max(0,Math.trunc(Number(delay)||0));
+  if(wait===0){flushOriginalMapViewport();return}
+  state.original.viewportTimer=setTimeout(()=>{
+    state.original.viewportTimer=0;flushOriginalMapViewport();
+  },wait);
+}
+function scheduleOriginalMapPrefetch(data){
+  clearOriginalPrefetchTimer();
+  if(data?.prefetch||state.original.viewportLimited||!state.original.active||!state.original.ready)return;
+  const expectedRequest=state.original.requestId,expectedGeneration=state.original.generation;
+  state.original.prefetchTimer=setTimeout(()=>{
+    state.original.prefetchTimer=0;
+    if(!state.original.active||!state.original.ready||state.original.requestId!==expectedRequest||
+      state.original.generation!==expectedGeneration)return;
+    flushOriginalMapViewport(true);
+  },500);
 }
 function render(){
   const dpr=window.devicePixelRatio||1;
@@ -354,30 +466,248 @@ function render(){
   layoutEntities();
   renderMapNavigatorViewport();
 }
-function drawOriginalMap(){
-  ctx.fillStyle='#111';ctx.fillRect(0,0,viewport.clientWidth,viewport.clientHeight);
-  const layer=state.original.layer;if(!layer)return;
-  ctx.imageSmoothingEnabled=false;
-  function draw(list,kind){
-    for(let i=0;i<list.length;i+=3){
-      const x=list[i],y=list[i+1],resource=layer.resources[list[i+2]];
-      if(!resource||!resource.image||!resource.image.complete)continue;
-      const meta=resource.meta,image=resource.image;
-      const worldX=x*48+meta.offsetX;
-      const worldY=kind==='object'?(y+1)*32-meta.height+meta.offsetY:y*32+meta.offsetY;
-      const left=Math.floor(state.offsetX+worldX*state.scale);
-      const top=Math.floor(state.offsetY+worldY*state.scale);
-      const right=Math.ceil(state.offsetX+(worldX+meta.width)*state.scale);
-      const bottom=Math.ceil(state.offsetY+(worldY+meta.height)*state.scale);
-      if(right<0||bottom<0||left>viewport.clientWidth||top>viewport.clientHeight)continue;
-      const seam=kind==='object'?0:1;
-      ctx.drawImage(image,left,top,Math.max(1,right-left+seam),Math.max(1,bottom-top+seam));
+function originalMapPlacement(kind,x,y,meta,animationFrame){
+  const useResourceOffsets=kind==='object'&&((Number(animationFrame)||0)&0x80)!==0;
+  const offsetX=useResourceOffsets?(Number(meta.offsetX)||0):0;
+  const offsetY=useResourceOffsets?(Number(meta.offsetY)||0):0;
+  const fixedBlendAnchorRows=useResourceOffsets&&Number.isInteger(Number(meta.blendAnchorRows))
+    ?Math.max(0,Number(meta.blendAnchorRows)):0;
+  const objectLift=fixedBlendAnchorRows>0?fixedBlendAnchorRows*32:meta.height;
+  return{
+    worldX:x*48+offsetX,
+    worldY:kind==='object'?(y+1)*32-objectLift+offsetY:y*32
+  };
+}
+function originalMapElapsedMs(now){
+  const current=Number.isFinite(Number(now))?Number(now):performance.now();
+  const started=Number(state.original.animationStartedAt)||0;
+  return Math.max(0,current-started);
+}
+function originalMapAnimationCounter(now){
+  return Math.floor(originalMapElapsedMs(now)/100);
+}
+function originalMapResourceReady(resource){
+  return Boolean(resource&&(resource.blank||(resource.image&&resource.image.complete&&!resource.failed)));
+}
+function originalMapObjectResource(layer,placementIndex,fallback,animationCounter){
+  const setId=Number(layer.objectAnimationSetIds?.[placementIndex]);
+  if(!Number.isInteger(setId)||setId<0||layer.objectAnimationSetReady?.[setId]!==true)return fallback;
+  const frameIds=layer.objectAnimationSets?.[setId];
+  if(!Array.isArray(frameIds)||frameIds.length<2)return fallback;
+  const tick=Math.max(0,Math.min(255,Math.trunc(Number(layer.objectAnimationTicks?.[placementIndex])||0)));
+  const frameIndex=Math.floor(Math.max(0,Number(animationCounter)||0)/(tick+1))%frameIds.length;
+  const selected=layer.resources[frameIds[frameIndex]];
+  return originalMapResourceReady(selected)?selected:fallback;
+}
+function originalMapEffectResource(layer,effect,elapsedMs){
+  const setId=Number(effect?.frameSetId);
+  if(!Number.isInteger(setId)||setId<0||layer.permanentMapEffectSetReady?.[setId]!==true)return null;
+  const frameIds=layer.permanentMapEffectSets?.[setId];
+  if(!Array.isArray(frameIds)||!frameIds.length)return null;
+  const speedMs=Math.max(16,Math.trunc(Number(effect?.speedMs)||0));
+  const frameIndex=Math.floor(Math.max(0,Number(elapsedMs)||0)/speedMs)%frameIds.length;
+  const selected=layer.resources[frameIds[frameIndex]];
+  return originalMapResourceReady(selected)?selected:null;
+}
+function originalMapObjectRowRanges(objects){
+  const rows=[];
+  for(let i=0;i<objects.length;i+=3){
+    const y=Math.max(0,Math.trunc(Number(objects[i+1])||0));
+    if(rows[y])rows[y][1]=i+3;else rows[y]=[i,i+3];
+  }
+  return rows;
+}
+function originalMapObjectRowPadding(metas){
+  let lookbehind=2,lookahead=35;
+  for(const meta of metas||[]){
+    if(!/^objects\d*:/i.test(String(meta?.key||'')))continue;
+    const height=Math.max(1,Number(meta?.height)||1);
+    const offsetY=Number(meta?.offsetY)||0;
+    const fixedBlendAnchorRows=Number.isInteger(Number(meta?.blendAnchorRows))
+      ?Math.max(0,Number(meta.blendAnchorRows)):0;
+    // One deduplicated resource may be referenced by both ordinary and bit7
+    // placements, so retain the ordinary extent even when blend is supported.
+    lookbehind=Math.max(lookbehind,Math.ceil(Math.max(0,offsetY)/32)+1);
+    lookahead=Math.max(lookahead,Math.ceil((height+Math.max(0,-offsetY))/32)+1);
+    if(fixedBlendAnchorRows>0){
+      const topDelta=(1-fixedBlendAnchorRows)*32+offsetY;
+      const bottomDelta=topDelta+height;
+      lookbehind=Math.max(lookbehind,Math.ceil(Math.max(0,bottomDelta)/32)+1);
+      lookahead=Math.max(lookahead,Math.ceil(Math.max(0,-topDelta)/32)+1);
     }
   }
-  draw(layer.tiles,'tile');
-  draw(layer.smTiles,'smTile');
-  draw(layer.objects,'object');
+  return{lookbehind,lookahead};
+}
+function drawOriginalMapResource(target,resource,kind,x,y,animationFrame){
+  if(!originalMapResourceReady(resource)||resource.blank)return;
+  const meta=resource.meta,image=resource.image;
+  const {worldX,worldY}=originalMapPlacement(kind,x,y,meta,animationFrame);
+  const left=Math.floor(state.offsetX+worldX*state.scale);
+  const top=Math.floor(state.offsetY+worldY*state.scale);
+  const right=Math.ceil(state.offsetX+(worldX+meta.width)*state.scale);
+  const bottom=Math.ceil(state.offsetY+(worldY+meta.height)*state.scale);
+  if(right<0||bottom<0||left>viewport.clientWidth||top>viewport.clientHeight)return;
+  const seam=kind==='object'?0:1;
+  const width=Math.max(1,right-left+seam),height=Math.max(1,bottom-top+seam);
+  const blend=kind==='object'&&((Number(animationFrame)||0)&0x80)!==0;
+  if(!blend){target.drawImage(image,left,top,width,height);return}
+  target.save();
+  try{
+    // MAP object bit7 follows the client DrawBlend path: SourceAlpha + One (additive).
+    target.globalCompositeOperation='lighter';
+    target.drawImage(image,left,top,width,height);
+  }finally{target.restore()}
+}
+function drawPermanentMapEffects(layer,elapsedMs){
+  const effects=Array.isArray(layer?.permanentMapEffects)?layer.permanentMapEffects:[];
+  for(const effect of effects){
+    // drawMode 1 has no verified GOM client blend equation yet; Provider currently sends mode 0 only.
+    if(Number(effect?.drawMode)!==0)continue;
+    const resource=originalMapEffectResource(layer,effect,elapsedMs);
+    if(!resource||resource.blank)continue;
+    const meta=resource.meta,image=resource.image;
+    const worldX=(Number(effect.x)||0)*48+(Number(meta.offsetX)||0);
+    const worldY=(Number(effect.y)||0)*32+(Number(meta.offsetY)||0);
+    const left=Math.floor(state.offsetX+worldX*state.scale);
+    const top=Math.floor(state.offsetY+worldY*state.scale);
+    const right=Math.ceil(state.offsetX+(worldX+meta.width)*state.scale);
+    const bottom=Math.ceil(state.offsetY+(worldY+meta.height)*state.scale);
+    if(right<0||bottom<0||left>viewport.clientWidth||top>viewport.clientHeight)continue;
+    ctx.save();
+    ctx.globalCompositeOperation='source-over';ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(image,left,top,Math.max(1,right-left),Math.max(1,bottom-top));
+    ctx.restore();
+  }
+}
+function drawOriginalStaticChunk(target,chunk){
+  const record=chunk?.record,drawable=record?.drawable;
+  if(!drawable||record.failed||record.disposed)return;
+  const left=Math.floor(state.offsetX+chunk.worldX*state.scale);
+  const top=Math.floor(state.offsetY+chunk.worldY*state.scale);
+  const right=Math.ceil(state.offsetX+(chunk.worldX+chunk.width)*state.scale);
+  const bottom=Math.ceil(state.offsetY+(chunk.worldY+chunk.height)*state.scale);
+  if(right<0||bottom<0||left>viewport.clientWidth||top>viewport.clientHeight)return;
+  target.drawImage(drawable,left,top,Math.max(1,right-left+1),Math.max(1,bottom-top+1));
+}
+function ensureOriginalMapBase(layer){
+  let base=state.original.baseCanvas,baseContext=state.original.baseContext;
+  if(!base||!baseContext){
+    base=document.createElement('canvas');baseContext=base.getContext('2d');
+    state.original.baseCanvas=base;state.original.baseContext=baseContext;
+  }
+  const valid=state.original.baseLayer===layer&&state.original.baseWidth===canvas.width&&
+    state.original.baseHeight===canvas.height&&state.original.baseOffsetX===state.offsetX&&
+    state.original.baseOffsetY===state.offsetY&&state.original.baseScale===state.scale;
+  if(valid)return base;
+  base.width=canvas.width;base.height=canvas.height;
+  const dpr=window.devicePixelRatio||1;
+  baseContext.setTransform(dpr,0,0,dpr,0,0);
+  baseContext.clearRect(0,0,viewport.clientWidth,viewport.clientHeight);
+  baseContext.fillStyle='#111';baseContext.fillRect(0,0,viewport.clientWidth,viewport.clientHeight);
+  baseContext.imageSmoothingEnabled=false;
+  if(layer.usesStaticChunks){
+    for(const chunk of layer.staticChunks||[])drawOriginalStaticChunk(baseContext,chunk);
+  }else{
+    for(const [list,kind] of [[layer.tiles,'tile'],[layer.smTiles,'smTile']]){
+      for(let i=0;i<list.length;i+=3){
+        drawOriginalMapResource(baseContext,layer.resources[list[i+2]],kind,list[i],list[i+1],0);
+      }
+    }
+  }
+  state.original.baseLayer=layer;state.original.baseWidth=canvas.width;state.original.baseHeight=canvas.height;
+  state.original.baseOffsetX=state.offsetX;state.original.baseOffsetY=state.offsetY;state.original.baseScale=state.scale;
+  return base;
+}
+function drawOriginalMap(animationCounter,animationElapsedMs){
+  const layer=state.original.layer;
+  if(!layer){ctx.fillStyle='#111';ctx.fillRect(0,0,viewport.clientWidth,viewport.clientHeight);return}
+  const base=ensureOriginalMapBase(layer);
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(base,0,0);ctx.restore();
+  ctx.imageSmoothingEnabled=false;
+  const elapsedMs=Number.isFinite(Number(animationElapsedMs))
+    ?Number(animationElapsedMs):originalMapElapsedMs();
+  const counter=Number.isFinite(Number(animationCounter))
+    ?Number(animationCounter):Math.floor(elapsedMs/100);
+  const rows=layer.objectRowRanges||[];
+  const worldTop=Math.max(0,-state.offsetY/Math.max(state.scale,.0001));
+  const worldBottom=Math.min(state.worldH,(viewport.clientHeight-state.offsetY)/Math.max(state.scale,.0001));
+  const firstRow=Math.max(0,Math.floor(worldTop/32)-(layer.objectLookbehindRows||2));
+  const lastRow=Math.min(rows.length-1,Math.ceil(worldBottom/32)+(layer.objectLookaheadRows||35));
+  for(let row=firstRow;row<=lastRow;row++){
+    const range=rows[row];if(!range)continue;
+    for(let i=range[0];i<range[1];i+=3){
+      const placementIndex=i/3;
+      const fallback=layer.resources[layer.objects[i+2]];
+      const resource=originalMapObjectResource(layer,placementIndex,fallback,counter);
+      drawOriginalMapResource(ctx,resource,'object',layer.objects[i],layer.objects[i+1],layer.objectAnimationFrames?.[placementIndex]||0);
+    }
+  }
+  drawPermanentMapEffects(layer,elapsedMs);
   drawSafeZones();
+}
+function refreshOriginalMapAnimationState(layer){
+  const sets=Array.isArray(layer?.objectAnimationSets)?layer.objectAnimationSets:[];
+  layer.objectAnimationSetReady=sets.map(frameIds=>
+    Array.isArray(frameIds)&&frameIds.length>1&&frameIds.every(id=>originalMapResourceReady(layer.resources[id]))
+  );
+  const effectSets=Array.isArray(layer?.permanentMapEffectSets)?layer.permanentMapEffectSets:[];
+  layer.permanentMapEffectSetReady=effectSets.map(frameIds=>
+    Array.isArray(frameIds)&&frameIds.length>0&&frameIds.every(id=>originalMapResourceReady(layer.resources[id]))
+  );
+  const intervalsMs=new Set();let animatedObjectCount=0,permanentMapEffectCount=0;
+  for(let index=0;index<(layer.objectAnimationSetIds?.length||0);index++){
+    const setId=Number(layer.objectAnimationSetIds[index]);
+    if(!Number.isInteger(setId)||setId<0||layer.objectAnimationSetReady[setId]!==true)continue;
+    animatedObjectCount++;
+    const tick=Math.max(0,Math.min(255,Math.trunc(Number(layer.objectAnimationTicks?.[index])||0)));
+    intervalsMs.add((tick+1)*100);
+  }
+  for(const effect of Array.isArray(layer?.permanentMapEffects)?layer.permanentMapEffects:[]){
+    const setId=Number(effect?.frameSetId);
+    if(!Number.isInteger(setId)||setId<0||layer.permanentMapEffectSetReady[setId]!==true)continue;
+    permanentMapEffectCount++;
+    if((layer.permanentMapEffectSets[setId]?.length||0)>1){
+      intervalsMs.add(Math.max(16,Math.trunc(Number(effect?.speedMs)||0)));
+    }
+  }
+  layer.animationIntervalsMs=[...intervalsMs].sort((left,right)=>left-right);
+  state.original.animationCount=animatedObjectCount;
+  state.original.permanentMapEffectCount=permanentMapEffectCount;
+}
+function stopOriginalMapAnimation(){
+  if(state.original.animationTimer)clearTimeout(state.original.animationTimer);
+  state.original.animationTimer=0;
+}
+function releaseOriginalMapBase(){
+  if(state.original.baseCanvas){
+    state.original.baseCanvas.width=1;state.original.baseCanvas.height=1;
+  }
+  state.original.baseCanvas=null;state.original.baseContext=null;state.original.baseLayer=null;
+  state.original.baseWidth=0;state.original.baseHeight=0;
+  state.original.baseOffsetX=0;state.original.baseOffsetY=0;state.original.baseScale=0;
+}
+function renderOriginalMapAnimationFrame(){
+  if(!state.original.active||!state.original.ready||!state.original.layer)return;
+  const dpr=window.devicePixelRatio||1;ctx.setTransform(dpr,0,0,dpr,0,0);
+  drawOriginalMap();
+}
+function scheduleOriginalMapAnimation(){
+  stopOriginalMapAnimation();
+  const layer=state.original.layer,intervalsMs=layer?.animationIntervalsMs||[];
+  if(!state.original.active||!state.original.ready||!intervalsMs.length||document.hidden)return;
+  const now=performance.now();
+  if(!state.original.animationStartedAt)state.original.animationStartedAt=now;
+  const elapsedMs=originalMapElapsedMs(now);let delay=Infinity;
+  for(const intervalMs of intervalsMs){
+    const nextElapsedMs=(Math.floor(elapsedMs/intervalMs)+1)*intervalMs;
+    delay=Math.min(delay,state.original.animationStartedAt+nextElapsedMs-now);
+  }
+  state.original.animationTimer=setTimeout(()=>{
+    state.original.animationTimer=0;
+    if(!state.original.active||!state.original.ready||document.hidden)return;
+    renderOriginalMapAnimationFrame();
+    scheduleOriginalMapAnimation();
+  },Math.max(16,Math.ceil(delay)));
 }
 function safeZoneScreenPoint(x,y){
   return{x:state.offsetX+(x*48+24)*state.scale,y:state.offsetY+(y*32+16)*state.scale};
@@ -441,11 +771,12 @@ function clampViewOffset(offset,viewportSize,contentSize){
   if(contentSize<=viewportSize)return Math.round((viewportSize-contentSize)/2);
   return Math.round(Math.min(0,Math.max(viewportSize-contentSize,offset)));
 }
-function centerWorldPoint(worldX,worldY,scale){
+function centerWorldPoint(worldX,worldY,scale,requestViewport=true){
   state.scale=Math.max(.02,Math.min(20,Number(scale)||1));
   state.offsetX=clampViewOffset(viewport.clientWidth/2-worldX*state.scale,viewport.clientWidth,state.worldW*state.scale);
   state.offsetY=clampViewOffset(viewport.clientHeight/2-worldY*state.scale,viewport.clientHeight,state.worldH*state.scale);
   render();
+  if(requestViewport&&typeof flushOriginalMapViewport==='function')flushOriginalMapViewport();
 }
 function focusNpcAt100(npc){
   if(!state.original.active||!npc)return;
@@ -453,7 +784,7 @@ function focusNpcAt100(npc){
   selectEntity('npc',npc);
   centerWorldPoint(npc.x*48+24,npc.y*32,1);
 }
-function applyPendingNpcReveal(finalize){
+function applyPendingNpcReveal(finalize,requestViewport=true){
   const target=state.pendingNpcReveal;
   if(!state.original.active||!target)return;
   const npc=state.npcs.find(item=>item.lineNumber===Number(target.lineNumber));
@@ -464,7 +795,7 @@ function applyPendingNpcReveal(finalize){
     const activeButton=npcJumpList.querySelector('.npc-jump.active');
     if(activeButton)activeButton.scrollIntoView({block:'nearest',inline:'nearest'});
   }
-  centerWorldPoint((Number(target.x)||0)*48+24,(Number(target.y)||0)*32,1);
+  centerWorldPoint((Number(target.x)||0)*48+24,(Number(target.y)||0)*32,1,requestViewport);
   if(finalize)state.pendingNpcReveal=null;
 }
 function updateNpcJumpSelection(){
@@ -516,11 +847,21 @@ function renderMapNavigator(){
   }else if(state.original.layer){
     mapNavigatorContext.imageSmoothingEnabled=true;
     const layer=state.original.layer;
-    for(let i=0;i<layer.tiles.length;i+=3){
-      const x=layer.tiles[i],y=layer.tiles[i+1],resource=layer.resources[layer.tiles[i+2]];
-      if(!resource||!resource.image||!resource.image.complete)continue;
-      const meta=resource.meta;
-      mapNavigatorContext.drawImage(resource.image,g.left+(x*48+meta.offsetX)*g.scale,g.top+(y*32+meta.offsetY)*g.scale,Math.max(.5,meta.width*g.scale),Math.max(.5,meta.height*g.scale));
+    if(layer.usesStaticChunks){
+      for(const record of state.original.staticChunkCache.values()){
+        if(record.generation!==state.original.generation||record.failed||record.disposed||!record.drawable)continue;
+        mapNavigatorContext.drawImage(record.drawable,
+          g.left+record.worldX*g.scale,g.top+record.worldY*g.scale,
+          Math.max(.5,record.width*g.scale),Math.max(.5,record.height*g.scale));
+      }
+    }else{
+      for(let i=0;i<layer.tiles.length;i+=3){
+        const x=layer.tiles[i],y=layer.tiles[i+1],resource=layer.resources[layer.tiles[i+2]];
+        if(!resource||!resource.image||!resource.image.complete)continue;
+        const meta=resource.meta;
+        const {worldX,worldY}=originalMapPlacement('tile',x,y,meta,0);
+        mapNavigatorContext.drawImage(resource.image,g.left+worldX*g.scale,g.top+worldY*g.scale,Math.max(.5,meta.width*g.scale),Math.max(.5,meta.height*g.scale));
+      }
     }
   }
   mapNavigatorContext.strokeStyle='rgba(255,255,255,.45)';mapNavigatorContext.lineWidth=1;mapNavigatorContext.strokeRect(g.left+.5,g.top+.5,Math.max(0,g.mapWidth-1),Math.max(0,g.mapHeight-1));
@@ -538,12 +879,13 @@ function renderMapNavigatorViewport(){
   mapNavigatorOverlayContext.fillStyle='rgba(255,255,255,.12)';mapNavigatorOverlayContext.fillRect(left,top,width,height);
   mapNavigatorOverlayContext.strokeStyle='#fff';mapNavigatorOverlayContext.lineWidth=2;mapNavigatorOverlayContext.strokeRect(left+1,top+1,Math.max(0,width-2),Math.max(0,height-2));
 }
-function navigateFromMapNavigator(event){
+function navigateFromMapNavigator(event,immediate=true){
   const g=state.navigatorGeometry;if(!g||!state.original.active)return;
   const rect=mapNavigatorOverlay.getBoundingClientRect();
   const worldX=Math.max(0,Math.min(state.worldW,(event.clientX-rect.left-g.left)/g.scale));
   const worldY=Math.max(0,Math.min(state.worldH,(event.clientY-rect.top-g.top)/g.scale));
-  centerWorldPoint(worldX,worldY,state.scale);
+  centerWorldPoint(worldX,worldY,state.scale,false);
+  if(immediate)flushOriginalMapViewport();else scheduleOriginalMapViewport(100);
 }
 function markerWorldPoint(marker){
   return{x:marker.x,y:marker.y};
@@ -801,9 +1143,13 @@ function zoom(factor,cx,cy){
   state.offsetX=cx-(cx-state.offsetX)*(state.scale/old);
   state.offsetY=cy-(cy-state.offsetY)*(state.scale/old);
   render();
+  scheduleOriginalMapViewport(110);
 }
 function updateMap(data){
-  vscode.postMessage({type:'cancelOriginalMap'});
+  vscode.postMessage({type:'cancelOriginalMap',requestId:state.original.requestId,generation:state.original.generation});
+  clearOriginalViewportTimer();
+  clearOriginalPrefetchTimer();
+  stopOriginalMapAnimation();
   state.map=data.map;
   state.maps=data.maps||[];
   state.worldW=data.map.width||1;
@@ -824,7 +1170,16 @@ function updateMap(data){
   state.original.active=false;
   state.original.ready=false;
   state.original.layer=null;
-  state.original.imageCache.clear();
+  clearOriginalImageCache();
+  clearOriginalStaticChunkCache();
+  state.original.generation=0;state.original.viewportSeq=0;
+  state.original.lastViewportKey='';state.original.pendingViewportKey='';
+  state.original.appliedViewport=null;
+  state.original.mapWidth=0;state.original.mapHeight=0;
+  state.original.chunkCellWidth=16;state.original.chunkCellHeight=16;
+  state.original.viewportLimited=false;
+  state.original.animationStartedAt=0;state.original.animationCount=0;
+  state.original.permanentMapEffectCount=0;releaseOriginalMapBase();
   prepareSafeZoneFrames();
   state.original.warning='';
   state.original.pixelWidth=0;
@@ -868,9 +1223,12 @@ function updateMap(data){
 function updateStatus(){
   const layerText=state.original.active?'原始地图 100%':'预览地图';
   const warning=state.original.active?state.original.warning:state.warning;
+  const animationText=state.original.active&&state.original.animationCount?' · MAP帧动画 '+state.original.animationCount:'';
+  const mapEffectText=state.original.active&&state.original.permanentMapEffectCount
+    ?' · 永久 MAPEFFECT 脚本定义 '+state.original.permanentMapEffectCount:'';
   const entityWarning=state.original.active&&state.entityWarnings.length?' · '+state.entityWarnings.join('；'):'';
   status.textContent=state.original.active
-    ? layerText+' · NPC '+state.npcs.length+' · 刷怪 '+state.spawns.length+' · 安全区 '+state.safeZones.length+(warning?' · '+warning:'')+entityWarning
+    ? layerText+' · NPC '+state.npcs.length+' · 刷怪 '+state.spawns.length+' · 安全区 '+state.safeZones.length+animationText+mapEffectText+(warning?' · '+warning:'')+entityWarning
     : layerText+' · '+(state.markerFile||'未导入标识文件')+' · 标识 '+state.markers.length+(warning?' · '+warning:'');
   status.classList.toggle('warning',Boolean(warning)||Boolean(entityWarning));
 }
@@ -903,12 +1261,25 @@ function switchToOriginalMap(){
     renderProgress.hidden=true;
     updateStatus();
     reset100();
+    state.original.pendingViewportKey='';
+    flushOriginalMapViewport();
+    scheduleOriginalMapAnimation();
     applyPendingNpcReveal(true);
     return;
   }
   state.original.ready=false;
   state.original.layer=null;
+  clearOriginalImageCache();
+  clearOriginalStaticChunkCache();
+  clearOriginalViewportTimer();
+  clearOriginalPrefetchTimer();
+  state.original.generation=0;state.original.viewportSeq=0;
+  state.original.lastViewportKey='';state.original.pendingViewportKey='';
+  state.original.appliedViewport=null;
   state.original.warning='';
+  stopOriginalMapAnimation();
+  state.original.animationStartedAt=0;state.original.animationCount=0;
+  state.original.permanentMapEffectCount=0;releaseOriginalMapBase();
   state.worldW=Math.max(1,state.map.width*48);
   state.worldH=Math.max(1,state.map.height*32);
   mapLayerToggle.disabled=true;
@@ -921,6 +1292,23 @@ function switchToOriginalMap(){
 }
 function switchToPreviewMap(){
   if(!state.original.active)return;
+  stopOriginalMapAnimation();
+  clearOriginalViewportTimer();
+  clearOriginalPrefetchTimer();
+  if(!state.original.ready||!state.original.layer){
+    vscode.postMessage({type:'cancelOriginalMap',requestId:state.original.requestId,generation:state.original.generation});
+    state.original.ready=false;state.original.layer=null;
+    state.original.generation=0;state.original.viewportSeq=0;
+    state.original.lastViewportKey='';state.original.pendingViewportKey='';
+    state.original.appliedViewport=null;
+    state.original.animationStartedAt=0;
+    clearOriginalImageCache();clearOriginalStaticChunkCache();
+  }else{
+    // A viewport reply may have arrived while hidden and been intentionally ignored.
+    // Keep the rendered layer, but force one fresh scoped request when returning.
+    state.original.appliedViewport=null;
+  }
+  releaseOriginalMapBase();
   state.original.active=false;
   state.pendingNpcReveal=null;
   state.worldW=state.map&&state.map.width?state.map.width:(state.image?state.image.naturalWidth:1);
@@ -931,7 +1319,6 @@ function switchToPreviewMap(){
   rebuildEntities();
   document.getElementById('mapMeta').textContent=state.map.mapId+' | '+state.map.originalMapId+(state.map.width?'  '+state.map.width+'×'+state.map.height:'');
   renderProgress.hidden=true;
-  if(!state.original.ready)vscode.postMessage({type:'cancelOriginalMap'});
   updateStatus();
   reset100();
 }
@@ -1357,9 +1744,11 @@ window.addEventListener('mouseup',event=>{
     if(changed)scheduleEntitySave(type,entity,true);
     updateCanvasCursor();rebuildEntities();return;
   }
+  const finishedPan=state.dragging&&state.panMoved;
   state.dragging=false;
   state.panMoved=false;
   updateCanvasCursor();
+  if(finishedPan)flushOriginalMapViewport();
 });
 viewport.addEventListener('mousemove',event=>{
   const point=mapPointFromClient(event.clientX,event.clientY,false);
@@ -1387,7 +1776,7 @@ viewport.addEventListener('mousemove',event=>{
     if(!state.panMoved)return;
     state.offsetX+=event.clientX-state.lastX;
     state.offsetY+=event.clientY-state.lastY;
-    state.lastX=event.clientX;state.lastY=event.clientY;render();
+    state.lastX=event.clientX;state.lastY=event.clientY;render();scheduleOriginalMapViewport(100);
   }
 });
 viewport.addEventListener('wheel',event=>{
@@ -1398,7 +1787,7 @@ viewport.addEventListener('wheel',event=>{
 },{passive:false});
 document.getElementById('zoomIn').addEventListener('click',()=>{state.pendingNpcReveal=null;zoom(1.25,viewport.clientWidth/2,viewport.clientHeight/2)});
 document.getElementById('zoomOut').addEventListener('click',()=>{state.pendingNpcReveal=null;zoom(.8,viewport.clientWidth/2,viewport.clientHeight/2)});
-document.getElementById('reset').addEventListener('click',()=>{state.pendingNpcReveal=null;reset100()});
+document.getElementById('reset').addEventListener('click',()=>{state.pendingNpcReveal=null;reset100();scheduleOriginalMapViewport(110)});
 document.getElementById('refresh').addEventListener('click',()=>vscode.postMessage({type:'refresh'}));
 mapLayerToggle.addEventListener('click',()=>state.original.active?switchToPreviewMap():switchToOriginalMap());
 document.getElementById('mapNavigatorToggle').addEventListener('click',event=>{
@@ -1417,12 +1806,13 @@ mapNavigatorOverlay.addEventListener('pointerdown',event=>{
   mapNavigatorOverlay.setPointerCapture(event.pointerId);navigateFromMapNavigator(event);
 });
 mapNavigatorOverlay.addEventListener('pointermove',event=>{
-  if(state.navigatorDragging)navigateFromMapNavigator(event);
+  if(state.navigatorDragging)navigateFromMapNavigator(event,false);
 });
 function stopNavigatorDrag(event){
   if(!state.navigatorDragging)return;
   state.navigatorDragging=false;
   if(mapNavigatorOverlay.hasPointerCapture(event.pointerId))mapNavigatorOverlay.releasePointerCapture(event.pointerId);
+  if(event.type==='pointerup')flushOriginalMapViewport();
 }
 mapNavigatorOverlay.addEventListener('pointerup',stopNavigatorDrag);
 mapNavigatorOverlay.addEventListener('pointercancel',stopNavigatorDrag);
@@ -1557,59 +1947,438 @@ window.addEventListener('keydown',event=>{
   if(state.original.active)nudgeSelectedEntity(direction[0],direction[1]);
   else nudgeSelectedMarker(direction[0],direction[1]);
 });
-function originalImage(meta){
-  const cached=state.original.imageCache.get(meta.url);
-  if(cached)return cached;
-  const image=new Image();
-  const record={image,promise:null,failed:false};
-  record.promise=new Promise(resolve=>{
-    image.onload=()=>resolve(record);
-    image.onerror=()=>{record.failed=true;resolve(record)};
-  });
-  image.src=meta.url;
-  state.original.imageCache.set(meta.url,record);
+const ORIGINAL_IMAGE_CACHE_ENTRY_LIMIT=4096;
+const ORIGINAL_IMAGE_CACHE_BYTE_LIMIT=256*1024*1024;
+const ORIGINAL_STATIC_CHUNK_CACHE_ENTRY_LIMIT=96;
+const ORIGINAL_STATIC_CHUNK_CACHE_BYTE_LIMIT=128*1024*1024;
+function originalImageCacheKey(generation,url){return String(generation)+'\u0000'+String(url||'')}
+function pinOriginalImageKey(key){
+  const count=(state.original.loadingImageKeyCounts.get(key)||0)+1;
+  state.original.loadingImageKeyCounts.set(key,count);state.original.loadingImageKeys.add(key);
+}
+function unpinOriginalImageKey(key){
+  const count=(state.original.loadingImageKeyCounts.get(key)||0)-1;
+  if(count>0){state.original.loadingImageKeyCounts.set(key,count);return}
+  state.original.loadingImageKeyCounts.delete(key);state.original.loadingImageKeys.delete(key);
+}
+function disposeOriginalImageRecord(record){
+  if(!record||record.disposed)return;
+  record.disposed=true;
+  if(record.image){record.image.onload=null;record.image.onerror=null;try{record.image.src=''}catch{}}
+  if(record.resolve)record.resolve(record);
+}
+function removeOriginalImageRecord(key,record){
+  if(state.original.imageCache.get(key)!==record)return;
+  state.original.imageCache.delete(key);
+  state.original.imageCacheBytes=Math.max(0,state.original.imageCacheBytes-(Number(record.estimatedBytes)||0));
+  record.estimatedBytes=0;disposeOriginalImageRecord(record);
+}
+function clearOriginalImageCache(){
+  for(const record of state.original.imageCache.values())disposeOriginalImageRecord(record);
+  state.original.imageCache.clear();state.original.imageCacheBytes=0;
+  state.original.loadingImageKeys.clear();state.original.loadingImageKeyCounts.clear();
+}
+function currentOriginalImageCacheKeys(){
+  const keys=new Set(state.original.loadingImageKeys),generation=state.original.generation;
+  for(const resource of state.original.layer?.resources||[]){
+    const url=resource?.meta?.url;if(url)keys.add(originalImageCacheKey(generation,url));
+  }
+  return keys;
+}
+function reserveOriginalImageCache(entryBytes){
+  const protectedKeys=currentOriginalImageCacheKeys();
+  for(const [key,record] of state.original.imageCache){
+    if(state.original.imageCache.size<ORIGINAL_IMAGE_CACHE_ENTRY_LIMIT&&
+      state.original.imageCacheBytes+entryBytes<=ORIGINAL_IMAGE_CACHE_BYTE_LIMIT)return true;
+    if(protectedKeys.has(key))continue;
+    removeOriginalImageRecord(key,record);
+  }
+  return state.original.imageCache.size<ORIGINAL_IMAGE_CACHE_ENTRY_LIMIT&&
+    state.original.imageCacheBytes+entryBytes<=ORIGINAL_IMAGE_CACHE_BYTE_LIMIT;
+}
+function trimOriginalImageCache(){reserveOriginalImageCache(0)}
+function originalStaticChunkCacheKey(generation,cacheKey,chunkId){
+  return String(generation)+'\u0000'+String(cacheKey||'viewport')+'\u0000'+String(chunkId||'');
+}
+function pinOriginalStaticChunkKey(key){
+  const count=(state.original.loadingStaticChunkKeyCounts.get(key)||0)+1;
+  state.original.loadingStaticChunkKeyCounts.set(key,count);state.original.loadingStaticChunkKeys.add(key);
+}
+function unpinOriginalStaticChunkKey(key){
+  const count=(state.original.loadingStaticChunkKeyCounts.get(key)||0)-1;
+  if(count>0){state.original.loadingStaticChunkKeyCounts.set(key,count);return}
+  state.original.loadingStaticChunkKeyCounts.delete(key);state.original.loadingStaticChunkKeys.delete(key);
+}
+function disposeOriginalStaticChunkRecord(record){
+  if(!record||record.disposed)return;
+  record.disposed=true;
+  if(record.image){record.image.onload=null;record.image.onerror=null;try{record.image.src=''}catch{}}
+  if(record.canvas){record.canvas.width=1;record.canvas.height=1}
+  if(record.resolve){const resolve=record.resolve;record.resolve=null;resolve(record)}
+}
+function removeOriginalStaticChunkRecord(key,record){
+  if(state.original.staticChunkCache.get(key)!==record)return;
+  state.original.staticChunkCache.delete(key);
+  state.original.staticChunkCacheBytes=Math.max(0,state.original.staticChunkCacheBytes-(Number(record.estimatedBytes)||0));
+  record.estimatedBytes=0;disposeOriginalStaticChunkRecord(record);
+}
+function currentOriginalStaticChunkCacheKeys(){
+  const keys=new Set(state.original.loadingStaticChunkKeys);
+  for(const key of state.original.layer?.staticChunkKeys||[])keys.add(key);
+  return keys;
+}
+function reserveOriginalStaticChunkCache(entryBytes){
+  if(entryBytes>ORIGINAL_STATIC_CHUNK_CACHE_BYTE_LIMIT)return false;
+  const protectedKeys=currentOriginalStaticChunkCacheKeys();
+  for(const [key,record] of state.original.staticChunkCache){
+    if(state.original.staticChunkCache.size<ORIGINAL_STATIC_CHUNK_CACHE_ENTRY_LIMIT&&
+      state.original.staticChunkCacheBytes+entryBytes<=ORIGINAL_STATIC_CHUNK_CACHE_BYTE_LIMIT)return true;
+    if(protectedKeys.has(key))continue;
+    removeOriginalStaticChunkRecord(key,record);
+  }
+  return state.original.staticChunkCache.size<ORIGINAL_STATIC_CHUNK_CACHE_ENTRY_LIMIT&&
+    state.original.staticChunkCacheBytes+entryBytes<=ORIGINAL_STATIC_CHUNK_CACHE_BYTE_LIMIT;
+}
+function trimOriginalStaticChunkCache(){reserveOriginalStaticChunkCache(0)}
+function clearOriginalStaticChunkCache(){
+  for(const record of state.original.staticChunkCache.values())disposeOriginalStaticChunkRecord(record);
+  state.original.staticChunkCache.clear();state.original.staticChunkCacheBytes=0;
+  state.original.loadingStaticChunkKeys.clear();state.original.loadingStaticChunkKeyCounts.clear();
+}
+function cachedOriginalStaticChunk(key){
+  const record=state.original.staticChunkCache.get(key);
+  if(!record||record.disposed||record.failed)return null;
+  state.original.staticChunkCache.delete(key);state.original.staticChunkCache.set(key,record);
   return record;
 }
-async function loadOriginalMapData(data){
-  if(!state.original.active||data.requestId!==state.original.requestId)return;
+function originalImage(meta,generation=state.original.generation){
+  const url=String(meta?.url||'');
+  if(!url||generation!==state.original.generation){
+    const image=new Image(),record={image,promise:null,failed:true,disposed:true,estimatedBytes:0};
+    record.promise=Promise.resolve(record);return record;
+  }
+  const key=originalImageCacheKey(generation,url),cached=state.original.imageCache.get(key);
+  if(cached){state.original.imageCache.delete(key);state.original.imageCache.set(key,cached);return cached}
+  const estimatedBytes=Math.max(1,Number(meta?.width)||1)*Math.max(1,Number(meta?.height)||1)*4;
+  if(estimatedBytes>ORIGINAL_IMAGE_CACHE_BYTE_LIMIT||!reserveOriginalImageCache(estimatedBytes)){
+    const image=new Image(),record={image,promise:null,failed:true,disposed:true,estimatedBytes:0};
+    record.promise=Promise.resolve(record);return record;
+  }
+  const image=new Image();
+  const record={image,promise:null,resolve:null,failed:false,disposed:false,estimatedBytes,generation,key};
+  record.promise=new Promise(resolve=>{record.resolve=resolve});
+  image.onload=()=>{
+    if(record.disposed)return;
+    if(generation!==state.original.generation){removeOriginalImageRecord(key,record);return}
+    image.onload=null;image.onerror=null;record.resolve(record);
+  };
+  image.onerror=()=>{
+    if(record.disposed)return;
+    image.onload=null;image.onerror=null;record.failed=true;
+    state.original.imageCacheBytes=Math.max(0,state.original.imageCacheBytes-record.estimatedBytes);
+    record.estimatedBytes=0;record.resolve(record);
+  };
+  state.original.imageCache.set(key,record);
+  state.original.imageCacheBytes+=estimatedBytes;
+  image.src=url;
+  return record;
+}
+function normalizeOriginalStaticChunk(value){
+  const chunkId=String(value?.chunkId||'');
+  const column=Number(value?.column),row=Number(value?.row);
+  const worldX=Number(value?.worldX),worldY=Number(value?.worldY);
+  const width=Number(value?.width),height=Number(value?.height);
+  if(!/^c(?:0|[1-9]\d*)-r(?:0|[1-9]\d*)$/.test(chunkId)||
+    ![column,row,worldX,worldY,width,height].every(Number.isSafeInteger)||
+    column<0||row<0||worldX<0||worldY<0||width<=0||height<=0)return null;
+  return{chunkId,column,row,worldX,worldY,width,height,cached:value?.cached===true,url:String(value?.url||'')};
+}
+function originalStaticChunkSourceComplete(data,loaded,metas,chunk){
+  let complete=true;
+  for(const list of [data.tiles,data.smTiles]){
+    if(!Array.isArray(list))continue;
+    for(let i=0;i<list.length;i+=3){
+      const meta=metas[list[i+2]];if(!meta)continue;
+      const left=Number(list[i])*48,top=Number(list[i+1])*32;
+      const right=left+Math.max(1,Number(meta.width)||1),bottom=top+Math.max(1,Number(meta.height)||1);
+      if(right<chunk.worldX||bottom<chunk.worldY||left>=chunk.worldX+chunk.width||top>=chunk.worldY+chunk.height)continue;
+      if(!originalMapResourceReady(loaded[list[i+2]]))complete=false;
+    }
+  }
+  return complete;
+}
+function composeOriginalStaticChunk(data,chunk,loaded,metas,key,currentRequest){
+  if(!currentRequest())return null;
+  const estimatedBytes=chunk.width*chunk.height*4;
+  if(!reserveOriginalStaticChunkCache(estimatedBytes))return null;
+  const sourceCanvas=document.createElement('canvas');sourceCanvas.width=chunk.width;sourceCanvas.height=chunk.height;
+  const target=sourceCanvas.getContext('2d');
+  target.clearRect(0,0,chunk.width,chunk.height);target.imageSmoothingEnabled=false;
+  target.globalCompositeOperation='source-over';
+  for(const [list,kind] of [[data.tiles,'tile'],[data.smTiles,'smTile']]){
+    if(!Array.isArray(list))continue;
+    for(let i=0;i<list.length;i+=3){
+      const resource=loaded[list[i+2]];
+      if(!originalMapResourceReady(resource)||resource.blank)continue;
+      const meta=resource.meta;
+      const placement=originalMapPlacement(kind,list[i],list[i+1],meta,0);
+      const localX=placement.worldX-chunk.worldX,localY=placement.worldY-chunk.worldY;
+      if(localX+meta.width<0||localY+meta.height<0||localX>=chunk.width||localY>=chunk.height)continue;
+      // Keep the verified one-pixel non-object seam while baking at LOD0.
+      target.drawImage(resource.image,localX,localY,Math.max(1,meta.width+1),Math.max(1,meta.height+1));
+    }
+  }
+  const record={
+    key,generation:Number(data.generation)||0,chunkId:chunk.chunkId,
+    worldX:chunk.worldX,worldY:chunk.worldY,width:chunk.width,height:chunk.height,
+    drawable:sourceCanvas,canvas:sourceCanvas,image:null,promise:null,resolve:null,
+    failed:false,disposed:false,estimatedBytes
+  };
+  record.promise=Promise.resolve(record);
+  state.original.staticChunkCache.set(key,record);
+  state.original.staticChunkCacheBytes+=estimatedBytes;
+  if(data.staticCacheEnabled&&data.staticCacheKey&&
+    originalStaticChunkSourceComplete(data,loaded,metas,chunk)){
+    publishOriginalStaticChunk(data,chunk,sourceCanvas,currentRequest);
+  }
+  return record;
+}
+function publishOriginalStaticChunk(data,chunk,sourceCanvas,currentRequest){
+  if(!currentRequest())return;
+  try{
+    sourceCanvas.toBlob(blob=>{
+      if(!blob||!currentRequest())return;
+      const reader=new FileReader();
+      reader.onerror=()=>{};
+      reader.onload=()=>{
+        if(!currentRequest()||typeof reader.result!=='string')return;
+        vscode.postMessage({
+          type:'storeOriginalMapTile',requestId:data.requestId,generation:data.generation,
+          viewportSeq:data.viewportSeq,cacheKey:data.staticCacheKey,chunkId:chunk.chunkId,
+          pngDataUrl:reader.result
+        });
+      };
+      reader.readAsDataURL(blob);
+    },'image/png');
+  }catch{}
+}
+function loadOriginalStaticChunkImage(data,chunk,key){
+  const cached=cachedOriginalStaticChunk(key);if(cached)return cached.promise;
+  const estimatedBytes=chunk.width*chunk.height*4;
+  if(!chunk.url||!reserveOriginalStaticChunkCache(estimatedBytes))return Promise.resolve(null);
+  const image=new Image();
+  const record={
+    key,generation:Number(data.generation)||0,chunkId:chunk.chunkId,
+    worldX:chunk.worldX,worldY:chunk.worldY,width:chunk.width,height:chunk.height,
+    drawable:image,image,canvas:null,promise:null,resolve:null,
+    failed:false,disposed:false,estimatedBytes
+  };
+  record.promise=new Promise(resolve=>{record.resolve=resolve});
+  image.onload=()=>{
+    if(record.disposed)return;
+    image.onload=null;image.onerror=null;
+    if(record.generation!==state.original.generation||image.naturalWidth!==chunk.width||image.naturalHeight!==chunk.height){
+      record.failed=true;removeOriginalStaticChunkRecord(key,record);return;
+    }
+    if(record.resolve){const resolve=record.resolve;record.resolve=null;resolve(record)}
+  };
+  image.onerror=()=>{
+    if(record.disposed)return;
+    image.onload=null;image.onerror=null;record.failed=true;removeOriginalStaticChunkRecord(key,record);
+  };
+  state.original.staticChunkCache.set(key,record);
+  state.original.staticChunkCacheBytes+=estimatedBytes;
+  image.src=chunk.url;
+  return record.promise;
+}
+async function resolveOriginalStaticChunk(data,chunk,loaded,metas,key,currentRequest){
+  const existing=cachedOriginalStaticChunk(key);if(existing)return existing;
+  if(chunk.cached){
+    const cached=await loadOriginalStaticChunkImage(data,chunk,key);
+    if(!currentRequest())return null;
+    if(cached&&!cached.failed&&!cached.disposed)return cached;
+  }
+  if(data.staticSourceIncluded===false)return null;
+  return composeOriginalStaticChunk(data,chunk,loaded,metas,key,currentRequest);
+}
+async function loadOriginalMapData(data,legacy=false){
+  const expectedGeneration=legacy?0:data.generation;
+  const expectedViewportSeq=legacy?0:Number(data.viewportSeq)||0;
+  const currentRequest=()=>data.requestId===state.original.requestId&&state.original.active&&
+    (legacy?state.original.generation===0:
+      data.generation===state.original.generation&&expectedViewportSeq===state.original.viewportSeq);
+  if(!currentRequest())return;
   const metas=Array.isArray(data.resources)?data.resources:[];
+  const staticChunkMode=Array.isArray(data.staticChunks);
+  const staticChunkSpecs=staticChunkMode
+    ?data.staticChunks.map(normalizeOriginalStaticChunk).filter(Boolean):[];
+  const imageJobKeys=new Set();
+  for(const meta of metas){
+    if(meta?.url)imageJobKeys.add(originalImageCacheKey(expectedGeneration,meta.url));
+  }
+  const staticJobKeys=new Set(staticChunkSpecs.map(chunk=>originalStaticChunkCacheKey(
+    expectedGeneration,data.staticCacheKey,chunk.chunkId
+  )));
+  for(const key of imageJobKeys)pinOriginalImageKey(key);
+  for(const key of staticJobKeys)pinOriginalStaticChunkKey(key);
+  try{
   const loaded=new Array(metas.length);
-  let cursor=0,completed=0,failed=0;
-  setOriginalProgress(81,metas.length?'正在完整加载地图图片，请耐心等待':'完整地图没有可绘制素材');
-  async function worker(){
-    while(cursor<metas.length){
-      const index=cursor++,meta=metas[index],record=originalImage(meta);
-      await record.promise;
-      if(record.failed)failed++;
-      else loaded[index]={meta,image:record.image};
-      completed++;
-      if(state.original.active&&data.requestId===state.original.requestId){
-        setOriginalProgress(81+(completed/Math.max(1,metas.length))*18,'正在完整加载地图图片 '+completed+'/'+metas.length);
+  const baseIndices=[],animationIndices=[];
+  metas.forEach((meta,index)=>(meta?.animationOnly?animationIndices:baseIndices).push(index));
+  async function loadGroup(indices,startPercent,endPercent,label){
+    let cursor=0,completed=0,failed=0;
+    async function worker(){
+      while(cursor<indices.length&&currentRequest()){
+        const index=indices[cursor++],meta=metas[index];
+        if(meta?.blank){
+          loaded[index]={meta,image:null,blank:true,failed:false};
+        }else{
+          const record=originalImage(meta,expectedGeneration);await record.promise;
+          if(!currentRequest())return;
+          if(record.failed)failed++;else loaded[index]={meta,image:record.image,blank:false,failed:false};
+        }
+        completed++;
+        if(firstViewport&&currentRequest()){
+          const progress=startPercent+(completed/Math.max(1,indices.length))*(endPercent-startPercent);
+          setOriginalProgress(progress,label+' '+completed+'/'+indices.length);
+        }
+      }
+    }
+    const workers=[];
+    for(let i=0;i<Math.min(8,Math.max(1,indices.length));i++)workers.push(worker());
+    await Promise.all(workers);return failed;
+  }
+  const firstViewport=!state.original.ready;
+  if(firstViewport)setOriginalProgress(81,baseIndices.length?'正在加载地图首帧，请耐心等待':'当前视口没有可绘制素材');
+  const baseFailed=await loadGroup(baseIndices,81,94,'正在加载地图首帧');
+  if(!currentRequest())return;
+  const resolvedStaticChunks=new Array(staticChunkSpecs.length);
+  let staticCursor=0;
+  let staticFailed=staticChunkMode?data.staticChunks.length-staticChunkSpecs.length:0;
+  let staticCompleted=0;
+  async function staticWorker(){
+    while(staticCursor<staticChunkSpecs.length&&currentRequest()){
+      const index=staticCursor++,chunk=staticChunkSpecs[index];
+      const key=originalStaticChunkCacheKey(expectedGeneration,data.staticCacheKey,chunk.chunkId);
+      const record=await resolveOriginalStaticChunk(data,chunk,loaded,metas,key,currentRequest);
+      if(!currentRequest())return;
+      if(!record||record.failed||record.disposed)staticFailed++;
+      else resolvedStaticChunks[index]={...chunk,key,record};
+      staticCompleted++;
+      if(firstViewport&&currentRequest()){
+        setOriginalProgress(94+(staticCompleted/Math.max(1,staticChunkSpecs.length))*2,
+          '正在准备静态地图切片 '+staticCompleted+'/'+staticChunkSpecs.length);
       }
     }
   }
-  const workers=[];
-  for(let i=0;i<Math.min(8,Math.max(1,metas.length));i++)workers.push(worker());
-  await Promise.all(workers);
-  if(!state.original.active||data.requestId!==state.original.requestId)return;
-  state.original.layer={
+  if(staticChunkSpecs.length){
+    const staticWorkers=[];
+    for(let i=0;i<Math.min(4,staticChunkSpecs.length);i++)staticWorkers.push(staticWorker());
+    await Promise.all(staticWorkers);
+    if(!currentRequest())return;
+  }
+  if(staticChunkMode&&staticFailed&&data.staticSourceIncluded===false){
+    applyOriginalMapViewportError(data,staticFailed+' 个持久地图切片加载失败');
+    return;
+  }
+  const layer={
     resources:loaded,
     tiles:Array.isArray(data.tiles)?data.tiles:[],
     smTiles:Array.isArray(data.smTiles)?data.smTiles:[],
-    objects:Array.isArray(data.objects)?data.objects:[]
+    objects:Array.isArray(data.objects)?data.objects:[],
+    objectAnimationFrames:Array.isArray(data.objectAnimationFrames)?data.objectAnimationFrames:[],
+    objectAnimationTicks:Array.isArray(data.objectAnimationTicks)?data.objectAnimationTicks:[],
+    objectAnimationSetIds:Array.isArray(data.objectAnimationSetIds)?data.objectAnimationSetIds:[],
+    objectAnimationSets:Array.isArray(data.objectAnimationSets)?data.objectAnimationSets:[],
+    permanentMapEffects:Array.isArray(data.permanentMapEffects)?data.permanentMapEffects:[],
+    permanentMapEffectSets:Array.isArray(data.permanentMapEffectSets)?data.permanentMapEffectSets:[],
+    usesStaticChunks:staticChunkMode&&staticFailed===0,
+    staticChunks:staticFailed?[]:resolvedStaticChunks.filter(Boolean),
+    staticChunkKeys:staticFailed?[]:resolvedStaticChunks.filter(Boolean).map(chunk=>chunk.key)
   };
+  layer.objectRowRanges=originalMapObjectRowRanges(layer.objects);
+  const rowPadding=originalMapObjectRowPadding(metas);
+  layer.objectLookbehindRows=rowPadding.lookbehind;layer.objectLookaheadRows=rowPadding.lookahead;
+  state.original.layer=layer;
+  if(!legacy){
+    state.original.lastViewportKey=originalMapViewportKey(data.viewport);
+    state.original.pendingViewportKey='';
+    state.original.appliedViewport=data.viewport?{
+      left:Number(data.viewport.left),top:Number(data.viewport.top),
+      right:Number(data.viewport.right),bottom:Number(data.viewport.bottom)
+    }:null;
+  }
+  for(const key of staticJobKeys)unpinOriginalStaticChunkKey(key);
+  staticJobKeys.clear();
+  releaseOriginalMapBase();
+  trimOriginalImageCache();trimOriginalStaticChunkCache();
   state.original.warning=data.warning||'';
-  if(failed)state.original.warning+=(state.original.warning?'；':'')+failed+' 张图片加载失败';
+  if(baseFailed)state.original.warning+=(state.original.warning?'；':'')+baseFailed+' 张地图首帧加载失败';
+  if(staticFailed)state.original.warning+=(state.original.warning?'；':'')+staticFailed+' 个静态地图切片加载失败';
   state.original.ready=true;
+  if(!state.original.animationStartedAt)state.original.animationStartedAt=performance.now();
+  refreshOriginalMapAnimationState(layer);
   mapLayerToggle.disabled=false;
   updateStatus();
   updateNpcJumpBar();
   updateMapNavigatorVisibility();
   render();
+  scheduleOriginalMapAnimation();
   applyPendingNpcReveal(true);
-  finishOriginalProgress('完整原始地图加载完成');
+  if(!animationIndices.length){
+    if(firstViewport)finishOriginalProgress('原始地图首屏加载完成');
+    if(!legacy)scheduleOriginalMapPrefetch(data);
+    return;
+  }
+  if(firstViewport)setOriginalProgress(95,'地图首帧已显示，正在后台加载 '+animationIndices.length+' 张动画帧');
+  const animationFailed=await loadGroup(animationIndices,95,99,'正在后台加载 MAP 与 MAPEFFECT 动画帧');
+  if(!currentRequest()||state.original.layer!==layer)return;
+  if(animationFailed){
+    state.original.warning+=(state.original.warning?'；':'')+animationFailed+' 张动画帧加载失败，对应 MAP 动画按首帧显示，MAPEFFECT 整组不播放';
+  }
+  refreshOriginalMapAnimationState(layer);
+  updateStatus();
+  if(state.original.active){
+    render();scheduleOriginalMapAnimation();
+    const enabled=[];
+    if(state.original.animationCount)enabled.push('MAP 内嵌帧动画 '+state.original.animationCount+' 处');
+    if(state.original.permanentMapEffectCount)enabled.push('永久 MAPEFFECT 脚本定义 '+state.original.permanentMapEffectCount+' 处');
+    if(firstViewport)finishOriginalProgress(enabled.length
+      ?enabled.join('；')+' 已启用'
+      :'原始地图加载完成；没有可完整播放的动画序列');
+  }
+  if(!legacy)scheduleOriginalMapPrefetch(data);
+  }finally{
+    for(const key of imageJobKeys)unpinOriginalImageKey(key);
+    for(const key of staticJobKeys)unpinOriginalStaticChunkKey(key);
+  }
+}
+function acceptsOriginalMapLoadMessage(data){
+  if(!state.original.active||data.requestId!==state.original.requestId)return false;
+  return state.original.generation===0||data.generation===undefined||data.generation===state.original.generation;
+}
+function acceptsOriginalMapViewportMessage(data){
+  return state.original.active&&data.requestId===state.original.requestId&&
+    data.generation===state.original.generation&&
+    Number(data.viewportSeq)===state.original.viewportSeq;
+}
+function applyOriginalMapViewportError(data,message){
+  if(!acceptsOriginalMapViewportMessage(data))return;
+  state.original.pendingViewportKey='';
+  state.original.warning=message||'当前原始地图区域加载失败';
+  mapLayerToggle.disabled=false;
+  if(state.original.layer){
+    state.original.ready=true;render();scheduleOriginalMapAnimation();
+  }
+  updateMapNavigatorVisibility();
+  setOriginalProgress(100,state.original.warning);
+  updateStatus();
 }
 window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){stopOriginalMapAnimation();return}
+  if(state.original.active&&state.original.ready){renderOriginalMapAnimationFrame();scheduleOriginalMapAnimation()}
+});
 window.addEventListener('message',event=>{
   const data=event.data;
   if(data.type==='mapData'){
@@ -1621,41 +2390,89 @@ window.addEventListener('message',event=>{
     return;
   }
   if(data.type==='originalMapProgress'){
-    if(state.original.active&&data.requestId===state.original.requestId){
+    const loadLevel=data.viewportSeq===undefined;
+    const accepted=loadLevel
+      ?acceptsOriginalMapLoadMessage(data):acceptsOriginalMapViewportMessage(data);
+    if(accepted&&(loadLevel||!state.original.ready)){
       setOriginalProgress(data.percent,data.label);
     }
     return;
   }
   if(data.type==='originalMapReady'){
     if(!state.original.active||data.requestId!==state.original.requestId)return;
+    const nextGeneration=data.generation===undefined?0:data.generation;
+    if(nextGeneration!==state.original.generation){
+      stopOriginalMapAnimation();releaseOriginalMapBase();clearOriginalImageCache();clearOriginalStaticChunkCache();
+      state.original.layer=null;state.original.viewportSeq=0;
+      state.original.lastViewportKey='';state.original.pendingViewportKey='';
+      state.original.appliedViewport=null;
+      state.original.animationStartedAt=0;
+    }
+    state.original.generation=nextGeneration;
     state.original.ready=false;
     state.original.fileName=data.fileName||'';
     state.original.format=data.format||'';
     state.original.pixelWidth=Math.max(1,Number(data.pixelWidth)||state.map.width*48);
     state.original.pixelHeight=Math.max(1,Number(data.pixelHeight)||state.map.height*32);
+    state.original.mapWidth=Math.max(1,Math.trunc(Number(data.width)||state.original.pixelWidth/48));
+    state.original.mapHeight=Math.max(1,Math.trunc(Number(data.height)||state.original.pixelHeight/32));
+    state.original.chunkCellWidth=Math.max(1,Math.trunc(Number(data.chunkCellWidth)||16));
+    state.original.chunkCellHeight=Math.max(1,Math.trunc(Number(data.chunkCellHeight)||16));
+    state.original.viewportLimited=false;
     state.worldW=state.original.pixelWidth;
     state.worldH=state.original.pixelHeight;
     document.getElementById('mapMeta').textContent=(data.fileName||'')+' · '+(data.format||'')+' · '+state.worldW+'×'+state.worldH;
     mapLayerToggle.disabled=true;
     reset100();
     updateMapNavigatorVisibility();
-    applyPendingNpcReveal(false);
+    applyPendingNpcReveal(false,false);
+    flushOriginalMapViewport();
+    return;
+  }
+  if(data.type==='originalMapViewportData'){
+    void loadOriginalMapData(data,false).catch(error=>{
+      applyOriginalMapViewportError(data,error instanceof Error?error.message:String(error));
+    });
     return;
   }
   if(data.type==='originalMapData'){
-    void loadOriginalMapData(data);
+    if(state.original.generation===0)void loadOriginalMapData(data,true);
     return;
   }
   if(data.type==='originalMapError'){
-    if(!state.original.active)return;
+    if(data.viewportSeq!==undefined){
+      applyOriginalMapViewportError(data,data.message||'当前原始地图区域加载失败');
+      return;
+    }
+    if(!acceptsOriginalMapLoadMessage(data))return;
+    stopOriginalMapAnimation();
+    clearOriginalViewportTimer();
+    releaseOriginalMapBase();
+    clearOriginalImageCache();clearOriginalStaticChunkCache();
     state.original.warning=data.message||'原始地图绘制失败';
     state.original.ready=false;
+    state.original.layer=null;state.original.generation=0;state.original.viewportSeq=0;
+    state.original.lastViewportKey='';state.original.pendingViewportKey='';
+    state.original.appliedViewport=null;
+    state.original.animationCount=0;
+    state.original.permanentMapEffectCount=0;
     mapLayerToggle.disabled=false;
     updateMapNavigatorVisibility();
     setOriginalProgress(100,state.original.warning);
     updateStatus();
     return;
   }
+  if(data.type==='originalMapTileStoreError'){
+    if(acceptsOriginalMapViewportMessage(data)){
+      const message=data.message||'静态地图切片写入失败';
+      if(!state.original.warning.includes(message)){
+        state.original.warning+=(state.original.warning?'；':'')+message;
+        updateStatus();
+      }
+    }
+    return;
+  }
+  if(data.type==='originalMapTileStored')return;
   if(data.type==='npcSaved'||data.type==='spawnSaved'){
     if(data.type==='npcSaved'&&data.npc){
       const index=state.npcs.findIndex(item=>item.lineNumber===Number(data.npc.lineNumber));

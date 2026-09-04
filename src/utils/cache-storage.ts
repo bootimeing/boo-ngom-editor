@@ -13,6 +13,7 @@ export interface CacheRoots {
   pakCache: string;
   patchCache: string;
   archiveIndex: string;
+  originalMapTiles: string;
 }
 
 export interface CacheMigrationResult {
@@ -22,7 +23,12 @@ export interface CacheMigrationResult {
 }
 
 const CACHE_FOLDER_NAME = 'BOO-NGOM-Editor';
-const CACHE_DIRECTORIES = ['pak-cache', 'patch-cache', 'archive-index-v1'] as const;
+const CACHE_DIRECTORIES = [
+  'pak-cache',
+  'patch-cache',
+  'archive-index-v1',
+  'original-map-tiles-v1',
+] as const;
 
 export function getCacheRoots(
   context: ExtensionStorageContext,
@@ -35,6 +41,7 @@ export function getCacheRoots(
     pakCache: path.join(base, 'pak-cache'),
     patchCache: path.join(base, 'patch-cache'),
     archiveIndex: path.join(base, 'archive-index-v1'),
+    originalMapTiles: path.join(base, 'original-map-tiles-v1'),
   };
 }
 
@@ -48,6 +55,10 @@ export function getPatchCacheRoot(context: ExtensionStorageContext): string {
 
 export function getArchiveIndexRoot(context: ExtensionStorageContext): string {
   return getCacheRoots(context).archiveIndex;
+}
+
+export function getOriginalMapTileCacheRoot(context: ExtensionStorageContext): string {
+  return getCacheRoots(context).originalMapTiles;
 }
 
 export function initializeCacheStorage(
