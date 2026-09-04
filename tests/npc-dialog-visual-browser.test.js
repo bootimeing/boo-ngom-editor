@@ -1389,20 +1389,20 @@ window.acquireVsCodeApi = function () {
     var countdownHours = Math.floor(countdownCurrent / 3600);
     var countdownMinutes = Math.floor(countdownCurrent % 3600 / 60);
     var countdownSeconds = countdownCurrent % 60;
-    var countdownText = [countdownHours, countdownMinutes, countdownSeconds]
+    var imageCountdownText = [countdownHours, countdownMinutes, countdownSeconds]
       .map(function (part) { return String(part).padStart(2, '0'); })
       .join(':');
     var countdownGlyphCharacters = Array.from(countdownGlyphs)
       .map(function (glyph) { return glyph.dataset.character; })
       .join('');
-    if (countdownGlyphCharacters !== countdownText) {
+    if (countdownGlyphCharacters !== imageCountdownText) {
       throw new Error('IMGCOUNTDOWN glyph text is out of sync with runtime state: '
-        + countdownGlyphCharacters + ' !== ' + countdownText);
+        + countdownGlyphCharacters + ' !== ' + imageCountdownText);
     }
     var countdownGlyphIndexes = Array.from(countdownGlyphs).map(function (glyph) {
       return Number(/image-countdown-([0-9]+)-/.exec(glyph.src)?.[1]);
     });
-    var expectedCountdownGlyphIndexes = Array.from(countdownText).map(function (character) {
+    var expectedCountdownGlyphIndexes = Array.from(imageCountdownText).map(function (character) {
       return character === ':' ? 110 : 100 + Number(character);
     });
     if (countdownGlyphIndexes.join(',') !== expectedCountdownGlyphIndexes.join(',')) {
@@ -1603,18 +1603,43 @@ window.acquireVsCodeApi = function () {
       return element.countdownPreview && !element.imageTextPreview;
     });
     if (countdowns.length !== 2) throw new Error('countdown fixtures missing');
-    var countdownText = node(countdowns[0].id).querySelector('.styled-text-preview');
-    var timeTipsText = node(countdowns[1].id).querySelector('.styled-text-preview');
-    if (!countdownText || countdownText.textContent !== '90秒'
-      || countdownText.style.fontSize !== '18px'
-      || countdownText.style.webkitTextStrokeWidth !== '1px'
-      || !['#00ff00', 'rgb(0, 255, 0)'].includes(countdownText.style.color)) {
-      throw new Error('COUNTDOWN styled initial text missing');
+    var countdownNode = node(countdowns[0].id);
+    var timeTipsNode = node(countdowns[1].id);
+    var countdownLabel = countdownNode.querySelector('.styled-text-preview');
+    var timeTipsLabel = timeTipsNode.querySelector('.styled-text-preview');
+    var textCountdownCurrent = Number(countdownNode.dataset.countdownCurrent);
+    var timeTipsCurrent = Number(timeTipsNode.dataset.countdownCurrent);
+    if (!Number.isInteger(textCountdownCurrent) || textCountdownCurrent < 0 || textCountdownCurrent > 90
+      || countdownNode.dataset.countdownBlocked !== 'none'
+      || countdownNode.dataset.countdownRunning !== 'true') {
+      throw new Error('COUNTDOWN runtime state is outside the static fixture range: '
+        + JSON.stringify(countdownNode.dataset));
     }
-    if (!timeTipsText || timeTipsText.textContent !== '1天1时1分1秒') {
-      throw new Error('TIMETIPS day/hour/minute/second text missing');
+    if (!Number.isInteger(timeTipsCurrent) || timeTipsCurrent < 0 || timeTipsCurrent > 90061
+      || timeTipsNode.dataset.countdownBlocked !== 'none'
+      || timeTipsNode.dataset.countdownRunning !== 'true') {
+      throw new Error('TIMETIPS runtime state is outside the static fixture range: '
+        + JSON.stringify(timeTipsNode.dataset));
     }
-    if (node(countdowns[0].id).textContent.includes('<COUNTDOWN')) {
+    var expectedCountdownLabel = String(textCountdownCurrent) + '秒';
+    if (!countdownLabel || countdownLabel.textContent !== expectedCountdownLabel
+      || countdownLabel.style.fontSize !== '18px'
+      || countdownLabel.style.webkitTextStrokeWidth !== '1px'
+      || !['#00ff00', 'rgb(0, 255, 0)'].includes(countdownLabel.style.color)) {
+      throw new Error('COUNTDOWN styled runtime text mismatch: actual='
+        + (countdownLabel && countdownLabel.textContent) + ' expected=' + expectedCountdownLabel);
+    }
+    var timeTipsDays = Math.floor(timeTipsCurrent / 86400);
+    var timeTipsHours = Math.floor(timeTipsCurrent % 86400 / 3600);
+    var timeTipsMinutes = Math.floor(timeTipsCurrent % 3600 / 60);
+    var timeTipsSeconds = timeTipsCurrent % 60;
+    var expectedTimeTipsLabel = timeTipsDays + '天' + timeTipsHours + '时'
+      + timeTipsMinutes + '分' + timeTipsSeconds + '秒';
+    if (!timeTipsLabel || timeTipsLabel.textContent !== expectedTimeTipsLabel) {
+      throw new Error('TIMETIPS runtime text mismatch: actual='
+        + (timeTipsLabel && timeTipsLabel.textContent) + ' expected=' + expectedTimeTipsLabel);
+    }
+    if (countdownNode.textContent.includes('<COUNTDOWN')) {
       throw new Error('raw COUNTDOWN markup leaked into canvas');
     }
     var richText = page.elements.find(function (element) { return element.id === 'dom-rich-text'; });
