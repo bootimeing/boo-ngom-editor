@@ -1375,17 +1375,43 @@ window.acquireVsCodeApi = function () {
       || !loadingAnimatedFill.style.clipPath.includes('0px 0px 0px 88%')) {
       throw new Error('996PC LoadingBar interval/loadvalue did not advance and stop at endper');
     }
-    var countdownGlyphs = node(imageCountdown.id).querySelectorAll('.image-text-glyph-image');
+    var imageCountdownNode = node(imageCountdown.id);
+    var countdownGlyphs = imageCountdownNode.querySelectorAll('.image-text-glyph-image');
     if (countdownGlyphs.length !== 8) throw new Error('IMGCOUNTDOWN per-character glyph renderer missing');
+    if (imageCountdownNode.dataset.countdownBlocked !== 'none'
+      || imageCountdownNode.dataset.countdownRunning !== 'true') {
+      throw new Error('IMGCOUNTDOWN static fixture did not enter the local countdown runtime');
+    }
+    var countdownCurrent = Number(imageCountdownNode.dataset.countdownCurrent);
+    if (!Number.isInteger(countdownCurrent) || countdownCurrent < 0 || countdownCurrent > 30) {
+      throw new Error('IMGCOUNTDOWN runtime value is outside the fixture range: ' + imageCountdownNode.dataset.countdownCurrent);
+    }
+    var countdownHours = Math.floor(countdownCurrent / 3600);
+    var countdownMinutes = Math.floor(countdownCurrent % 3600 / 60);
+    var countdownSeconds = countdownCurrent % 60;
+    var countdownText = [countdownHours, countdownMinutes, countdownSeconds]
+      .map(function (part) { return String(part).padStart(2, '0'); })
+      .join(':');
+    var countdownGlyphCharacters = Array.from(countdownGlyphs)
+      .map(function (glyph) { return glyph.dataset.character; })
+      .join('');
+    if (countdownGlyphCharacters !== countdownText) {
+      throw new Error('IMGCOUNTDOWN glyph text is out of sync with runtime state: '
+        + countdownGlyphCharacters + ' !== ' + countdownText);
+    }
     var countdownGlyphIndexes = Array.from(countdownGlyphs).map(function (glyph) {
       return Number(/image-countdown-([0-9]+)-/.exec(glyph.src)?.[1]);
     });
-    if (countdownGlyphIndexes.join(',') !== '100,100,110,100,100,110,103,100') {
-      throw new Error('IMGCOUNTDOWN glyph asset sequence incorrect: ' + countdownGlyphIndexes.join(','));
+    var expectedCountdownGlyphIndexes = Array.from(countdownText).map(function (character) {
+      return character === ':' ? 110 : 100 + Number(character);
+    });
+    if (countdownGlyphIndexes.join(',') !== expectedCountdownGlyphIndexes.join(',')) {
+      throw new Error('IMGCOUNTDOWN glyph asset sequence incorrect: actual='
+        + countdownGlyphIndexes.join(',') + ' expected=' + expectedCountdownGlyphIndexes.join(','));
     }
     var countdownGlyphLeft = Array.from(countdownGlyphs).map(function (glyph) { return px(glyph.style.left); });
     if (countdownGlyphLeft.join(',') !== '0,26,52,78,104,130,156,182'
-      || px(node(imageCountdown.id).style.width) !== 198) {
+      || px(imageCountdownNode.style.width) !== 198) {
       throw new Error('IMGCOUNTDOWN glyph spacing or wrapper width incorrect');
     }
     var numberGlyphs = node(imageNumber.id).querySelectorAll('.image-text-glyph-image');
