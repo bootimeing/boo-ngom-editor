@@ -394,7 +394,7 @@ ERR_MODULE_NOT_FOUND: Cannot find package 'fast-xml-parser'
 
 ## 11. V4.2.6 正式实施结果
 
-- V4.2.5 已备份到 `D:\BOO版本备份\BOO-V4.2.5-20260728-164848`；2,100 个文件逐个 SHA-256 匹配，V4.2.5 VSIX 哈希为 `77FD153306298F652523DF9BA70942DA1D3CE6FFA4F680BD34EE1D753ECFC689`。
+- V4.2.5 已备份到仓库外版本归档；2,100 个文件逐个 SHA-256 匹配，V4.2.5 VSIX 哈希为 `77FD153306298F652523DF9BA70942DA1D3CE6FFA4F680BD34EE1D753ECFC689`。
 - P0 源码、Webview 连带状态、旧 snippets、旧工具、一次性数据脚本、C# M2 与 net7/net8 运行时已按审计清单删除。
 - `data/temp`、M2 `bin/obj`、PakBridge `__pycache__` 和孤立 `out/utils/db-cache.*` 已清理；`data/audit-report`、`data/backups`、PakBridge 兼容链和历史 VSIX 明确保留。
 - `.vscodeignore` 已改为完整 MDB 传递依赖闭包、四文件 xlsx 和单一原生 M2 运行时。
