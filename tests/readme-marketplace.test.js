@@ -17,7 +17,7 @@ function main() {
     readme.startsWith(`# BOO 可视化编辑器 V${manifest.version}\n`),
     'README 标题版本必须与 package.json 一致'
   );
-  assert.match(readme, /## V4\.3\.4 更新重点/);
+  assert.match(readme, /## V4\.3\.5 更新重点/);
   assert.match(readme, /ITEMSHOW[^\n]*IDX[^\n]*Looks/);
   assert.match(readme, /## 安装/);
 

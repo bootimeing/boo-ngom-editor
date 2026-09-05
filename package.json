@@ -2,7 +2,7 @@
   "name": "boo-ngom-editor",
   "displayName": "BOO UI编辑器",
   "description": "面向传奇类游戏 GM 的 VS Code 开发工具，提供脚本智能提示、UI 可视化编辑、PAK/JPK 读取、数据库与地图查看及 M2 重载。",
-  "version": "4.3.4",
+  "version": "4.3.5",
   "publisher": "boo1213",
   "author": "boo1213",
   "license": "MIT",

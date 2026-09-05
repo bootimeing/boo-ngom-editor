@@ -1,15 +1,16 @@
-# BOO 可视化编辑器 V4.3.4
+# BOO 可视化编辑器 V4.3.5
 
 面向传奇 GM、版本制作人员和脚本开发者的一体化 Visual Studio Code 扩展。
 
 支持 NGOM（922G/GOM）、翎风（GEE）和 996PC。将脚本开发、UI 制作、客户端资源读取、数据库维护、地图预览、脚本同步、M2 在线重载和本地 AI 助手集中在同一个工作环境中。
 
-## V4.3.4 更新重点
+## V4.3.5 更新重点
 
 - Ctrl+F12 独立面板扩展为按引擎解析主对话框背景、AddDlg 子窗口、文字、图片、按钮、输入、菜单/ListView、物品、进度与动画；动态字段逐项安全退化，不再用一个通用占位覆盖整个控件。
 - `ITEMSHOW` 严格按当前引擎物品数据库的 `IDX` 查询 `Looks`，再定位 `Items/ItemsN` 素材；动态编号、数据库歧义或过期缓存不会被猜成图片序号。
 - 原始地图改为按可视区域分批加载与邻区预取，静态 Tiles/SmTiles 使用持久瓦片缓存；已验证的 GOM MAP profile 增加 Objects 动画、bit7 DrawBlend 和永久 `MAPEFFECT` 保守预览。
 - 新增静态 `SETONTIMER`、`ADDBUTTON` 与新 GOM `ADDDLG` 回调目标跳转，并补齐严格浏览器回归和 VSIX 包内运行闭包检查。
+- 发布验证改为按当前倒计时运行状态核对文字与图集，消除慢速 Node 20 Runner 上的墙钟竞态；生产计时逻辑保持不变。
 
 ## 功能总览
 
@@ -170,7 +171,7 @@
 
 ## 安装
 
-已经取得 VSIX 时，在 VS Code 扩展视图右上角选择“从 VSIX 安装…”，选中 `boo-ngom-editor-4.3.4.vsix`，安装完成后重新加载窗口。
+已经取得 VSIX 时，在 VS Code 扩展视图右上角选择“从 VSIX 安装…”，选中 `boo-ngom-editor-4.3.5.vsix`，安装完成后重新加载窗口。
 
 从源代码构建时，先安装 Node.js 20 与 Python 3.12，再运行：
 

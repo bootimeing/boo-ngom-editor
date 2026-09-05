@@ -1,7 +1,7 @@
 # BOO 可视化编辑器项目报告
 
-> 报告日期：2026-09-04  
-> 当前版本：V4.3.4  
+> 报告日期：2026-09-05  
+> 当前版本：V4.3.5  
 > 项目类型：Visual Studio Code 扩展  
 > 发布标识：`boo1213.boo-NGOM-editor`
 
@@ -11,14 +11,14 @@ BOO 可视化编辑器面向传奇 GM、版本制作人员和脚本开发者，�
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 扩展版本 | V4.3.4 |
+| 扩展版本 | V4.3.5 |
 | VS Code 要求 | `^1.68.0` |
 | TypeScript 源文件 | 108 个，51,832 行 |
 | 自动回归文件 | 171 个 `*.test.js`，其中 43 个浏览器测试 |
 | 注册命令 | 47 个 |
 | 内置主题 | 19 套 |
 | 生产依赖闭包 | 解包后验证 60 个实际包节点 |
-| 当前发布包 | `artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.4.vsix` |
+| 当前发布包 | `artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.5.vsix` |
 
 ## 2. 目录结构
 
@@ -135,6 +135,12 @@ SQLite、MDB、CSV 和 BIFF8 XLS 使用独立 Provider。数据库与普通表�
 - README 增加版本重点、安装、严格边界和最新地图加载说明；新增 `CHANGELOG.md`，专项报告与最终验收截图统一归档到 `docs/reports/`。
 - `.gitignore` 明确排除 pytest 与截图中间工件；VSIX 增加 `THIRD_PARTY_NOTICES.md`，包内验证器将 README、许可证和第三方声明列为必需文件。
 
+### 4.8 2026-09-05 V4.3.5 发布
+
+- 将扩展清单、锁文件、README、项目报告和 VSIX 文件名统一更新为 V4.3.5，生产功能基线延续 V4.3.4。
+- 浏览器倒计时回归使用同一 DOM 任务中的当前运行状态推导文字和图集期望值，修复慢速 Node 20 Runner 上将合法递减误判为失败的问题；未修改生产计时器。
+- 从已提交发布基线的干净隔离 worktree 重建 VSIX，避免本地未提交内容混入安装包；60 个生产依赖包闭包、Ctrl+F12 38 文件运行闭包与严格矩阵 76/76 均通过。
+
 ## 5. 当前验证结果
 
 | 检查 | 结果 |
@@ -181,17 +187,17 @@ npm run verify:packaged-dependencies -- "<解包后的 extension 目录>"
 
 当前正式发布包：
 
-- 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.4.vsix`
-- 大小：21,546,119 字节
+- 路径：`artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.5.vsix`
+- 大小：21,546,270 字节
 - 压缩包条目：1,632
-- 解包 `extension/`：1,630 个文件，58,011,264 字节
-- SHA-256：`F76F92B8B6A7F8BA13E0779D75A40D5CA1B5AC0BE5AE981E4A9FF2DCC83BBD30`
+- 解包 `extension/`：1,630 个文件，58,012,036 字节
+- SHA-256：`658D32B6F4081A47FBA07C78B53B863777F2E59B6D29A2EB02AA88456881DDAE`
 
 上一版回滚包：
 
-- 位置：仓库外发布归档中的 `boo-ngom-editor-4.3.3-release-before-4.3.4-20260826.vsix`
-- 大小：21,356,359 字节
-- SHA-256：`3AECA44DF19AEFFCD7247D5EE07A9F5A281600F82347EE6F5B6CB6B3510AAC33`
+- 位置：仓库外发布回滚目录中的 `boo-ngom-editor-4.3.4-release-before-4.3.5-20260905.vsix`
+- 大小：21,546,119 字节
+- SHA-256：`F76F92B8B6A7F8BA13E0779D75A40D5CA1B5AC0BE5AE981E4A9FF2DCC83BBD30`
 
 ## 7. 已知边界
 
