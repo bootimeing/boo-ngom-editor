@@ -14,7 +14,11 @@
 
 ## 验证边界
 
-整理前完整 `npm run test:all` 通过，包含 NPC 严格矩阵 198/198。使用 Python 3.12 将 PAK 冻结运行时的五个核心 code object 与源码对比，全部一致（忽略构建路径元数据）。最终提交还应经过干净 checkout 的构建、完整回归、VSIX 解包依赖与包内 NPC 矩阵验证，并以精确提交 SHA 对应的 GitHub Actions 结果为准。
+整理前完整 `npm run test:all` 通过，包含 NPC 严格矩阵 198/198。整理后的源码提交 `b2011875aeaf21012a2d650865323c8d58bb2a06` 在独立干净 checkout 中重新 `npm ci`，完整 `test:all` 与打包均退出 0；最终 VSIX 解包后依赖校验通过，指定包内运行时的 NPC 严格矩阵 198/198。此后的报告更新不改变生产输入；远端结果以最终提交 SHA 对应的 GitHub Actions 为准。
+
+使用 Python 3.12 将 PAK 冻结运行时的五个核心 code object 与源码对比，全部一致（忽略构建路径元数据）。冻结目录限定为 Git binary 属性，保留上游许可证原始字节；干净 checkout 的 326 个冻结文件与工作区逐文件 SHA-256 一致。最终包核对 513 个生产文件，0 差异；扩展根级 src/tests/docs/artifacts/test-artifacts/.pytest_cache 混入 0。
+
+最终本地包仍为 `artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.5.vsix`：20,683,815 字节，ZIP 1,438 条目，extension 1,436 文件 / 56,976,083 字节；SHA-256 为 `dc3fd76e4ea1a4c21037aca28c3ceaf72dec4972e12ee5d7e8434a952e349671`。本地日志位于忽略目录 `artifacts/verification-20260920/`，不作为公开下载链接。
 
 上述计数是自动回归覆盖，不是全部游戏脚本兼容率。真实客户端逐像素对照、原生交互或外部语料专项测试的历史结论不能作为本次新通过项。
 
