@@ -4,7 +4,8 @@ const http = require('http');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
-const binDir = path.join(__dirname, 'bin');
+const binDir = process.env.BOO_PAK_BRIDGE_BIN
+  ? path.resolve(process.env.BOO_PAK_BRIDGE_BIN) : path.join(__dirname, 'bin');
 const requiredFiles = [
   'boo-pak-bridge.exe',
   'python312.dll',

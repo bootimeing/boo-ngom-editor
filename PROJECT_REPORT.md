@@ -1,4 +1,6 @@
-# BOO 可视化编辑器项目报告
+# BOO 可视化编辑器项目报告（2026-09-05 历史快照）
+
+本文保留原始统计与验收结果，不代表当前文件数或功能覆盖。最新目录约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，本次源码同步范围见 [2026-09-20 整理说明](docs/reports/PROJECT_CLEANUP_20260920.md)，功能增量见 [CHANGELOG.md](CHANGELOG.md)。
 
 > 报告日期：2026-09-05  
 > 当前版本：V4.3.5  

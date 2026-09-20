@@ -12,7 +12,11 @@ param(
     [string]$Repository = (Split-Path -Parent $PSScriptRoot),
 
     [ValidateRange(15, 300)]
-    [int]$TimeoutSeconds = 60
+    [int]$TimeoutSeconds = 60,
+
+    [switch]$UseHostEnvironment,
+
+    [switch]$UseNativeCompatLayer
 )
 
 Set-StrictMode -Version Latest
@@ -278,14 +282,25 @@ try {
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
-    $startInfo.Environment['__COMPAT_LAYER'] = 'RunAsInvoker'
+    if ($UseNativeCompatLayer) {
+        [void]$startInfo.Environment.Remove('__COMPAT_LAYER')
+        Write-Output 'COMPAT_LAYER=NATIVE'
+    } else {
+        $startInfo.Environment['__COMPAT_LAYER'] = 'RunAsInvoker'
+        Write-Output 'COMPAT_LAYER=RunAsInvoker'
+    }
     [void]$startInfo.Environment.Remove('ELECTRON_RUN_AS_NODE')
     [void]$startInfo.Environment.Remove('VSCODE_DEV')
     [void]$startInfo.Environment.Remove('VSCODE_PORTABLE')
-    $startInfo.Environment['LOCALAPPDATA'] = $localAppData
-    $startInfo.Environment['APPDATA'] = $roamingAppData
-    $startInfo.Environment['TEMP'] = $processTemp
-    $startInfo.Environment['TMP'] = $processTemp
+    if ($UseHostEnvironment) {
+        Write-Output 'PROCESS_ENVIRONMENT=HOST;USER_DATA=ISOLATED'
+    } else {
+        $startInfo.Environment['LOCALAPPDATA'] = $localAppData
+        $startInfo.Environment['APPDATA'] = $roamingAppData
+        $startInfo.Environment['TEMP'] = $processTemp
+        $startInfo.Environment['TMP'] = $processTemp
+        Write-Output 'PROCESS_ENVIRONMENT=FULLY_ISOLATED'
+    }
     $startInfo.Environment['BOO_NPC_DIALOG_HOST_SMOKE_RESULT'] = $resultPath
 
     $arguments = @(

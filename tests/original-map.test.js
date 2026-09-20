@@ -40,6 +40,7 @@ function buildSharedObjectMap(firstAnimationFrame, firstAnimationTick, secondAni
 async function main() {
   const {
     collectOriginalMapViewport,
+    classifyOriginalMapTileLayout,
     originalMapAnimationFrameCount,
     originalMapAnimationFrameReferences,
     originalMapAnimationProfileSupportsPlayback,
@@ -70,12 +71,13 @@ async function main() {
   };
   writeCell(0, 0, { back: 1, tileFile: 99 });
   writeCell(1, 1, { middle: 8, smTileFile: 100 });
+  writeCell(1, 1, { back: 2, middle: 8, smTileFile: 100, tileFile: 99 });
   writeCell(2, 2, { front: 3, objectFile: 101, animationFrame: 0xa3, animationTick: 2 });
   writeCell(0, 2, { back: 0xffff, middle: 0xffff, front: 0xffff });
 
   const model = await parseOriginalMap(buffer);
   assert.equal(model.cellSize, 14);
-  assert.equal(model.referenceCount, 3);
+  assert.equal(model.referenceCount, 4, 'count all potential placements before archive layout filtering');
   assert.equal(model.backImages[2 * width], 0, '0xFFFF back-image sentinel must remain blank');
   assert.equal(model.middleImages[2 * width], 0, '0xFFFF middle-image sentinel must remain blank');
   assert.equal(model.frontImages[2 * width], 0, '0xFFFF front-image sentinel must remain blank');
@@ -94,8 +96,44 @@ async function main() {
       ['object', 'Objects102', 2, 0xa3, 2],
     ]
   );
+  const singleCellRefs = collectOriginalMapViewport(
+    model,
+    { left: 0, top: 0, right: 3, bottom: 3 },
+    true
+  );
+  assert.equal(
+    singleCellRefs.filter(ref => ref.layer === 'tile').length,
+    2,
+    'single-cell tile mode must retain odd background cells instead of creating a checkerboard gap'
+  );
+  assert.equal(classifyOriginalMapTileLayout({
+    slotCount: 2, present: [1, 1], blank: [0, 0], width: [48, 48], height: [32, 32],
+  }), 'single-cell');
+  assert.equal(classifyOriginalMapTileLayout({
+    slotCount: 2, present: [1, 1], blank: [0, 0], width: [96, 96], height: [64, 64],
+  }), 'quad');
+  assert.equal(classifyOriginalMapTileLayout({
+    slotCount: 2, present: [0, 0], blank: [0, 0], width: [0, 0], height: [0, 0],
+  }), 'unknown');
 
   for (const [cellSize, animationFrame, animationTick] of [[12, 0x23, 0], [14, 0x80, 2], [36, 0x8a, 5]]) {
+    const highMiddleBytes = buildSingleCellMap(cellSize, 0, 0);
+    highMiddleBytes.writeUInt16LE(0x9079, 52);
+    highMiddleBytes.writeUInt16LE(0x9079, 54);
+    highMiddleBytes.writeUInt16LE(0x9079, 56);
+    const highMiddleModel = await parseOriginalMap(highMiddleBytes);
+    assert.equal(highMiddleModel.middleImages[0], 36985,
+      `${cellSize}-byte SmTiles must retain full unsigned image index`);
+    assert.equal(highMiddleModel.backImages[0], 4217, 'background still masks collision bit');
+    assert.equal(highMiddleModel.frontImages[0], 4217, 'foreground still masks collision bit');
+    assert.equal(collectOriginalMapViewport(highMiddleModel,
+      { left: 0, top: 0, right: 0, bottom: 0 }).find(ref => ref.layer === 'smTile').imageIndex, 36984);
+    for (const raw of [0, 0x7fff, 0x8000, 0xfffe, 0xffff]) {
+      highMiddleBytes.writeUInt16LE(raw, 54);
+      const boundary = await parseOriginalMap(highMiddleBytes);
+      assert.equal(boundary.middleImages[0], raw === 0xffff ? 0 : raw,
+        `${cellSize}-byte middle Word boundary ${raw}`);
+    }
     const formatModel = await parseOriginalMap(buildSingleCellMap(cellSize, animationFrame, animationTick));
     assert.equal(
       formatModel.animationProfile,

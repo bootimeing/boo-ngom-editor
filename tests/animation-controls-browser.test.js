@@ -4,16 +4,16 @@ const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { spawnSync } = require('node:child_process');
-const staticLanguage = require('../data/static-language.json');
-const { buildDialogStatementCatalog } = require('../out/ui-dialog/statement-catalog');
+const root = path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT || path.join(__dirname, '..'));
+const staticLanguage = require(path.join(root, 'data/static-language.json'));
+const { buildDialogStatementCatalog } = require(path.join(root, 'out/ui-dialog/statement-catalog'));
 const {
   parseNpcDialogDocument,
   reflowNpcDialogLayout,
-} = require('../out/ui-dialog/source-parser');
-const { workspaceNpcDialogOffsets } = require('../out/ui-dialog/offsets');
+} = require(path.join(root, 'out/ui-dialog/source-parser'));
+const { workspaceNpcDialogOffsets } = require(path.join(root, 'out/ui-dialog/offsets'));
 const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
 
-const root = path.resolve(__dirname, '..');
 const pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzNwAAAABJRU5ErkJggg==';
 
 function parseModel(engine, statements) {
@@ -220,6 +220,7 @@ function fixtureModel() {
     '<Effect|id=ANIM_SCALE_ONE_HALF|x=100|y=110|wil=NewopUI|start=120|num=2|gap=100|count=0|scale=1.5|DMode=1>',
     '<Frames|id=ANIM_FINISH|x=20|y=210|wil=NewopUI|start=130|count=3|speed=100|loop=1|finishframe=1|finishhide=0>',
     '<Frames|id=ANIM_HIDE|x=100|y=210|wil=NewopUI|start=140|count=2|speed=100|loop=1|finishhide=1>',
+    '<Frames|id=ANIM_MISSING|x=400|y=210|wil=NewopUI|start=150|count=2|speed=100|loop=0>',
     '<PlayImg:3:200:2:100:20:320:1:1:0>',
     '<PlayImg:3:210:2:100:100:320:1:1:1>',
   ]);
@@ -236,10 +237,16 @@ function fixtureModel() {
   const gom = parseModel('GOM', [
     '<&PlayImgEx:1:490:3:100:39:31:0:0>',
     '<&PlayImg:2:600:3:100:260:120:1:0:按钮,4,5,250#:1>',
+    '<&playimg:1:1060:15:100:95:172>',
+    '<&PlayImg:2:700:2:100:450:300:1:1:结束标题,4,5,250#:1>',
   ]);
   const gomElements = animationElements(gom);
   const [gomEx] = assignIds(gomElements, 'playimgex-absolute', ['ANIM_GOM_EX']);
-  const [gomTitle] = assignIds(gomElements, 'playimg-absolute', ['ANIM_GOM_TITLE']);
+  const [gomTitle, gomReported, gomTitleHide] = assignIds(gomElements, 'playimg-absolute', ['ANIM_GOM_TITLE', 'ANIM_GOM_REPORTED', 'ANIM_GOM_TITLE_HIDE']);
+  assert.equal(gomReported.assetRef.willIndex, 1);
+  assert.equal(gomReported.assetRef.imageIndex, 1060);
+  assert.equal(gomReported.animationPreview.frameCount, 15);
+  assert.equal(gomReported.animationPreview.previewIntervalMs, 100);
 
   const gee = parseModel('GEE', [
     '<&PlayImg:5:510:3:100:260:220:3:249#翎风提示:1,2/@go>',
@@ -269,6 +276,9 @@ function fixtureModel() {
   byId.get('ANIM_HIDE').animationFrames = [0, 1].map(index => (
     readyFrame(`hide-${index}`, 20, 20)
   ));
+  byId.get('ANIM_MISSING').animationFrames = [0, 1].map(index => missingFrame(`missing-${index}`));
+  gomReported.animationFrames = Array.from({ length: 15 }, (_, index) => readyFrame(`reported-${1060 + index}`, 40, 30));
+  gomTitleHide.animationFrames = [0, 1].map(index => readyFrame(`title-hide-${index}`, 40, 30));
   pcR0.animationFrames = [0, 1].map(index => readyFrame(`pc-r0-${index}`, 32, 24, 7, -5));
   pcR1.animationFrames = [0, 1].map(index => readyFrame(`pc-r1-${index}`, 32, 24, 7, -5));
   gomEx.animationFrames = [0, 1, 2].map(index => readyFrame(`gom-ex-${index}`, 18, 16, 5, -3));
@@ -414,7 +424,7 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
   function visuallyHidden(target) {
     if (!target) return true;
     var style = window.getComputedStyle(target);
-    return target.hidden || style.display === 'none' || style.visibility === 'hidden'
+    return style.display === 'none' || style.visibility === 'hidden'
       || Number(style.opacity) === 0;
   }
 
@@ -422,7 +432,7 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
     var required = [
       'ANIM_SPARSE', 'ANIM_SCALE_HALF', 'ANIM_SCALE_ONE_HALF', 'ANIM_FINISH',
       'ANIM_HIDE', 'ANIM_PC_R0', 'ANIM_PC_R1', 'ANIM_GOM_EX', 'ANIM_GOM_TITLE',
-      'ANIM_GEE', 'ANIM_GEE_EX'
+      'ANIM_GEE', 'ANIM_GEE_EX', 'ANIM_GOM_REPORTED', 'ANIM_MISSING', 'ANIM_GOM_TITLE_HIDE'
     ];
     for (var attempt = 0; attempt < 200 && required.some(function (id) { return !node(id); }); attempt++) {
       await wait(10);
@@ -432,10 +442,42 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
 
     var sparse = node('ANIM_SPARSE');
     var sparseHistory = [sparse.dataset.animationCurrentFrame || ''];
+    var sparseVisibility = [];
     var observer = new MutationObserver(function () {
       sparseHistory.push(sparse.dataset.animationCurrentFrame || '');
+      sparseVisibility.push({status:sparse.dataset.animationFrameStatus,
+        imageHidden:visuallyHidden(image(sparse)),
+        placeholderHidden:visuallyHidden(sparse.querySelector('.animation-frame-missing'))});
     });
     observer.observe(sparse, { attributes: true, attributeFilter: ['data-animation-current-frame'] });
+
+    await check('finite PLAYIMG title is initially visible', async function () {
+      var title = node('ANIM_GOM_TITLE_HIDE').querySelector('.animation-title');
+      if (!title || title.textContent !== '结束标题' || visuallyHidden(title) || title.getBoundingClientRect().height <= 0) {
+        throw new Error('finite title was not displayed before completion');
+      }
+    });
+
+    await check('reported 15-frame PLAYIMG displays image without a visible missing placeholder', async function () {
+      var wrapper = node('ANIM_GOM_REPORTED');
+      await wait(50);
+      var frame = image(wrapper), placeholder = wrapper.querySelector('.animation-frame-missing');
+      if (wrapper.dataset.animationSlotCount !== '15' || wrapper.dataset.animationReadyCount !== '15'
+        || wrapper.dataset.animationMissingCount !== '0' || !frame.complete || frame.naturalWidth <= 0
+        || visuallyHidden(frame)) throw new Error('reported PLAYIMG did not render its ready frame');
+      if (!placeholder.hidden || !visuallyHidden(placeholder) || placeholder.getBoundingClientRect().height !== 0) {
+        throw new Error('hidden=' + placeholder.hidden + ' computed display=' + getComputedStyle(placeholder).display
+          + ' placeholder is visible over a valid animation');
+      }
+    });
+
+    await check('a genuinely missing animation keeps a visible placeholder', async function () {
+      var wrapper = node('ANIM_MISSING'), placeholder = wrapper.querySelector('.animation-frame-missing');
+      if (wrapper.dataset.animationMissingCount !== '2' || !visuallyHidden(image(wrapper))
+        || visuallyHidden(placeholder) || placeholder.getBoundingClientRect().height <= 0) {
+        throw new Error('true missing-frame feedback was suppressed');
+      }
+    });
 
     await check('scale=0.5 scales image geometry and intrinsic wrapper once', async function () {
       var wrapper = node('ANIM_SCALE_HALF');
@@ -562,6 +604,10 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
       if (!sparseHistory.includes('1')) {
         throw new Error('missing slot 1 was never visited; history=' + sparseHistory.join(','));
       }
+      if (!sparseVisibility.some(state => state.status === 'missing' && state.imageHidden && !state.placeholderHidden)
+        || !sparseVisibility.some(state => state.status === 'ready' && !state.imageHidden && state.placeholderHidden)) {
+        throw new Error('sparse ready/missing visibility is inconsistent: ' + JSON.stringify(sparseVisibility));
+      }
     });
 
     await check('finishframe uses the explicit evidence-safe hold-last convention', async function () {
@@ -587,17 +633,30 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
         throw new Error('ended/hidden status missing: ' + JSON.stringify(wrapper.dataset));
       }
       if (!visuallyHidden(image(wrapper))) throw new Error('animation image layer remains visible');
+      if (!visuallyHidden(wrapper.querySelector('.animation-frame-missing'))) throw new Error('ended animation retains visible missing placeholder');
     });
 
     await check('traditional L=1 animations automatically hide after one loop', async function () {
       for (var id of ['ANIM_PC_R0', 'ANIM_PC_R1']) {
         var wrapper = node(id);
         if (!wrapper || wrapper.dataset.animationStatus !== 'complete-hidden'
-          || !visuallyHidden(image(wrapper))) {
+          || !visuallyHidden(image(wrapper))
+          || !visuallyHidden(wrapper.querySelector('.animation-frame-missing'))) {
           throw new Error(id + ' did not auto-hide after L=1: '
             + (wrapper && JSON.stringify(wrapper.dataset)));
         }
       }
+    });
+
+    await check('finite PLAYIMG completion hides image, missing placeholder and title', async function () {
+      var wrapper = node('ANIM_GOM_TITLE_HIDE');
+      if (wrapper.dataset.animationStatus !== 'complete-hidden') throw new Error('finite PLAYIMG did not complete');
+      for (var layer of wrapper.querySelectorAll('.animation-frame-image,.animation-frame-missing,.animation-title')) {
+        if (!layer.hidden || getComputedStyle(layer).display !== 'none' || layer.getBoundingClientRect().height !== 0) {
+          throw new Error('completed layer remains visible: ' + layer.className);
+        }
+      }
+      if (wrapper.getBoundingClientRect().width <= 0) throw new Error('completion removed the selectable wrapper');
     });
 
     await check('DMode/slowcount are exposed without inventing hidden algorithms', async function () {

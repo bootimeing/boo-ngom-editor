@@ -14,6 +14,8 @@ assert.deepEqual(rootVsix, [], 'VSIX release files must stay under artifacts/rel
 
 for (const relativePath of [
   'CHANGELOG.md',
+  'CONTRIBUTING.md',
+  'tests/README.md',
   'artifacts/README.md',
   'data/README.md',
   'docs/README.md',
@@ -33,6 +35,7 @@ for (const relativePath of [
   'tools/release/package-vsix.js',
   'tools/release/verify-packaged-dependencies.js',
   'tools/README.md',
+  'tools/data-maintenance/archive/apply-20260905-help-review.js',
 ]) {
   assert.ok(exists(relativePath), `Missing classified project file: ${relativePath}`);
 }

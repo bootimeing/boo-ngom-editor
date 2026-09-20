@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="{{STYLE_URI}}">
   <title>BOO NPC 界面可视化编辑器</title>
 </head>
-<body>
+<body class="inspector-collapsed">
   <header class="toolbar">
     <div class="identity">
       <strong id="functionTitle">NPC 界面</strong>
@@ -23,57 +23,57 @@
         class="quiet-button"
         type="button"
         aria-pressed="false"
-        title="默认隐藏画布上的长篇诊断；详细原因仍可在右侧元素属性查看"
-      >显示诊断</button>
+        title="显示详细信息"
+      >详情</button>
     </div>
     <div class="toolbar-group actions">
+      <button id="previewBackButton" class="quiet-button" disabled title="返回上一步预览">后退</button>
       <button id="undoButton" class="icon-button" title="撤销可视化草稿" aria-label="撤销">↶</button>
       <button id="redoButton" class="icon-button" title="重做可视化草稿" aria-label="重做">↷</button>
-      <button id="reloadButton" class="quiet-button">重新载入</button>
-      <button id="applyButton" class="secondary-button">应用到代码</button>
-      <button id="saveButton" class="primary-button">保存文件</button>
+      <button id="reloadButton" class="quiet-button">重载</button>
+      <button id="applyButton" class="secondary-button">应用</button>
+      <button id="saveButton" class="primary-button">保存</button>
     </div>
   </header>
 
   <section id="statusBanner" class="status-banner hidden" role="status"></section>
   <section id="offsetBar" class="offset-bar hidden">
     <div>
-      <strong>NPC 文字坐标修正</strong>
+      <strong>文字偏移</strong>
       <span id="offsetSource"></span>
     </div>
     <label>X <input id="offsetX" type="number" step="1"></label>
     <label>Y <input id="offsetY" type="number" step="1"></label>
-    <button id="saveOffsets" class="secondary-button hidden">保存翎风修正值</button>
-    <span id="offsetHelp" class="offset-help"></span>
+    <button id="saveOffsets" class="secondary-button hidden">保存偏移</button>
+    <span id="offsetHelp" class="offset-help diagnostic-only"></span>
   </section>
 
   <main class="editor-layout">
-    <aside class="scene-pane" aria-label="条件场景">
+    <aside class="scene-pane" aria-label="页面与条件">
       <div class="pane-title">
         <div>
-          <strong>界面场景</strong>
+          <strong>页面</strong>
           <span id="sceneCount">0</span>
         </div>
         <button id="resetPreview" class="pane-icon-button" title="恢复默认预览" aria-label="恢复默认预览">↺</button>
       </div>
       <div id="sceneList" class="scene-list"></div>
-      <details id="advancedConditions" class="advanced-conditions hidden">
-        <summary>
-          <span>高级条件模拟</span>
-          <span id="advancedConditionCount">0</span>
-        </summary>
-        <div id="advancedConditionList" class="advanced-condition-list"></div>
-      </details>
-      <div class="pane-section">
-        <strong>当前条件</strong>
+      <section id="previewInputSection" class="pane-section preview-input-section" aria-label="条件与变量">
+        <strong>条件与变量</strong>
+        <small class="diagnostic-only">本地预览值，不修改源码。脚本后续赋值仍会生效。</small>
+        <input id="previewInputSearch" type="search" placeholder="查找标识或变量" aria-label="查找标识或变量">
+        <div id="previewInputList"></div>
+      </section>
+      <div id="conditionSection" class="pane-section condition-section hidden">
+        <strong>条件</strong>
         <pre id="conditionText" class="condition-text">无</pre>
       </div>
-      <div class="pane-section variable-section">
-        <strong>脚本变量值</strong>
+      <div id="variableSection" class="pane-section variable-section diagnostic-only">
+        <strong>变量详情</strong>
         <div id="variableList" class="variable-list">当前场景未使用脚本变量</div>
       </div>
-      <div class="pane-section change-section">
-        <strong>坐标改动</strong>
+      <div id="changeSection" class="pane-section change-section hidden">
+        <strong>改动</strong>
         <div id="changeList" class="change-list">暂无改动</div>
       </div>
     </aside>
@@ -92,7 +92,7 @@
         aria-label="#ACT 客户端界面动作静态预览"
       >
         <div class="act-ui-preview-heading">
-          <strong>#ACT 界面动作</strong>
+          <strong>#ACT 预览</strong>
           <span id="actUiPreviewCount">0</span>
         </div>
         <div id="actUiPreviewList" class="act-ui-preview-list"></div>
@@ -106,58 +106,58 @@
       </div>
     </section>
 
-    <aside class="inspector-pane" aria-label="元素属性">
+    <aside class="inspector-pane" aria-label="元素">
       <div class="pane-title">
-        <strong>元素属性</strong>
+        <strong>元素</strong>
         <span id="selectionState">未选择</span>
       </div>
-      <div id="emptyInspector" class="empty-inspector">点击画布元素查看属性。按住鼠标拖动，方向键每次微调 1 像素。</div>
+      <div id="emptyInspector" class="empty-inspector">选择元素以编辑。</div>
       <div id="elementInspector" class="element-inspector hidden">
         <div class="field wide">
-          <label>界面语句</label>
+          <label>语句</label>
           <strong id="elementToken"></strong>
-          <span id="elementDescription"></span>
+          <span id="elementDescription" class="diagnostic-only"></span>
         </div>
+        <div class="field wide diagnostic-only"><label>文件</label><span id="elementSourcePath" style="overflow-wrap:anywhere"></span></div>
         <div class="field-grid">
-          <label class="field">显示 X<input id="elementX" type="number" step="1"></label>
-          <label class="field">显示 Y<input id="elementY" type="number" step="1"></label>
+          <label class="field">X<input id="elementX" type="number" step="1"></label>
+          <label class="field">Y<input id="elementY" type="number" step="1"></label>
         </div>
-        <div class="field-grid read-only-grid">
+        <div class="field-grid read-only-grid diagnostic-only">
           <div class="field"><label>源码 X</label><span id="sourceX">--</span></div>
           <div class="field"><label>源码 Y</label><span id="sourceY">--</span></div>
         </div>
-        <div class="field wide"><label>坐标模式</label><span id="coordinateMode"></span></div>
-        <div class="field wide"><label>显示内容</label><span id="elementText"></span></div>
+        <div class="field wide diagnostic-only"><label>坐标模式</label><span id="coordinateMode"></span></div>
+        <div class="field wide"><label>内容</label><span id="elementText"></span></div>
         <div id="elementLocalPreview" class="field wide local-text-preview-field hidden">
-          <label for="elementLocalPreviewValue">本地预览文字</label>
+          <label for="elementLocalPreviewValue">预览文字</label>
           <input
             id="elementLocalPreviewValue"
             type="text"
             autocomplete="off"
             spellcheck="false"
             placeholder="预览文字"
-            aria-describedby="elementLocalPreviewState"
           >
-          <small id="elementLocalPreviewState" class="local-text-preview-state"></small>
+          <small id="elementLocalPreviewState" class="local-text-preview-state diagnostic-only"></small>
         </div>
-        <div class="field wide"><label>素材</label><span id="assetState"></span></div>
-        <div class="field wide"><label>参数</label><div id="elementParameters" class="parameter-list"></div></div>
-        <div id="elementWarning" class="element-warning hidden"></div>
+        <div class="field wide diagnostic-only"><label>素材</label><span id="assetState"></span></div>
+        <div class="field wide diagnostic-only"><label>参数</label><div id="elementParameters" class="parameter-list"></div></div>
+        <div id="elementWarning" class="element-warning diagnostic-only hidden"></div>
         <div class="inspector-actions">
           <button id="locateButton" class="secondary-button">定位源码</button>
           <button id="patchButton" class="quiet-button hidden">打开补丁管理</button>
         </div>
-        <div class="field wide raw-field">
+        <div class="field wide raw-field diagnostic-only">
           <label>原始语句</label>
           <pre id="rawStatement"></pre>
         </div>
       </div>
-      <div class="pane-section diagnostics">
-        <strong>兼容性提示</strong>
+      <div id="sceneWarningsSection" class="pane-section diagnostics hidden">
+        <strong>诊断</strong>
         <div id="sceneWarnings" class="diagnostic-list">无</div>
       </div>
-      <div class="pane-section diagnostics">
-        <strong>锁定语句</strong>
+      <div id="unsupportedSection" class="pane-section diagnostics hidden">
+        <strong>未绘制</strong>
         <div id="unsupportedList" class="diagnostic-list">无</div>
       </div>
     </aside>

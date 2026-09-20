@@ -88,10 +88,24 @@ export interface NestedDatabaseFieldResult {
 }
 
 export interface NestedVariableAnalysisOptions {
+  /** Ctrl+F12 local initial values; never writes back to server persistence. */
+  resolvePreviewGlobalValues?: () => Readonly<Record<string, string>>;
+  /** Local equipment grouping from this server's database/configuration. */
+  resolvePreviewEquipmentSlot?: (itemName: string) => { key: string; label: string } | undefined;
+  /** Complete, bounded GEE database candidates for a case-sensitive substring. */
+  resolvePreviewEquipmentMatches?: (pattern: string) => readonly string[] | undefined;
   resolveConfigValues?: (
     request: NestedConfigValueRequest,
   ) => NestedConfigValueResult | undefined;
   resolveTableData?: (
+    request: NestedTableDataRequest,
+  ) => NestedTableDataResult | undefined;
+  /** Ctrl+F12 only: bounded BIFF8 read inside this source's real local Envir. */
+  resolvePreviewExcelData?: (
+    request: NestedTableDataRequest,
+  ) => NestedTableDataResult | undefined;
+  /** Ctrl+F12 only: bounded CSV snapshot inside this source's real local Envir. */
+  resolvePreviewCsvData?: (
     request: NestedTableDataRequest,
   ) => NestedTableDataResult | undefined;
   resolveListData?: (

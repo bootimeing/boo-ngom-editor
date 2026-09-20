@@ -27,3 +27,6 @@
 *.webp binary
 *.wzl binary
 *.zip binary
+
+# Preserve the frozen runtime byte-for-byte, including upstream license files.
+tools/PakBridge/bin/** binary

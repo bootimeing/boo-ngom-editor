@@ -331,8 +331,8 @@ function main() {
       query: 'GETDBITEMFIELDVALUE 传送戒指 <$STR(S$字段)> N$IDX',
     },
     {
-      label: 'dynamic database item key',
-      setup: ['MOV S$物品 传送戒指'],
+      label: 'transformed database item key',
+      setup: ['MOV S$物品 传送', 'INC S$物品 戒指'],
       query: 'GETDBITEMFIELDVALUE <$STR(S$物品)> IDX N$IDX',
     },
     {
@@ -369,6 +369,14 @@ function main() {
   assert.equal(variable(directGetDb, 'N$IDX')?.staticValueSource, 'database-item-index',
     'a complete direct GETDBITEMFIELDVALUE IDX result must retain the capability');
   assert.equal(item(directGetDb).itemPreview.itemIndex, 935);
+  const literalNameGetDb = parse([
+    '[@main]', '#ACT', 'MOV S$物品 传送戒指',
+    'GETDBITEMFIELDVALUE <$STR(S$物品)> IDX N$IDX', '#SAY',
+    '<&ITEMSHOW:<$STR(N$IDX)>:0:10:20:48>',
+  ]);
+  assert.equal(variable(literalNameGetDb, 'N$IDX')?.staticValueSource, 'database-item-index',
+    'literal MOV item name is known source data, not an unresolved dynamic database key');
+  assert.equal(item(literalNameGetDb).itemPreview.itemIndex, 935);
 
   console.log('itemshow-idx-provenance-invalidation.test.js: PASS');
 }

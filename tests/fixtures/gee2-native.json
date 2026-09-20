@@ -1,0 +1,12 @@
+{
+  "provenance": "Synthetic GEEPAK2 header/index, global plaintext and image mask independently checked with unchanged VM; not a real archive",
+  "password": "native-gee2-test",
+  "prefix": "B0dFRVBBSzIAACy91f5g65MY4urg6eLm/b2h7ODi2+jkJKD9PAbi6uDp4ub9vaHs4OLlsew0aFGFZeLq4uni5ve8oezg4rToQUQXRBsL5+RCElNY97yh7ODiblfZdmhshkbn5EISU1j3vKHs4OKq+pWj6PNUO+fkQhJTWPe8oezg4v8NvVNbtidn5+RCElNY97yh7ODiE3Aol/Q7sh3n5EISU1j3vKHs4OK6fcRgQU0I0OfkQhJTWPe8oezg4koeDLHhy22+5+RCElNY97yh7ODi9/snJa13tKzn5EISU1j3vKHs4OLOtxFLVgcao+fkQhJTWPe8oezg4gSmLVehgaSG5+RCElNY97w=",
+  "index": "2QAAAM8BAAD/AQAA",
+  "offsets": [
+    0,
+    278,
+    294
+  ],
+  "imageHeaderMask": "XBDKiCSRDgI="
+}

@@ -12,6 +12,8 @@ import {
   ARCHIVE_INDEX_FILE,
   getArchiveIndexDirectory,
   listArchiveIndexSummaries,
+  listArchiveIndexSummariesAsync,
+  ArchiveIndexSummary,
   loadArchiveAssetTable,
   loadArchiveResult,
   updateArchiveSourceMd5,
@@ -79,6 +81,25 @@ export interface CachedPatchAssetTable {
   offsetY: Int32Array;
 }
 
+/**
+ * A request-scoped view of the patch cache.  Building the view performs the
+ * expensive source/companion metadata checks once per candidate.  It is
+ * intentionally not a process-wide cache: callers must create a new snapshot
+ * for every hydration/map request so a changed source cannot remain current
+ * indefinitely.  Image readers always use the normal live current-cache gate,
+ * even when a snapshot is supplied.  NPC exact-identity ITEMSHOW previews
+ * additionally run MD5 validation; ordinary UI previews use the final
+ * metadata gate and the content-addressed archive URI read path.
+ */
+export interface PatchCacheSnapshot {
+  cacheRoot: string;
+  resourceRoots?: readonly string[];
+  preferredStorageMode: 'legacy' | 'direct';
+  entries: readonly CachedPatchPak[];
+  currentByManifest: ReadonlyMap<string, boolean>;
+  createdAt: number;
+}
+
 export type CachedPatchArchiveResolution =
   | { status: 'ready'; sourcePath: string; pak: CachedPatchPak }
   | { status: 'missing-source' }
@@ -114,6 +135,8 @@ export const REQUIRED_PATCH_PAK_NAMES = [
 
 let cachedRoot = '';
 let cachedPatchPaks: CachedPatchPak[] | undefined;
+let patchCacheRevision = 0;
+const patchNameCollator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
 
 export type PatchCacheMd5Validation =
   | { current: true; reason: 'match'; sourceMd5: string }
@@ -128,6 +151,7 @@ export type PatchCacheMd5Validation =
     };
 
 export function invalidatePatchCacheIndex(): void {
+  patchCacheRevision++;
   cachedRoot = '';
   cachedPatchPaks = undefined;
 }
@@ -135,8 +159,12 @@ export function invalidatePatchCacheIndex(): void {
 export function listCachedPatchPaks(
   cacheRoot: string,
   resourceRoots?: string | readonly string[],
-  preferredStorageMode: 'legacy' | 'direct' = 'direct'
+  preferredStorageMode: 'legacy' | 'direct' = 'direct',
+  snapshot?: PatchCacheSnapshot
 ): CachedPatchPak[] {
+  if (isUsablePatchCacheSnapshot(snapshot, cacheRoot, resourceRoots, preferredStorageMode)) {
+    return [...snapshot!.entries];
+  }
   const resolvedRoot = path.resolve(cacheRoot);
   if (!cachedPatchPaks || normalizePath(cachedRoot) !== normalizePath(resolvedRoot)) {
     cachedRoot = resolvedRoot;
@@ -152,14 +180,105 @@ export function listCachedPatchPaks(
   );
 }
 
+/**
+ * Build one immutable selection/currentness view for a single request.  The
+ * returned entries are already preferred by storage mode/resource priority;
+ * repeated name/path lookups can therefore avoid rescanning the cache and
+ * repeating statSync calls.  The snapshot is deliberately explicit at call
+ * sites so it cannot become an unbounded global cache.
+ */
+export function createPatchCacheSnapshot(
+  cacheRoot: string,
+  resourceRoots?: string | readonly string[],
+  preferredStorageMode: 'legacy' | 'direct' = 'direct'
+): PatchCacheSnapshot {
+  const resolvedRoot = path.resolve(cacheRoot);
+  if (!cachedPatchPaks || normalizePath(cachedRoot) !== normalizePath(resolvedRoot)) {
+    cachedRoot = resolvedRoot;
+    cachedPatchPaks = scanPatchCache(resolvedRoot);
+  }
+  const roots = normalizeResourceRoots(resourceRoots);
+  const filtered = roots === undefined
+    ? cachedPatchPaks
+    : cachedPatchPaks.filter(item => isPathInsideAny(item.pakPath, roots));
+  const currentByManifest = new Map<string, boolean>();
+  for (const item of filtered) {
+    currentByManifest.set(patchCacheSnapshotKey(item), isPatchCacheCurrent(item));
+  }
+  const entries = sortCachedByResourcePriority(
+    selectPreferredPatchCaches(filtered, preferredStorageMode, currentByManifest),
+    roots
+  );
+  return {
+    cacheRoot: resolvedRoot,
+    resourceRoots: roots,
+    preferredStorageMode,
+    entries,
+    currentByManifest,
+    createdAt: Date.now(),
+  };
+}
+
+/**
+ * Cooperative version for interactive consumers. The first full-directory
+ * scan and currentness checks yield in ~8ms batches. A cancelled/invalidation-
+ * crossed scan never publishes its partial list to the process cache.
+ */
+export async function createPatchCacheSnapshotAsync(
+  cacheRoot: string,
+  resourceRoots?: string | readonly string[],
+  preferredStorageMode: 'legacy' | 'direct' = 'direct',
+  isCurrent: () => boolean = () => true
+): Promise<PatchCacheSnapshot> {
+  const revision = patchCacheRevision;
+  const assertCurrent = (): void => {
+    if (revision !== patchCacheRevision || !isCurrent()) {
+      throw new Error('补丁缓存快照请求已取消或失效');
+    }
+  };
+  assertCurrent();
+  const resolvedRoot = path.resolve(cacheRoot);
+  let candidates = cachedPatchPaks && normalizePath(cachedRoot) === normalizePath(resolvedRoot)
+    ? cachedPatchPaks : undefined;
+  if (!candidates) {
+    candidates = await scanPatchCacheAsync(resolvedRoot, assertCurrent);
+    assertCurrent();
+    cachedRoot = resolvedRoot;
+    cachedPatchPaks = candidates;
+  }
+  const roots = normalizeResourceRoots(resourceRoots);
+  const filtered = roots === undefined ? candidates : candidates.filter(item => isPathInsideAny(item.pakPath, roots));
+  const currentByManifest = new Map<string, boolean>();
+  let yieldedAt = Date.now();
+  for (const item of filtered) {
+    assertCurrent();
+    currentByManifest.set(patchCacheSnapshotKey(item), isPatchCacheCurrent(item));
+    if (Date.now() - yieldedAt >= 8) {
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assertCurrent();
+      yieldedAt = Date.now();
+    }
+  }
+  assertCurrent();
+  return {
+    cacheRoot: resolvedRoot,
+    resourceRoots: roots,
+    preferredStorageMode,
+    entries: sortCachedByResourcePriority(selectPreferredPatchCaches(filtered, preferredStorageMode, currentByManifest), roots),
+    currentByManifest,
+    createdAt: Date.now(),
+  };
+}
+
 export function findCachedPatchPakByPath(
   cacheRoot: string,
   pakPath: string,
   resourceRoots?: string | readonly string[],
-  preferredStorageMode: 'legacy' | 'direct' = 'direct'
+  preferredStorageMode: 'legacy' | 'direct' = 'direct',
+  snapshot?: PatchCacheSnapshot
 ): CachedPatchPak | undefined {
   const key = normalizePath(pakPath);
-  return listCachedPatchPaks(cacheRoot, resourceRoots, preferredStorageMode)
+  return listCachedPatchPaks(cacheRoot, resourceRoots, preferredStorageMode, snapshot)
     .find(item => normalizePath(item.pakPath) === key);
 }
 
@@ -168,7 +287,8 @@ export function resolveCachedPatchArchiveByName(
   archiveName: string,
   archiveFiles: readonly string[],
   resourceRoots: readonly string[],
-  archiveExtensions: readonly ArchiveExtension[]
+  archiveExtensions: readonly ArchiveExtension[],
+  snapshot?: PatchCacheSnapshot
 ): CachedPatchArchiveResolution {
   const sourcePath = selectPreferredArchiveFile(
     archiveFiles,
@@ -177,9 +297,17 @@ export function resolveCachedPatchArchiveByName(
     archiveExtensions
   );
   if (!sourcePath) return { status: 'missing-source' };
-  const pak = findCachedPatchPakByPath(cacheRoot, sourcePath, resourceRoots);
+  const pak = findCachedPatchPakByPath(
+    cacheRoot,
+    sourcePath,
+    resourceRoots,
+    'direct',
+    snapshot
+  );
   if (!pak) return { status: 'not-indexed', sourcePath };
-  if (!isPatchCacheCurrent(pak)) return { status: 'stale', sourcePath, pak };
+  if (!isSnapshotCurrentOrFallback(pak, snapshot, cacheRoot, resourceRoots, 'direct')) {
+    return { status: 'stale', sourcePath, pak };
+  }
   return { status: 'ready', sourcePath, pak };
 }
 
@@ -344,7 +472,8 @@ export function findCachedPatchImage(
   pakName: string,
   imageIndex: number,
   resourceRoots?: string | readonly string[],
-  archiveExtensions?: readonly ArchiveExtension[]
+  archiveExtensions?: readonly ArchiveExtension[],
+  snapshot?: PatchCacheSnapshot
 ): { pak: CachedPatchPak; imagePath: string; archiveId?: string; imageIndex: number } | undefined {
   if (!Number.isInteger(imageIndex) || imageIndex < 0) return undefined;
   const key = normalizePakName(pakName);
@@ -355,13 +484,16 @@ export function findCachedPatchImage(
     ? new Set(archiveExtensions.map(extension => extension.toLowerCase()))
     : undefined;
   const roots = normalizeResourceRoots(resourceRoots);
-  const candidates = listCachedPatchPaks(cacheRoot, resourceRoots)
+  const candidates = listCachedPatchPaks(cacheRoot, resourceRoots, 'direct', snapshot)
     .filter(item => normalizePakName(item.pakName) === key)
     .filter(item => !allowedExtensions || allowedExtensions.has(
       archiveExtension(item.pakPath) as ArchiveExtension
     ))
     .sort((left, right) => compareCachedPatchPaks(left, right, roots));
   for (const pak of candidates) {
+    // Image reads remain live-gated even when package selection used a
+    // request snapshot.  A source can change after the snapshot was built;
+    // never return a path/URI for that stale source.
     if (!isPatchCacheCurrent(pak) || imageIndex >= pak.slotCount) continue;
     if (pak.storageMode === 'direct' && pak.archiveId) {
       return { pak, imagePath: '', archiveId: pak.archiveId, imageIndex };
@@ -534,33 +666,60 @@ function scanPatchCache(cacheRoot: string): CachedPatchPak[] {
     }
     const archiveIndexRoot = archiveIndexRootForPatchCacheRoot(cacheRoot);
     for (const summary of listArchiveIndexSummaries(archiveIndexRoot)) {
-      const cacheDir = getArchiveIndexDirectory(archiveIndexRoot, summary.archiveId);
-      rememberLatestPatch(latestByPath, {
-        manifestPath: path.join(cacheDir, 'summary.json'),
-        cacheDir,
-        pakPath: summary.pakPath,
-        pakName: summary.pakName,
-        sourceMd5: summary.sourceMd5,
-        decoderRevision: summary.decoderRevision,
-        format: summary.format,
-        storedWillIdx: summary.storedWillIdx,
-        slotCount: summary.slotCount,
-        cachedAt: summary.createdAt,
-        storageMode: 'direct',
-        archiveId: summary.archiveId,
-        sourceSize: summary.sourceSize,
-        sourceMtimeMs: summary.sourceMtimeMs,
-        companionPath: summary.companionPath,
-        companionSize: summary.companionSize,
-        companionMtimeMs: summary.companionMtimeMs,
-      });
+      rememberLatestPatch(latestByPath, cachedPatchFromSummary(archiveIndexRoot, summary));
     }
   } catch (error) {
     console.warn('[BOO] 补丁缓存索引读取失败:', error instanceof Error ? error.message : String(error));
   }
   return [...latestByPath.values()].sort((left, right) =>
-    left.pakName.localeCompare(right.pakName, 'zh-CN', { numeric: true, sensitivity: 'base' })
+    patchNameCollator.compare(left.pakName, right.pakName)
   );
+}
+
+async function scanPatchCacheAsync(cacheRoot: string, assertCurrent: () => void): Promise<CachedPatchPak[]> {
+  const latestByPath = new Map<string, CachedPatchPak>();
+  let yieldedAt = Date.now();
+  try {
+    if (fs.existsSync(cacheRoot)) {
+      for (const entry of fs.readdirSync(cacheRoot, { withFileTypes: true })) {
+        assertCurrent();
+        if (entry.isDirectory()) {
+          const cacheDir = path.join(cacheRoot, entry.name);
+          const item = readPatchManifestHeader(path.join(cacheDir, 'manifest.json'), cacheDir);
+          if (item) rememberLatestPatch(latestByPath, item);
+        }
+        if (Date.now() - yieldedAt >= 8) {
+          await new Promise<void>(resolve => setImmediate(resolve));
+          assertCurrent();
+          yieldedAt = Date.now();
+        }
+      }
+    }
+    const indexRoot = archiveIndexRootForPatchCacheRoot(cacheRoot);
+    for (const summary of await listArchiveIndexSummariesAsync(indexRoot, assertCurrent)) {
+      assertCurrent();
+      rememberLatestPatch(latestByPath, cachedPatchFromSummary(indexRoot, summary));
+    }
+  } catch (error) {
+    assertCurrent(); // cancellation is not a malformed-index fallback
+    console.warn('[BOO] 补丁缓存索引读取失败:', error instanceof Error ? error.message : String(error));
+  }
+  assertCurrent();
+  return [...latestByPath.values()].sort((left, right) => patchNameCollator.compare(left.pakName, right.pakName));
+}
+
+function cachedPatchFromSummary(indexRoot: string, summary: ArchiveIndexSummary): CachedPatchPak {
+  const cacheDir = getArchiveIndexDirectory(indexRoot, summary.archiveId);
+  return {
+    manifestPath: path.join(cacheDir, 'summary.json'), cacheDir,
+    pakPath: summary.pakPath, pakName: summary.pakName,
+    sourceMd5: summary.sourceMd5, decoderRevision: summary.decoderRevision,
+    format: summary.format, storedWillIdx: summary.storedWillIdx, slotCount: summary.slotCount,
+    cachedAt: summary.createdAt, storageMode: 'direct', archiveId: summary.archiveId,
+    sourceSize: summary.sourceSize, sourceMtimeMs: summary.sourceMtimeMs,
+    companionPath: summary.companionPath, companionSize: summary.companionSize,
+    companionMtimeMs: summary.companionMtimeMs,
+  };
 }
 
 function rememberLatestPatch(
@@ -580,7 +739,8 @@ function rememberLatestPatch(
 
 function selectPreferredPatchCaches(
   candidates: CachedPatchPak[],
-  preferredStorageMode: 'legacy' | 'direct'
+  preferredStorageMode: 'legacy' | 'direct',
+  currentByManifest?: ReadonlyMap<string, boolean>
 ): CachedPatchPak[] {
   const grouped = new Map<string, CachedPatchPak[]>();
   for (const candidate of candidates) {
@@ -591,13 +751,49 @@ function selectPreferredPatchCaches(
   }
   return [...grouped.values()].map(group => {
     group.sort((left, right) => right.cachedAt - left.cachedAt);
-    return group.find(item => item.storageMode === preferredStorageMode && isPatchCacheCurrent(item))
-      || group.find(item => isPatchCacheCurrent(item))
+    const isCurrent = (item: CachedPatchPak): boolean => currentByManifest
+      ? currentByManifest.get(patchCacheSnapshotKey(item)) === true
+      : isPatchCacheCurrent(item);
+    return group.find(item => item.storageMode === preferredStorageMode && isCurrent(item))
+      || group.find(item => isCurrent(item))
       || group.find(item => item.storageMode === preferredStorageMode)
       || group[0];
   }).sort((left, right) =>
-    left.pakName.localeCompare(right.pakName, 'zh-CN', { numeric: true, sensitivity: 'base' })
+    patchNameCollator.compare(left.pakName, right.pakName)
   );
+}
+
+function patchCacheSnapshotKey(item: CachedPatchPak): string {
+  return normalizePath(item.manifestPath);
+}
+
+function isUsablePatchCacheSnapshot(
+  snapshot: PatchCacheSnapshot | undefined,
+  cacheRoot: string,
+  resourceRoots: string | readonly string[] | undefined,
+  preferredStorageMode: 'legacy' | 'direct'
+): snapshot is PatchCacheSnapshot {
+  if (!snapshot) return false;
+  if (normalizePath(snapshot.cacheRoot) !== normalizePath(cacheRoot)) return false;
+  if (snapshot.preferredStorageMode !== preferredStorageMode) return false;
+  const requested = normalizeResourceRoots(resourceRoots);
+  const captured = snapshot.resourceRoots;
+  if (requested === undefined || captured === undefined) return requested === captured;
+  if (requested.length !== captured.length) return false;
+  return requested.every((root, index) => normalizePath(root) === normalizePath(captured[index]));
+}
+
+function isSnapshotCurrentOrFallback(
+  item: CachedPatchPak,
+  snapshot: PatchCacheSnapshot | undefined,
+  cacheRoot: string,
+  resourceRoots: string | readonly string[] | undefined,
+  preferredStorageMode: 'legacy' | 'direct'
+): boolean {
+  if (!isUsablePatchCacheSnapshot(snapshot, cacheRoot, resourceRoots, preferredStorageMode)) {
+    return isPatchCacheCurrent(item);
+  }
+  return snapshot.currentByManifest.get(patchCacheSnapshotKey(item)) === true;
 }
 
 function archiveIndexRootForPatchCacheRoot(cacheRoot: string): string {
@@ -762,11 +958,7 @@ function compareCachedPatchPaks(
       - resourceRootRank(right.pakPath, resourceRoots);
     if (rankDifference) return rankDifference;
   }
-  const nameDifference = left.pakName.localeCompare(
-    right.pakName,
-    'zh-CN',
-    { numeric: true, sensitivity: 'base' }
-  );
+  const nameDifference = patchNameCollator.compare(left.pakName, right.pakName);
   if (nameDifference) return nameDifference;
   return right.cachedAt - left.cachedAt;
 }

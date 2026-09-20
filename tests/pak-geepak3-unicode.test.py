@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import sys
+import runpy
 from pathlib import Path
 
 
@@ -21,6 +22,8 @@ REFERENCE_KEY_SHA256 = "0b5b575e22d83b70a0d7ad28d213f22662adf423bd113f3368125621
 
 
 def main() -> None:
+    # The standard cache suite must also protect the local key path.
+    runpy.run_path(str(PROJECT_ROOT / 'tests/pak-geepak3-local-keys.test.py'))['main']()
     key = offline.derive_gee_alternate_global_key(PASSWORD)
     if hashlib.sha256(key).hexdigest() != REFERENCE_KEY_SHA256:
         raise AssertionError("alternate GEE global-header key no longer matches GM runtime")

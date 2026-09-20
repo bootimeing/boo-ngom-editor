@@ -13,7 +13,7 @@ from functools import lru_cache
 from pathlib import Path
 
 try:
-    from Crypto.Cipher import DES
+    from Crypto.Cipher import AES, DES
 except ImportError as exc:  # pragma: no cover - dependency error path
     raise RuntimeError("PyCryptodome is required: python -m pip install pycryptodome") from exc
 
@@ -448,13 +448,88 @@ def default_gee_vm() -> GEEKeyVM:
 
 @lru_cache(maxsize=64)
 def derive_gee_keys(password: str) -> GEEKeys:
-    return default_gee_vm().derive(password)
+    """Derive the verified GEE3 profile without initializing the x86 VM.
+
+    The VM remains available for GEE2 and independent differential tests.
+    This does not change the reader's main/legacy/alternate format selection.
+    """
+    material = derive_password_material(password, GEE_PASSWORD_SALT)
+    words = _expand_gee3_words(material)
+    index_key = struct.pack('<64I', *words)
+    cipher = AES.new(index_key[:16], AES.MODE_ECB)
+    # The format increments byte 7 backwards; a standard 128-bit CTR's
+    # trailing-byte counter would produce a different global header stream.
+    global_key = cipher.encrypt(b''.join(i.to_bytes(8, 'big') + bytes(8) for i in range(16)))
+    image_key = bytearray()
+    for i in range(64):
+        key = struct.pack('<4I',
+            words[i] ^ words[(i + 14) % 64],
+            words[(i + 12) % 64] & words[(i + 19) % 64],
+            words[(i + 28) % 64] ^ (~words[(i + 10) % 64] & 0xFFFFFFFF),
+            words[(i + 1) % 64])
+        image_key.extend(AES.new(key, AES.MODE_ECB).encrypt(bytes(16)))
+    return GEEKeys(index_key, global_key, bytes(image_key))
+
+
+def _gee3_mix(state, shifts, special_step=-1):
+    words = list(state)
+    for step, shift in enumerate(shifts):
+        target = step % 3
+        other = (target + 2) % 3
+        value = (words[target] - words[(target + 1) % 3] - words[other]) & 0xFFFFFFFF
+        shifted = ((words[other] << shift) if target == 1 else (words[other] >> shift)) & 0xFFFFFFFF
+        if step == special_step:
+            words[target] = value & shifted if step == 4 else value | shifted
+        else:
+            words[target] = value ^ shifted
+    return words
+
+
+def _gee3_fold(values, initial, loop_shifts, tail_shifts, special=False):
+    state = list(initial)
+    position = 0
+    while len(values) - position >= 3:
+        state = [(state[i] + values[position + i]) & 0xFFFFFFFF for i in range(3)]
+        state = _gee3_mix(state, loop_shifts, 4 if special else -1)
+        position += 3
+    state[2] = (state[2] + len(values)) & 0xFFFFFFFF
+    # Both remainder words accumulate in a. Do not "correct" this to a,b:
+    # the source format and independent VM agree on this nonstandard tail.
+    for value in values[position:]:
+        state[0] = (state[0] + value) & 0xFFFFFFFF
+    return _gee3_mix(state, tail_shifts, 8 if special else -1)
+
+
+def _expand_gee3_words(material: PasswordMaterial) -> list[int]:
+    schedule = struct.unpack('<32I', material.des_schedule)
+    words = [0] * 64
+    words[::2] = schedule[::-1]
+    for slot, value in zip((1, 7, 11, 13, 15), struct.unpack('<5I', material.seed20)):
+        words[slot] = value
+    words[3], words[5], words[9] = _gee3_fold(schedule,
+        (0xBCA24215, 0xBD194331, 0xB99EAC12),
+        (8, 9, 13, 9, 6, 4, 8, 3, 15), (4, 9, 19, 11, 14, 5, 9, 12, 3))
+    value = 1315423911
+    for word in words[:17]:
+        value = (value ^ ((value << 5) + word + (value >> 2))) & 0xFFFFFFFF
+    words[17] = value
+    value = 5381
+    for word in words[:18]:
+        value = (33 * value + word) & 0xFFFFFFFF
+    words[19] = value
+    for i in range(10, 32):
+        words[2 * i + 1] = _gee3_fold(words[:2 * i],
+            (0x16B997C8, 0x48744D94, 0xBA06742F),
+            (9, 3, 12, 11, 7, 10, 4, 1, 8), (11, 1, 15, 2, 7, 9, 1, 3, 5), True)[2]
+    return words
 
 
 @lru_cache(maxsize=64)
 def derive_gee_alternate_global_key(password: str) -> bytes:
-    return default_gee_vm().alternate_global_key(password)
+    return derive_gee_keys(password).global_header_key
 
 
 def decrypt_gee_alternate_global_header(data: bytes, password: str) -> bytes:
-    return default_gee_vm().crypt_alternate_global_header(data, password)
+    if len(data) != 256:
+        raise ValueError("GEE encrypted global header must be exactly 256 bytes")
+    return bytes(a ^ b for a, b in zip(data, derive_gee_alternate_global_key(password)))

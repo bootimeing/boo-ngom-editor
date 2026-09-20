@@ -151,9 +151,10 @@ export function isDialogCompanionModelSource(
   model: NpcDialogDocumentModel,
   filePath: string
 ): boolean {
-  if (model.addDlgWindows.length === 0) return false;
   const target = normalizedPath(filePath);
-  return [...model.companionFilePaths, ...model.companionCandidateFilePaths]
+  const candidates = model.addDlgWindows.length === 0 ? model.scriptSourceCandidateFilePaths || []
+    : [...model.companionFilePaths, ...model.companionCandidateFilePaths];
+  return candidates
     .some(candidate => normalizedPath(candidate) === target);
 }
 
@@ -195,6 +196,9 @@ function attachExternalWindow(
   try {
     companionModel = parseNpcDialogDocument(companion.text, {
       ...primaryOptions,
+      addDlgLocalLabels: undefined,
+      previewCall: undefined,
+      previewPath: undefined,
       uri: companion.uri,
       fileName: companion.fileName,
       filePath: companion.filePath,
@@ -236,6 +240,9 @@ function attachExternalWindow(
     labelSuffix
   ));
   model.conditionGroups.push(...clonedGroups);
+  if (companionModel.previewInputs) {
+    model.previewInputs = [...new Map([...(model.previewInputs || []), ...companionModel.previewInputs].map(input => [input.name, input])).values()];
+  }
   for (const warning of companionModel.warnings) pushUnique(model.warnings, warning);
   if (companionModel.scenes.length === 0) {
     attachSyntheticWindow(
@@ -336,6 +343,11 @@ function cloneCompanionElement(
   );
   return {
     ...element,
+    localParameterTarget: undefined,
+    localPopupInput: undefined,
+    localDoubleClickTarget: undefined,
+    localControlTarget: undefined,
+    localCompletionTarget: undefined,
     id: elementIdMap.get(element.id) || `${prefix}${element.id}`,
     sourceUri: companion.uri,
     sourceFilePath: companion.filePath,

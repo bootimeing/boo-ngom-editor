@@ -4,6 +4,25 @@
   "scopeName": "source.gomscript",
   "patterns": [
     {
+      "name": "meta.drop.child.gomscript",
+      "begin": "(?i)^\\s*(#CHILD)\\b",
+      "beginCaptures": { "1": { "name": "keyword.control.gomscript" } },
+      "end": "$",
+      "patterns": [
+        {
+          "name": "meta.drop.condition.gomscript",
+          "begin": "\\[",
+          "end": "\\]|$",
+          "patterns": [
+            { "name": "constant.numeric.gomscript", "match": "(?<![A-Za-z0-9_])-?\\d+\\b" },
+            { "name": "keyword.operator.gomscript", "match": "[<>=|;,]+" }
+          ]
+        },
+        { "name": "comment.line.gomscript", "match": ";.*$|//.*$" },
+        { "name": "constant.numeric.gomscript", "match": "(?<![A-Za-z0-9_])-?\\d+\\b" }
+      ]
+    },
+    {
       "name": "comment.line.gomscript",
       "match": ";.*$"
     },

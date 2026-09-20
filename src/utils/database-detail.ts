@@ -30,6 +30,7 @@ export interface MonsterDatabaseDetail {
 
 export interface MonsterPreviewImageAsset {
   url: string;
+  blank?: boolean;
   width?: number;
   height?: number;
   offsetX?: number;

@@ -4,7 +4,7 @@ const Module = require('node:module');
 const os = require('node:os');
 const path = require('node:path');
 
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT || path.join(__dirname, '..'));
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 function testPng(width, height, marker = 0) {
@@ -305,6 +305,40 @@ async function main() {
     ensureOriginalMapTileManifest(cacheRoot, identity);
     const tilePath = originalMapTilePath(cacheRoot, identity.cacheKey, 'c0-r0');
 
+    // Exercise production cache identity, not only a caller-created identity:
+    // old incomplete tiles must miss, and odd-only archives must participate.
+    const identityProvider = new MapPreviewProvider(context);
+    identityProvider.originalMapSourceContext = async () => ({
+      resourceRoots: [workspaceRoot], sourceScanWarning: '', archiveFiles: [],
+      supportedExtensions: ['.pak'],
+    });
+    let oddArchiveId = 'b'.repeat(64);
+    identityProvider.resolveOriginalArchive = name => ({
+      status: 'ready', pak: { archiveId: name === 'Tiles2' ? oddArchiveId : 'a'.repeat(64) },
+    });
+    function identitySession() {
+      const session = {
+        mapKey: 'identity-test', generation: 1,
+        engineId: 'GOM', mapSha256: 'a'.repeat(64),
+        model: { width: 4, height: 4, animationProfile: 'classic-14', archiveNames: ['Tiles', 'Tiles2'] },
+      };
+      identityProvider.currentMap = { key: session.mapKey };
+      identityProvider.originalMapSession = session;
+      identityProvider.originalMapVersion = session.generation;
+      return session;
+    }
+    const repairedIdentity = await identityProvider.prepareOriginalMapStaticCache(identitySession());
+    assert.ok(repairedIdentity, 'production static identity must be created');
+    assert.notEqual(repairedIdentity.placementRevision, 'tile-sm-top-left-48x32-seam1-v1');
+    const oldIdentity = createOriginalMapTileIdentity({
+      ...repairedIdentity, placementRevision: 'tile-sm-top-left-48x32-seam1-v1',
+    });
+    assert.notEqual(repairedIdentity.cacheKey, oldIdentity.cacheKey, 'old incomplete tiles must miss');
+    oddArchiveId = 'c'.repeat(64);
+    const reboundIdentity = await identityProvider.prepareOriginalMapStaticCache(identitySession());
+    assert.notEqual(repairedIdentity.cacheKey, reboundIdentity.cacheKey,
+      'changing an odd-only archive must invalidate baked tiles');
+
     const firstMessages = [];
     const firstProvider = new MapPreviewProvider(context);
     const first = await requestViewport(
@@ -385,7 +419,11 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
+module.exports = { makeContext, makeVscodeStub, loadCompiledProvider, makePanel };
+
+if (require.main === module) {
+  main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

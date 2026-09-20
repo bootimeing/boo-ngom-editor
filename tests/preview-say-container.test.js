@@ -1,0 +1,32 @@
+const assert = require('node:assert/strict');
+const { parse } = require('./preview-inputs-integration.test');
+const source = '[@main]\n#SAY\n<&Layout:~#ROOT:100:80:360:160:250>\n#ACT\nMOV N0 0\nWHILE N0 < U101\n#SAY\n<Text:#ROOT~:第<$STR(N0)>行:0:0>\n<NewLine:#ROOT~>\n#ACT\nINC N0 1\nENDWHILE\n#SAY\n结束';
+const repeated = source.replace('<Text:#ROOT~:', '<&Layout:~#DUP:480:80:200:160>\n<Text:#DUP~:').replace('<NewLine:#ROOT~>', '<NewLine:#DUP~>\n外部<$STR(N0)>\\');
+const dynamicRows = '[@main]\n#SAY\n<&ListView:~#ROOT:100:80:360:160:4>\n#ACT\nMOV N0 0\nWHILE N0 < U101\n#SAY\n<&Layout:#ROOT~#ROW<$STR(N0)>:0:0:300:24>\n<Text:#ROW<$STR(N0)>~:第<$STR(N0)>行:0:0>\n#ACT\nINC N0 1\nENDWHILE';
+function run() {
+  const model = parse(source, { U101: '3' });
+  const page = model.pages[0], parent = page.elements.find(e => e.containerElementId === 'ROOT');
+  const children = page.elements.filter(e => e.text.startsWith('第'));
+  assert.deepEqual(children.map(e => e.text), ['第0行', '第1行', '第2行'], 'a unique container must retain every emitted child');
+  assert.ok(children.every(e => e.parentElementId === parent.id));
+  assert.deepEqual(children.map(e => [e.layoutX, e.layoutY]), [[100,80],[100,100],[100,120]]);
+  assert.ok(!page.warnings.some(w => /未在当前|源行快照/.test(w)));
+  const path = require('node:path');
+  const { reflowNpcDialogLayout } = require(path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT || path.join(__dirname,'..'), 'out/ui-dialog/source-parser'));
+  const before = children.map(e => [e.layoutX,e.layoutY]);reflowNpcDialogLayout(model);reflowNpcDialogLayout(model);
+  assert.deepEqual(children.map(e => [e.layoutX,e.layoutY]),before,'provider reflow must not accumulate offsets');
+  const dup = parse(repeated, { U101: '3' });
+  assert.deepEqual(dup.pages[0].elements.filter(e => e.text.startsWith('外部')).map(e => e.text), ['外部0','外部1','外部2'], 'duplicate container uncertainty cannot erase independent outputs');
+  assert.equal(dup.pages[0].elements.filter(e => e.containerElementId === 'DUP').length,1,'ambiguous declarations retain one source snapshot, not guessed lifecycle');
+  assert.ok(dup.pages[0].warnings.some(w => /DUP.*重复/.test(w)));
+  const late=source.replace('<&Layout:~#ROOT:100:80:360:160:250>\n','').replace('\n结束','\n<&Layout:~#ROOT:100:80:360:160:250>\n结束');
+  const lateModel=parse(late,{U101:'3'});const lateParent=lateModel.pages[0].elements.find(e=>e.containerElementId==='ROOT');
+  assert.ok(lateModel.pages[0].elements.filter(e=>e.text.startsWith('第')).every(e=>e.parentElementId===lateParent.id&&!e.warning?.includes('未在当前')),'resolve cross-SAY references only after collecting all events');
+  const rows=parse(dynamicRows,{U101:'3'}).pages[0].elements;
+  assert.deepEqual(rows.filter(e=>e.containerElementId?.startsWith('ROW')).map(e=>e.containerElementId),['ROW0','ROW1','ROW2'],'proved loop-derived IDs bind three independent rows');
+  assert.deepEqual(rows.filter(e=>e.text.startsWith('第')).map(e=>[e.layoutX,e.layoutY]),[[100,80],[100,108],[100,136]]);
+  const unknown=parse(dynamicRows.replaceAll('ROW<$STR(N0)>','ROW<$STR(U102)>'),{U101:'3'}).pages[0].elements;
+  assert.ok(unknown.filter(e=>e.raw.includes('ROW')).every(e=>!e.containerElementId&&!e.containerParentId),'placeholder zero cannot invent graph bindings');
+  console.log('preview-say-container.test.js: PASS');
+}
+if(require.main===module)run();module.exports={source,repeated,dynamicRows,run};

@@ -1,0 +1,30 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process'),{pathToFileURL}=require('node:url');
+const {parse}=require('./preview-inputs-integration.test'),{source,edge}=require('./preview-popup-input.test');
+const root=path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT||path.join(__dirname,'..')),out=path.resolve(process.env.BOO_POPUP_OUT||'artifacts/ctrl-f12-live-r20/browser');
+fs.mkdirSync(out,{recursive:true});const initial=parse(source,{},'996PC',{previewPath:[]}),done=parse(source,{},'996PC',{previewPath:[edge('勇士')]}),integer=parse(source.replaceAll('InPutString','InPutInteger').replaceAll('S22','N22'),{},'996PC',{previewPath:[]});
+const encode=x=>JSON.stringify(x).replace(/</g,'\\u003c'),uri=f=>pathToFileURL(path.join(root,f)).href;
+let html=fs.readFileSync(path.join(root,'media/npc-dialog-visual.html'),'utf8').replaceAll('{{STYLE_URI}}',uri('media/npc-dialog-visual.css')).replaceAll('{{SCRIPT_URI}}',uri('media/npc-dialog-visual.js'));
+const renderer=`<script src="${uri('media/npc-dialog-visual.js')}"></script>`;
+html=html.replace(renderer,()=>`<script>window.messages=[];window.acquireVsCodeApi=()=>({postMessage:m=>{messages.push(m);window.bridge?.(m);}});</script>${renderer}`);
+html=html.replace('</body>',()=>`<script>
+const initial=${encode(initial)},done=${encode(done)},integer=${encode(integer)},wait=()=>new Promise(r=>setTimeout(r,80)),check=(v,m)=>{if(!v)throw Error(m);};let revision=0;
+const deliver=(model)=>window.dispatchEvent(new MessageEvent('message',{data:{type:'model',model,previewRevision:++revision,preserveDrafts:true,navigatePageId:model.pages.find(p=>p.sourceLabel===model.previewNavigation.activeLabel).id}}));
+const open=()=>{const wrapper=document.querySelector('#dialogCanvas [data-element-id]'),r=wrapper.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);check(hit&&wrapper.contains(hit),'link hit');hit.click();};
+window.addEventListener('load',async()=>{try{await wait();deliver(initial);await wait();const url=location.href;open();await wait();
+let dialog=document.querySelector('.local-input-dialog');check(dialog?.open,'popup actually opens');check(dialog.getBoundingClientRect().width>100&&getComputedStyle(dialog).display!=='none','visible popup');check(dialog.textContent.includes('请输入姓名：'),'source title');
+check(document.activeElement===dialog.querySelector('input'),'input autofocus');dialog.querySelector('[data-popup-cancel]').click();check(!document.querySelector('.local-input-dialog'),'cancel removes popup');check(!messages.some(m=>m.type==='previewNavigate'),'cancel does not submit');
+open();dialog=document.querySelector('.local-input-dialog');dialog.querySelector('input').value='草稿';deliver(initial);await wait();check(!document.querySelector('.local-input-dialog'),'new revision discards stale dialog');
+open();dialog=document.querySelector('.local-input-dialog');window.bridge=m=>{if(m.type==='previewNavigate'){check(m.trigger==='popup-submit'&&m.popupValue==='勇士','typed popup event');check(!('targetLabel'in m)&&!('variable'in m),'identity-only payload');queueMicrotask(()=>deliver(done));}};
+dialog.querySelector('input').value='勇士';dialog.querySelector('form').requestSubmit();await wait();check(document.querySelector('#dialogCanvas').textContent.includes('结果=勇士'),'result page displays submission');check(!document.querySelector('.local-input-dialog'),'submit closes popup');
+window.bridge=undefined;deliver(integer);await wait();open();dialog=document.querySelector('.local-input-dialog');const input=dialog.querySelector('input');input.value='1.5';dialog.querySelector('form').requestSubmit();check(dialog.open&&input.getAttribute('aria-invalid')==='true','reject noninteger visibly');input.value='42';const before=messages.filter(m=>m.type==='previewNavigate').length;dialog.querySelector('form').requestSubmit();check(messages.filter(m=>m.type==='previewNavigate').length===before+1,'integer confirms once');
+deliver(initial);await wait();open();dialog=document.querySelector('.local-input-dialog');dialog.dispatchEvent(new Event('cancel',{cancelable:true}));check(!document.querySelector('.local-input-dialog'),'escape cancellation');
+check(location.href===url&&!messages.some(m=>['apply','save'].includes(m.type)),'no source or external writes');document.body.dataset.popupInput='PASS';open();document.querySelector('.local-input-dialog input').value='勇士';
+}catch(e){document.body.dataset.popupInput='FAIL';document.body.dataset.error=String(e.stack||e);}});
+</script></body>`);
+const file=path.join(out,'fixture.html');fs.writeFileSync(file,html);const attempts=[],candidates=[...new Set([process.env.BOO_BROWSER_EXECUTABLE,'C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].filter(p=>p&&fs.existsSync(p)))];assert.ok(candidates.length);
+for(const [i,executable] of candidates.entries()){
+ const result=spawnSync(executable,['--headless=new','--disable-gpu','--no-first-run','--allow-file-access-from-files','--window-size=1440,1000','--virtual-time-budget=4000','--dump-dom','--screenshot='+path.join(out,'preview.png'),'--user-data-dir='+path.join(out,'profile-'+i),pathToFileURL(file).href],{encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:16*1024*1024});const dom=result.stdout||'';
+ const version=spawnSync('powershell.exe',['-NoProfile','-Command',`(Get-Item -LiteralPath '${executable.replace(/'/g,"''")}').VersionInfo.ProductVersion`],{encoding:'utf8',windowsHide:true}).stdout.trim();
+ attempts.push({executable,version,status:result.status,error:String(result.error||''),diagnostic:dom.match(/data-error="[^"]*"/)?.[0]});fs.writeFileSync(path.join(out,'attempts.json'),JSON.stringify(attempts,null,2));fs.writeFileSync(path.join(out,'dom-'+i+'.html'),dom);
+ if(result.status===0&&dom.includes('data-popup-input="PASS"')){console.log('preview-popup-input-browser.test.js: PASS '+executable+' version='+version);process.exit(0);}
+}throw Error(JSON.stringify(attempts));

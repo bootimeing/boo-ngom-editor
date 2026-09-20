@@ -358,12 +358,12 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
       }
     });
 
-    await check('ItemShow quantity draws proved seven and neutral zero', async function () {
+    await check('ItemShow quantity draws proved seven and hides zero fallback', async function () {
       if (text('ITEM_KNOWN', '.item-quantity') !== '7') {
         throw new Error('known ItemShow quantity=' + text('ITEM_KNOWN', '.item-quantity'));
       }
-      if (text('ITEM_UNKNOWN', '.item-quantity') !== '0') {
-        throw new Error('unknown ItemShow quantity=' + text('ITEM_UNKNOWN', '.item-quantity'));
+      if (node('ITEM_UNKNOWN').querySelector('.item-quantity')) {
+        throw new Error('zero fallback must not create an ItemShow quantity badge');
       }
     });
 

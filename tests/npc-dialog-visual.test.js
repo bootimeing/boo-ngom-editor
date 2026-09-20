@@ -968,7 +968,7 @@ function testInlineVariablePreviewKeepsLiteralCoordinatesEditable() {
     'inline preview movement must update only the original literal X/Y tokens');
 }
 
-function testDynamicControlSizeDoesNotBorrowResolvedVariableValue() {
+function testResolvedControlSizePreservesSourceExpression() {
   const source = [
     '[@main]',
     '#IF',
@@ -988,13 +988,17 @@ function testDynamicControlSizeDoesNotBorrowResolvedVariableValue() {
     width: button.width,
     height: button.height,
   }, {
-    widthMode: 'dynamic',
-    heightMode: 'dynamic',
-    width: 96,
-    height: 30,
-  }, 'dynamic source axes must retain safe source geometry instead of borrowing MOV values');
-  assert.match(button.warning || '', /动态.*尺寸|尺寸.*动态/,
-    'dynamic source axes must disclose their non-deterministic geometry');
+    widthMode: 'explicit',
+    heightMode: 'explicit',
+    width: 40,
+    height: 20,
+  }, 'proved scalar dimensions must drive local geometry');
+  assert.equal(button.sizePreview.width.sourceExpression, '<$STR(N$宽度)>');
+  assert.equal(button.sizePreview.width.valueOrigin, 'resolved-static');
+  const unknown = parse(source.replace('MOV N$宽度 40', '').replace('MOV N$高度 20', ''), '996PC', workspaceNpcDialogOffsets(0, 0))
+    .pages[0].elements.find(element => element.statementId === 'newui-button-996pc');
+  assert.equal(unknown.sizePreview.width.mode, 'dynamic');
+  assert.equal(unknown.width, 96, 'unknown dimensions retain safe positive fallback');
 }
 
 function testStaticConfigTableListAndFormulaValues() {
@@ -4201,7 +4205,7 @@ function testManifestAndEditorIsolation() {
   assert.match(provider, /case 'ready':[\s\S]*moveToFloatingWindow\(session\)/);
   assert.match(provider, /workspaceState\.update\(GEE_OFFSET_STATE_KEY/);
   assert.match(provider, /new ScriptDataResolver\(\)/);
-  assert.match(provider, /case 'previewCondition':/);
+  assert.match(provider, /case 'previewInput':/);
   assert.match(provider, /case 'resetPreview':/);
   assert.match(provider, /modelRevision/);
   assert.match(provider, /preserveDrafts/);
@@ -4214,8 +4218,8 @@ function testManifestAndEditorIsolation() {
     'the ready listener must be installed before assigning Webview HTML'
   );
   const previewHandlers = provider.slice(
-    provider.indexOf('private async previewCondition('),
-    provider.indexOf('private async reloadSession(')
+    provider.indexOf("case 'previewInput':"),
+    provider.indexOf("case 'resetPreview':")
   );
   assert.doesNotMatch(previewHandlers, /WorkspaceEdit|applyEdit|document\.save/,
     'preview scene and condition changes must never write source text');
@@ -4224,9 +4228,9 @@ function testManifestAndEditorIsolation() {
     'utf8'
   );
   assert.match(webviewScript, /let previewConditions = new Map\(\)/);
-  assert.match(webviewScript, /createSceneGroup/);
-  assert.match(webviewScript, /createBranchButton/);
-  assert.match(webviewScript, /advancedConditionList/);
+  assert.match(webviewScript, /renderPreviewInputs/);
+  assert.match(webviewScript, /data-preview-name|dataset\.previewName/);
+  assert.doesNotMatch(webviewScript, /createBranchButton|advancedConditionList/);
   assert.doesNotMatch(webviewScript, /conditionChanged/,
     'condition previews must use the dedicated scene controls, not the retired conditionChanged path');
   assert.match(webviewScript, /setAttribute\('role', 'checkbox'\)/,
@@ -4234,13 +4238,15 @@ function testManifestAndEditorIsolation() {
   assert.match(webviewScript, /model\?\.pages/);
   assert.match(webviewScript, /formatPageConditions/);
   assert.match(webviewScript, /elements\.variableList/);
-  assert.match(webviewScript, /history = history\.filter\(entry => validElements\.has\(entry\.id\)\)/);
+  assert.match(webviewScript, /history = history\.filter\(entry => validDraftKeys\.has\(entry\.id\)\)/,
+    'history keeps only live coordinate draft identities, including shared SAY templates');
   const webviewHtml = fs.readFileSync(
     path.join(root, 'media', 'npc-dialog-visual.html'),
     'utf8'
   );
   assert.match(webviewHtml, /id="resetPreview"/);
-  assert.match(webviewHtml, /id="advancedConditions"/);
+  assert.match(webviewHtml, /id="previewInputList"/);
+  assert.doesNotMatch(webviewHtml, /id="advancedConditions"/);
   assert.doesNotMatch(webviewHtml, /type="checkbox"/);
   const webviewCss = fs.readFileSync(
     path.join(root, 'media', 'npc-dialog-visual.css'),
@@ -4273,7 +4279,7 @@ async function main() {
   testScenePreviewPathsPreserveOtherSimulationState();
   testGotoVariableExpansionAndConditionOverride();
   testInlineVariablePreviewKeepsLiteralCoordinatesEditable();
-  testDynamicControlSizeDoesNotBorrowResolvedVariableValue();
+  testResolvedControlSizePreservesSourceExpression();
   testStaticConfigTableListAndFormulaValues();
   testItemFramesAndLayeredControls();
   testExtendedItemControlVisualParameters();

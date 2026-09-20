@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT / "src"
 ENTRY = SOURCE / "offline_bridge.py"
 SNAPSHOT = SOURCE / "geepak3_vm_snapshot.zip"
+PYTHON_DLL = Path(sys.base_prefix).resolve() / "python312.dll"
 
 sys.path.insert(0, str(SOURCE))
 
@@ -32,6 +33,8 @@ if platform.architecture()[0] != "64bit":
     raise RuntimeError("PAK runtime must be built with 64-bit Python")
 if not ENTRY.is_file() or not SNAPSHOT.is_file():
     raise FileNotFoundError("PAK bridge source or VM snapshot is missing")
+if not PYTHON_DLL.is_file():
+    raise FileNotFoundError("The selected Python 3.12 runtime is missing python312.dll")
 
 
 class BuildPakRuntime(BuildExeCommand):
@@ -49,11 +52,15 @@ class BuildPakRuntime(BuildExeCommand):
             static_library.unlink()
 
 build_options = {
-    "include_files": [(str(SNAPSHOT), SNAPSHOT.name)],
+    # uv/standalone Python layouts may not be discovered by cx_Freeze's PE
+    # dependency scan. Bundle the DLL belonging to this exact interpreter.
+    "include_files": [(str(SNAPSHOT), SNAPSHOT.name), (str(PYTHON_DLL), PYTHON_DLL.name)],
     "include_msvcr": True,
     "includes": [
+        "Crypto.Cipher.AES",
         "Crypto.Cipher.DES",
         "geepak2_exact",
+        "gee2_native",
         "geepak3_exact",
         "gm_offline_crypto",
         "unicorn.x86_const",

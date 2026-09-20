@@ -33,6 +33,16 @@ const itemPixel = svgDataUri(
   35,
   '<rect width="35" height="35" fill="#164a2d"/><circle cx="17.5" cy="17.5" r="12" fill="#7cffb2"/>'
 );
+const lightPixelA = svgDataUri(
+  20,
+  16,
+  '<circle cx="10" cy="8" r="7" fill="#fff36b" fill-opacity=".7"/>'
+);
+const lightPixelB = svgDataUri(
+  24,
+  20,
+  '<circle cx="12" cy="10" r="9" fill="#6be9ff" fill-opacity=".7"/>'
+);
 
 function browserCandidates() {
   const candidates = [
@@ -92,23 +102,23 @@ function loadProviderInternals() {
   }
 }
 
-function parseGom(text, sourceFile, dataOptions) {
+function parseGom(text, sourceFile, dataOptions, engine = 'GOM') {
   return parseNpcDialogDocument(text, {
     uri: `file:///${sourceFile.replaceAll('\\', '/')}`,
     fileName: path.basename(sourceFile),
     filePath: sourceFile,
     documentVersion: 1,
-    engine: 'GOM',
-    engineLabel: 'GOM',
+    engine,
+    engineLabel: engine,
     cursorOffset: text.indexOf('[@main]') + '[@main]'.length,
     offsets: workspaceNpcDialogOffsets(0, 0),
-    catalog: buildDialogStatementCatalog(staticLanguage, 'GOM'),
+    catalog: buildDialogStatementCatalog(staticLanguage, engine),
     dataOptions,
   });
 }
 
 function itemElement(model) {
-  const item = model.pages[0].elements.find(element => element.statementId === 'item-show');
+  const item = model.pages[0].elements.find(element => /^item-show(?:-relative-compat)?$/.test(element.statementId));
   assert.ok(item, 'the GOM ITEMSHOW fixture must produce a typed item element');
   return item;
 }
@@ -183,6 +193,7 @@ async function main() {
     ].join('\r\n');
     const model = parseGom(source, sourceFile, resolver.optionsFor(sourceFile));
     const item = itemElement(model);
+    assert.equal(item.itemPreview.paintProfile, undefined, 'GOM must not borrow the GEE paint policy');
     const databaseRequests = [];
     const assetRequests = [];
     const { __NpcDialogVisualEditorManager: Manager } = loadProviderInternals();
@@ -229,6 +240,87 @@ async function main() {
       reference.archiveName === 'Items' && reference.imageIndex === 935
     )), false, 'IDX 935 must never be requested as Items/000935');
 
+    // Separate GEE parser -> real Provider -> browser geometry contract. The
+    // database is real SQLite; the two archive responses are deterministic pixels.
+    const geeModels = [];
+    const geeCases = [
+      { frame: true, width: 35, height: 29, count: 7 },
+      { frame: false, width: 35, height: 29, count: 7 },
+      { frame: true, width: 47, height: 51, count: 7 },
+      { frame: true, missing: true, width: 35, height: 29, count: 7 },
+      { frame: true, tiny: true, width: 35, height: 29, count: 7 },
+      { frame: true, width: 35, height: 29, count: 0 },
+      { frame: false, relative: true, width: 35, height: 29, count: 0 },
+    ];
+    for (const fixture of geeCases) {
+      const gee = parseGom(`[@main]\r\n#SAY\r\n<${fixture.relative ? '' : '&'}ITEMSHOW:935:${fixture.count}:80:80:${fixture.frame ? 1 : 0}:0:1>`, sourceFile, undefined, 'GEE');
+      const entry = itemElement(gee);
+      assert.equal(entry.itemPreview.paintProfile, 'gee-itemshow', 'GEE ITEMSHOW needs an isolated paint contract');
+      manager.resolveAsset = reference => {
+        assetRequests.push({ ...reference });
+        if (reference.archiveName === 'NewopUI' && reference.imageIndex === 250) {
+          return fixture.missing ? { status: 'missing', message: 'fixture missing frame' } : {
+            status: 'ready', url: framePixel, width: fixture.tiny ? 4 : 40, height: 40,
+            offsetX: -9, offsetY: 11,
+          };
+        }
+        if (reference.archiveName === 'Items2' && reference.imageIndex === 450) return {
+          status: 'ready', url: svgDataUri(fixture.width, fixture.height, '<rect width="100%" height="100%" fill="#7cffb2"/>'),
+          width: fixture.width, height: fixture.height, offsetX: -7, offsetY: 6,
+        };
+        if (reference.archiveName === 'Prguse2' && reference.imageIndex === 230) return {
+          status: 'ready', url: lightPixelA, archiveLabel: 'Prguse2/000230',
+          width: 20, height: 16, offsetX: -2, offsetY: 3,
+        };
+        if (reference.archiveName === 'Prguse2' && reference.imageIndex === 231) return {
+          status: 'ready', url: lightPixelB, archiveLabel: 'Prguse2/000231',
+          width: 24, height: 20, offsetX: 1, offsetY: 4,
+        };
+        return { status: 'missing' };
+      };
+      await manager.hydrateAssets(gee, {}, { fileName: sourceFile });
+      const framed = fixture.frame && !fixture.missing && !fixture.tiny;
+      assert.equal(entry.width, framed ? 40 : fixture.width, 'model width must use effective image surface');
+      assert.equal(entry.height, framed ? 40 : fixture.height, 'model height must use effective image surface');
+      assert.deepEqual(itemLayer(entry, 'item')?.assetRef, { archiveName: 'Items2', imageIndex: 450 });
+      if (fixture.frame) assert.deepEqual(itemLayer(entry, 'background')?.assetRef, { archiveName: 'NewopUI', imageIndex: 250 });
+      geeModels.push(gee);
+    }
+    const lightModel = JSON.parse(JSON.stringify(geeModels[0]));
+    const lightEntry = itemElement(lightModel);
+    lightEntry.itemPreview.lightCode = 1;
+    for (const scene of lightModel.scenes || []) {
+      const sceneEntry = scene.elements?.find(element => element.id === lightEntry.id);
+      if (sceneEntry?.itemPreview) sceneEntry.itemPreview.lightCode = 1;
+    }
+    await manager.hydrateAssets(lightModel, {}, { fileName: sourceFile });
+    const hydratedLightEntry = (lightModel.scenes || [])
+      .flatMap(scene => scene.elements || [])
+      .find(element => element.id === lightEntry.id);
+    if (hydratedLightEntry?.itemPreview?.lightPreview) {
+      lightEntry.itemPreview.lightPreview = hydratedLightEntry.itemPreview.lightPreview;
+    }
+    assert.deepEqual({
+      archiveName: lightEntry.itemPreview.lightPreview?.archiveName,
+      startIndex: lightEntry.itemPreview.lightPreview?.startIndex,
+      frameCount: lightEntry.itemPreview.lightPreview?.frameCount,
+      intervalMs: lightEntry.itemPreview.lightPreview?.intervalMs,
+      blendMode: lightEntry.itemPreview.lightPreview?.blendMode,
+      ready: lightEntry.itemPreview.lightPreview?.frames?.filter(frame => frame.status === 'ready').length,
+    }, {
+      archiveName: 'Prguse2', startIndex: 230, frameCount: 20,
+      intervalMs: 200, blendMode: 'src-alpha-color', ready: 2,
+    }, 'GXX lightCode=1 must map to Prguse2/230 and retain the 200ms blend contract');
+    for (const token of ['<&ITEMSHOW', '<ITEMSHOW']) {
+      const unknown = parseGom(`[@main]\r\n#ACT\r\nMOV N$假IDX 935\r\n#SAY\r\n${token}:<$STR(N$假IDX)>:0:80:80:0>`, sourceFile, undefined, 'GEE');
+      const entry = itemElement(unknown);
+      assert.equal(entry.itemPreview.itemIndex, undefined, 'display-only MOV must not acquire IDX authority');
+      const before = assetRequests.length;
+      await manager.hydrateAssets(unknown, {}, { fileName: sourceFile });
+      assert.equal(assetRequests.length, before, 'dynamic IDX must not request an item or fallback slot');
+      assert.equal(itemLayer(entry, 'item'), undefined);
+    }
+
     const harness = path.join(temporary, 'itemshow-idx-looks.html');
     let html = fs.readFileSync(path.join(RUNTIME_ROOT, 'media', 'npc-dialog-visual.html'), 'utf8')
       .replaceAll('{{STYLE_URI}}', resourceUri('media/npc-dialog-visual.css'))
@@ -238,6 +330,9 @@ window.__itemElementId = ${JSON.stringify(item.id)};
 window.__itemPixel = ${JSON.stringify(itemPixel)};
 window.__framePixel = ${JSON.stringify(framePixel)};
 window.__model = ${JSON.stringify(model)};
+window.__geeModels = ${JSON.stringify(geeModels)};
+window.__geeCases = ${JSON.stringify(geeCases)};
+window.__lightModel = ${JSON.stringify(lightModel)};
 window.acquireVsCodeApi = function () { return { postMessage: function (message) {
   if (message.type === 'ready') setTimeout(function () { window.dispatchEvent(new MessageEvent('message', { data: {
     type: 'model', model: window.__model, previewRevision: 1, preserveDrafts: false, geeOffsetHelp: ''
@@ -268,6 +363,18 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
       await wait(20);
     }
     if (!wrapper) throw new Error('ITEMSHOW wrapper did not render');
+    if (wrapper.querySelector('.item-quantity')) throw new Error('ITEMSHOW quantity zero must not draw a number');
+    let quantityRevision=10;
+    for (const count of [1, 5, 0]) {
+      const next=JSON.parse(JSON.stringify(window.__model));
+      for (const scene of [...next.scenes,...next.pages]) for (const entry of scene.elements) {
+        if(entry.id===window.__itemElementId)entry.itemPreview.quantity=count;
+      }
+      window.dispatchEvent(new MessageEvent('message',{data:{type:'model',model:next,previewRevision:quantityRevision++}}));
+      await wait(30);wrapper=document.querySelector(selector);
+      const badge=wrapper.querySelector('.item-quantity');
+      if (count===0 ? !!badge : !badge || badge.textContent!==String(count)) throw new Error('quantity transition failed: '+count);
+    }
     var frame = wrapper.querySelector('.item-frame-image');
     var item = wrapper.querySelector('.item-content-image');
     if (!visible(wrapper) || !visible(frame) || !visible(item)) {
@@ -320,6 +427,74 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
     );
     if (!hit || hit.closest(selector) !== wrapper) {
       throw new Error('visible ITEMSHOW content is not reachable on the canvas hit surface');
+    }
+    for (let index = 0; index < window.__geeModels.length; index += 1) {
+      const next = window.__geeModels[index];
+      const fixture = window.__geeCases[index];
+      const entry = next.pages[0].elements.find(value => /^item-show/.test(value.statementId));
+      window.dispatchEvent(new MessageEvent('message', { data: {
+        type: 'model', model: next, previewRevision: 30 + index, preserveDrafts: false,
+      }}));
+      await wait(40);
+      const node = document.querySelector('[data-element-id="' + entry.id + '"]');
+      const framed = fixture.frame && !fixture.missing && !fixture.tiny;
+      const sprite = node.querySelector('.item-content-image');
+      const border = node.querySelector('.item-frame-image');
+      const quantity = node.querySelector('.item-quantity');
+      const width = framed ? 40 : fixture.width;
+      const height = framed ? 40 : fixture.height;
+      if (!visible(node) || !visible(sprite)) throw new Error('GEE item invisible: ' + index);
+      if (parseFloat(node.style.width) !== width || parseFloat(node.style.height) !== height)
+        throw new Error('GEE frame must own selection size, not oversized item: ' + index);
+      if (entry.width !== width || entry.height !== height)
+        throw new Error('GEE Provider reflow must agree with DOM bounds: ' + index);
+      if (!!border !== !!framed) throw new Error('GEE unusable frame must degrade to unframed: ' + index);
+      if (border && (parseFloat(border.style.left) !== 0 || parseFloat(border.style.top) !== 0))
+        throw new Error('GEE frame must not apply archive offsets: ' + index);
+      if (parseFloat(sprite.style.left) !== (framed ? Math.trunc((40 - fixture.width) / 2) : 0)
+        || parseFloat(sprite.style.top) !== (framed ? Math.trunc((40 - fixture.height) / 2) : 0))
+        throw new Error('GEE item centering must truncate and ignore archive offsets: ' + index);
+      if (framed && getComputedStyle(node).overflow !== 'hidden')
+        throw new Error('GEE framed ITEMSHOW must clip oversized item content to the visible frame: ' + index);
+      if (!framed && getComputedStyle(node).overflow === 'hidden')
+        throw new Error('GEE unframed ITEMSHOW must not inherit frame clipping: ' + index);
+      if (!!quantity !== (fixture.count > 0)) throw new Error('GEE zero quantity rendered: ' + index);
+      if (quantity) {
+        const style = getComputedStyle(quantity);
+        if (style.right !== (framed ? '4px' : '2px') || style.bottom !== (framed ? '2px' : '0px')
+          || style.color !== 'rgb(166, 202, 240)' || style.backgroundColor !== 'rgba(0, 0, 0, 0)')
+          throw new Error('GEE quantity anchor/color incorrect: ' + index);
+      }
+      if (getComputedStyle(sprite).filter === 'none' || (border && getComputedStyle(border).filter !== 'none'))
+        throw new Error('GEE gray must affect item only: ' + index);
+      if (entry.itemPreview.paintProfile !== 'gee-itemshow') throw new Error('GEE typed profile missing');
+      const bounds = node.getBoundingClientRect();
+      const target = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+      if (!target || target.closest('[data-element-id]') !== node) throw new Error('GEE selection hit surface incorrect: ' + index);
+    }
+    window.dispatchEvent(new MessageEvent('message', { data: {
+      type: 'model', model: window.__lightModel, previewRevision: 80, preserveDrafts: false,
+    }}));
+    await wait(40);
+    var lightNode = document.querySelector('[data-element-id="' + window.__lightModel.pages[0].elements[0].id + '"]');
+    var lightImage = lightNode && lightNode.querySelector('.item-light-image');
+    if (!lightImage || !visible(lightImage)) throw new Error('GXX light overlay is not visible');
+    if (lightNode.dataset.itemLightArchive !== 'Prguse2'
+      || lightNode.dataset.itemLightStartIndex !== '230'
+      || lightNode.dataset.itemLightFrameCount !== '20'
+      || lightNode.dataset.itemLightReadyCount !== '2'
+      || lightNode.dataset.itemLightIntervalMs !== '200'
+      || lightNode.dataset.itemLightBlend !== 'src-alpha-color') {
+      throw new Error('GXX light metadata is incomplete');
+    }
+    if (getComputedStyle(lightImage).mixBlendMode !== 'plus-lighter') {
+      throw new Error('GXX light must use the documented additive blend approximation');
+    }
+    var firstLightSrc = lightImage.getAttribute('src');
+    await wait(240);
+    if (lightImage.getAttribute('src') === firstLightSrc) throw new Error('GXX light frame did not advance at 200ms');
+    if (!lightNode.querySelector('.item-frame-image') || !lightNode.querySelector('.item-content-image')) {
+      throw new Error('GXX light must preserve the frame and item layers');
     }
     document.body.dataset.itemshowIdxLooksDomCount = String(document.querySelectorAll('*').length);
     document.body.dataset.itemshowIdxLooksTest = 'pass';

@@ -218,9 +218,9 @@ check('GOM IMG/IMGEX dynamic references', () => {
   const img = statement(gom, 'img-absolute');
   const imgex = statement(gom, 'imgex-absolute');
   assertNoImageIndexes(img, [9010], 'GOM IMG');
-  assertNoImageIndexes(imgex, [9010, 9011, 9012], 'GOM IMGEX');
+  assert.deepEqual(imgex.assetStateDiagnostics.map(state=>state.assetRef), [9010,9011,9012].map(imageIndex=>({willIndex:37,imageIndex})), 'proved GOM IMGEX state projections');
   assertNoWillIndexes(img, [37], 'GOM IMG');
-  assertNoWillIndexes(imgex, [37], 'GOM IMGEX');
+  assert.equal(imgex.previewAssetOrigin, 'resolved-static');
   assertDynamicBoundary(img, 'GOM IMG');
   assertDynamicBoundary(imgex, 'GOM IMGEX');
 });
@@ -261,9 +261,9 @@ check('GEE IMG/IMGEX/IMGNUM/IMGCOUNTDOWN dynamic references', () => {
   const number = statement(gee, 'image-number');
   const countdown = statement(gee, 'image-countdown');
   assertNoImageIndexes(img, [9310], 'GEE IMG');
-  assertNoImageIndexes(imgex, [9310, 9311, 9312], 'GEE IMGEX');
+  assert.deepEqual(imgex.assetStateDiagnostics.map(state=>state.assetRef), [9310,9311,9312].map(imageIndex=>({willIndex:37,imageIndex})), 'proved GEE IMGEX state projections');
   assertNoWillIndexes(img, [37], 'GEE IMG');
-  assertNoWillIndexes(imgex, [37], 'GEE IMGEX');
+  assert.equal(imgex.previewAssetOrigin, 'resolved-static');
   assertNoImageIndexes(number, [1290, 1291, 1292, 1293, 1294, 1295, 1296, 1297, 1298, 1299], 'GEE IMGNUM');
   assert.equal(number.imageTextPreview?.value, '4321');
   assert.equal(
@@ -571,7 +571,9 @@ check('production provider never resolves dynamic-derived assets or CostItem IDX
   for (const model of freshModels) {
     await manager.hydrateAssets(model, {}, { fileName: 'dynamic-source-safety.txt' });
   }
-  const forbidden = requests.filter(reference => (
+  const projected = [9010,9011,9012,9310,9311,9312].map(imageIndex=>({willIndex:37,imageIndex}));
+  for(const expected of projected) assert.ok(requests.some(reference=>JSON.stringify(reference)===JSON.stringify(expected)), 'missing proved state request');
+  const forbidden = requests.filter(reference => !projected.some(expected=>JSON.stringify(reference)===JSON.stringify(expected)) && (
     (reference.imageIndex >= 9000 && reference.imageIndex <= 9999)
     || reference.willIndex === 37
     || reference.archiveName === '0'

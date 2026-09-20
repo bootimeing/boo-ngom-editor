@@ -1,0 +1,15 @@
+const assert = require('node:assert/strict');
+const { parse } = require('./preview-inputs-integration.test');
+const element = (act, width = '<$STR(N0)>', values = {}) => parse(`[@main]\n#ACT\n${act}\n#SAY\n<Input|x=30|y=30|inputid=1|width=${width}|height=30>`, values, '996PC').pages[0].elements[0];
+assert.equal(element('MOV N0 240').width, 240);
+assert.equal(element('MOV N0 240').sizePreview.width.baseValue, 240);
+assert.equal(element('').width, 160, 'unknown 0 must not collapse input');
+assert.equal(element('MOV N0 -1').width, 160);
+assert.equal(element('', '<$STR(N0)>', {N0:'320'}).width, 320);
+assert.equal(element('MOV N0 240').parameters.find(p=>p.key==='width').value, '<$STR(N0)>', 'preserve expression');
+assert.equal(element('MOV N0 240').sizePreview.width.sourceExpression, '<$STR(N0)>');
+assert.equal(element('MOV N0 24','<$STR(N0)>0').width,240,'literal and variable concatenation');
+assert.equal(element('MOV N0 1\nMOV N1 240','<$STR(N<$STR(N0)>)>').width,240,'nested numbered width');
+assert.equal(element('MOV N0 1','<$STR(N<$STR(N0)>)>').width,160,'unknown nested leaf cannot become geometry');
+assert.equal(element('','<$STR(N0)>0').width,160,'placeholder concatenation is not geometry');
+console.log('preview-resolved-size.test.js: PASS');

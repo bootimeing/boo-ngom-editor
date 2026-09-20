@@ -31,6 +31,7 @@ function main() {
     buildSemanticCommandIndex,
     classifySemanticCommand,
     findCommandCandidates,
+    findDropFlowTokens,
   } = require('../out/utils/semantic-commands');
   const indexes = buildIndexes();
 
@@ -50,6 +51,10 @@ function main() {
         command.completionEnabled && Boolean(command.source),
         `${engine}.${command.name} name completion eligibility must match the catalog`
       );
+      if (command.source || command.origin === 'custom') {
+        assert.ok(classifySemanticCommand(semantic, command.name),
+          `${engine}.${command.name}: documented names need highlighting even when snippets are disabled`);
+      }
     }
 
     for (const command of index.commandNameCompletions) {
@@ -85,6 +90,32 @@ function main() {
   }
 
   assert.equal(indexes.GEE.commandByName.has('CHECKITEMBIND'), false);
+  const gomSemantic = buildSemanticCommandIndex(indexes.GOM);
+  for (const name of ['H.O.GameGold', 'M.H.GameGold', 'S1.GameGold']) {
+    assert.equal(classifySemanticCommand(gomSemantic, name), 'action', name);
+  }
+  assert.equal(classifySemanticCommand(gomSemantic, 'H.M.CheckLevelEx'), 'check');
+  assert.equal(classifySemanticCommand(gomSemantic, 'UNKNOWN.GameGold'), null);
+  for (const engine of ['GOM', 'GEE', '996PC']) {
+    const semantic = buildSemanticCommandIndex(indexes[engine]);
+    assert.equal(classifySemanticCommand(semantic, 'H.ThisCommandDoesNotExist'), null);
+    assert.deepEqual(findDropFlowTokens('#CHILD 1/5 RANDOM', engine).map(t => t.name), ['#CHILD', 'RANDOM']);
+    assert.deepEqual(findDropFlowTokens('; #CHILD 1/5 RANDOM', engine), []);
+  }
+  assert.deepEqual(findDropFlowTokens('#CASE N10|1 RANDOM', 'GOM').map(t => t.name), ['#CASE', 'RANDOM']);
+  assert.deepEqual(findDropFlowTokens('#CASE N10|1 RANDOM', 'GEE'), []);
+  assert.deepEqual(findDropFlowTokens('#CHILD 1/1 BURSTRATE ; RANDOM', 'GOM').map(t => t.name), ['#CHILD', 'BURSTRATE']);
+  assert.deepEqual(findDropFlowTokens('#CHILD 1/1 BURSTRATE', '996PC').map(t => t.name), ['#CHILD']);
+  for (const [name, kind, params] of require('../tools/data-maintenance/archive/apply-20260905-help-review').entries) {
+    const command = indexes.GOM.commandByName.get(name);
+    assert.ok(command, name);
+    assert.equal(command.completionVerified, params !== null, name);
+    assert.equal(classifySemanticCommand(gomSemantic, name), kind, name);
+    // Other engines retain only their independently documented definitions.
+    for (const engine of ['GEE', '996PC']) {
+      assert.notEqual(indexes[engine].commandByName.get(name)?.source?.revision, '2026-09-05');
+    }
+  }
   assert.equal(indexes.GEE.commandByName.has('SETITEMBIND'), false);
   assert.deepEqual(findCommandCandidates('M.ADDHPPER 10')[0], {
     name: 'M.ADDHPPER', start: 0, end: 10,

@@ -38,6 +38,7 @@ button,input,select{font:inherit}
 .marker.dragging{border-color:#ffcf40;background:rgba(0,120,212,.58)}
 .map-entity{position:absolute;pointer-events:auto;user-select:none;cursor:move}
 .npc-entity{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%) scale(var(--entity-scale,1));transform-origin:50% 100%}
+.npc-entity.blank-hitbox{width:24px;height:34px;background:transparent}
 .npc-sprite{display:block;max-width:280px;max-height:260px;object-fit:contain;image-rendering:pixelated;pointer-events:none}
 .npc-sprite[hidden]{display:none}
 .npc-entity.offset-positioned{display:block;transform:scale(var(--entity-scale,1));transform-origin:0 0}
@@ -957,7 +958,7 @@ function normalizeNpcFrame(value){
   const width=Math.max(0,Math.trunc(Number(frame.width)||0));
   const height=Math.max(0,Math.trunc(Number(frame.height)||0));
   return{
-    url:String(frame.url||''),width,height,
+    url:String(frame.url||''),blank:frame.blank===true,width,height,
     offsetX:Math.trunc(Number(frame.offsetX)||0),offsetY:Math.trunc(Number(frame.offsetY)||0),
     usesOffsets:frame.usesOffsets===true&&width>0&&height>0,
     placementX:Number.isFinite(Number(frame.placementX))?Number(frame.placementX):null,
@@ -966,6 +967,20 @@ function normalizeNpcFrame(value){
 }
 function applyNpcFrame(node,image,frame){
   for(const candidate of node.querySelectorAll('.npc-sprite'))candidate.hidden=candidate!==image;
+  if(frame.blank){
+    // A fully transparent sequence still needs a bounded target so the NPC
+    // can be selected/dragged. Keep the real frame dimensions once any
+    // nonblank frame has been shown; this only covers the initial/all-blank
+    // state and never paints a placeholder.
+    if(node.dataset.npcRenderable!=='1'){
+      node.classList.add('blank-hitbox');
+      node.style.width='24px';node.style.height='34px';
+      layoutEntityNode(node);
+    }
+    return;
+  }
+  node.dataset.npcRenderable='1';
+  node.classList.remove('blank-hitbox');
   node.classList.toggle('offset-positioned',frame.usesOffsets);
   if(frame.usesOffsets){
     node.dataset.frameOffsetX=String(frame.offsetX);node.dataset.frameOffsetY=String(frame.offsetY);
@@ -991,6 +1006,7 @@ function waitNpcFrameImage(image){
 }
 function applyNpcIconFrame(node,image,frame,icon){
   for(const candidate of node.querySelectorAll('.npc-icon-sprite'))candidate.hidden=candidate!==image;
+  if(frame.blank)return;
   const width=Math.max(1,frame.width||image.naturalWidth||1),height=Math.max(1,frame.height||image.naturalHeight||1);
   const assetOffsetX=frame.usesOffsets?frame.offsetX:0,assetOffsetY=frame.usesOffsets?frame.offsetY:0;
   const placementX=Number.isFinite(frame.placementX)
@@ -1007,18 +1023,20 @@ function appendNpcIcon(npc,icon,iconIndex){
   node.className='npc-icon-entity offset-positioned'+(Number(icon.effect)===1?' effect':'');
   node.dataset.entityType='npc';node.dataset.line=String(npc.lineNumber);node.dataset.iconIndex=String(iconIndex);
   node.style.zIndex=Number(icon.layer)===1?'0':'3';
-  const frames=Array.isArray(icon.frames)?icon.frames.map(normalizeNpcFrame).filter(frame=>frame.url):[];
+  const frames=Array.isArray(icon.frames)?icon.frames.map(normalizeNpcFrame):[];
+  if(!frames.length||frames.some(frame=>!frame.url&&!frame.blank))return;
   const images=[];
   for(const frame of frames){
+    if(frame.blank){images.push(null);continue}
     const image=document.createElement('img');image.className='npc-icon-sprite';image.alt='';image.draggable=false;
     image.decoding='async';image.hidden=true;image.src=frame.url;node.appendChild(image);images.push(image);
   }
   if(!images.length)return;
   entityLayer.appendChild(node);
-  Promise.all(images.map(waitNpcFrameImage)).then(loaded=>{
+  Promise.all(images.map(image=>image?waitNpcFrameImage(image):Promise.resolve(true))).then(loaded=>{
     if(!node.isConnected)return;
-    const ready=loaded.map((ok,index)=>ok?{image:images[index],frame:frames[index]}:null).filter(Boolean);
-    if(!ready.length){node.remove();return}
+    if(loaded.some(ok=>!ok)){node.remove();return}
+    const ready=frames.map((frame,index)=>({image:images[index],frame}));
     let frameIndex=0,cycles=0;
     applyNpcIconFrame(node,ready[0].image,ready[0].frame,icon);
     if(ready.length<2)return;
@@ -1044,10 +1062,12 @@ function rebuildEntities(){
       (state.entityDragging&&state.entityDragType==='npc'&&state.entityDragLine===npc.lineNumber?' dragging':'');
     node.dataset.entityType='npc';node.dataset.line=String(npc.lineNumber);
     node.style.zIndex='1';
-    const frames=Array.isArray(npc.frames)?npc.frames.map(normalizeNpcFrame).filter(frame=>frame.url):[];
+    const candidateFrames=Array.isArray(npc.frames)?npc.frames.map(normalizeNpcFrame):[];
+    const frames=candidateFrames.some(frame=>!frame.url&&!frame.blank)?[]:candidateFrames;
     const images=[];
     if(frames.length){
       for(const frame of frames){
+        if(frame.blank){images.push(null);continue}
         const image=document.createElement('img');image.className='npc-sprite';image.alt='';image.draggable=false;
         image.decoding='async';image.hidden=true;image.src=frame.url;node.appendChild(image);images.push(image);
       }
@@ -1056,12 +1076,12 @@ function rebuildEntities(){
     }
     if(images.length){
       applyNpcFrame(node,images[0],frames[0]);
-      Promise.all(images.map(waitNpcFrameImage)).then(loaded=>{
+      Promise.all(images.map(image=>image?waitNpcFrameImage(image):Promise.resolve(true))).then(loaded=>{
         if(!node.isConnected)return;
         const ready=loaded.map((ok,index)=>ok?{image:images[index],frame:frames[index]}:null).filter(Boolean);
         if(!ready.length)return;
         applyNpcFrame(node,ready[0].image,ready[0].frame);
-        if(ready.length<2)return;
+        if(ready.length<2||loaded.some(ok=>!ok))return;
         let frame=0;
         const timer=setInterval(()=>{
           if(!node.isConnected){clearInterval(timer);return}

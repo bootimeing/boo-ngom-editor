@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { EngineId } from '../types';
+import { readPreviewExcelTable } from '../ui-dialog/preview-excel';
 import {
   NestedConfigValueRequest,
   NestedConfigValueResult,
@@ -13,7 +14,7 @@ import {
   NestedTableDataResult,
   NestedVariableAnalysisOptions,
 } from './nested-variable-analysis';
-import { decodeTextFile } from './text';
+import { decodeTextFile, encodeTextFile } from './text';
 import { isBinarySpreadsheet, parseScriptTableData } from './table-data';
 import { openXlsTable } from './xls-table';
 
@@ -37,14 +38,17 @@ interface SqlModule {
 }
 
 interface DatabaseFieldSource {
-  lookup?(itemName: string, field: string): string | undefined;
+  lookup?(itemName: string, field: string, ignoreAsciiCase?: boolean): string | undefined;
   lookupByIndex?(itemIndex: number, field: string): string | undefined;
   dispose?(): void;
+  itemNames?(): readonly string[] | undefined;
 }
 
 interface CachedDatabaseSources {
   stamp: string;
   sources: DatabaseFieldSource[];
+  equipmentCatalogComplete: boolean;
+  equipmentMatches: Map<string, readonly string[] | undefined>;
 }
 
 interface CachedValue<T> {
@@ -70,6 +74,7 @@ export class ScriptDataResolver {
 
     cached?.sources.forEach(source => source.dispose?.());
     const sources: DatabaseFieldSource[] = [];
+    let equipmentCatalogComplete = !candidates.some(candidate => /\.db$/i.test(candidate) && !isSqliteFile(candidate));
     const sqliteFiles = candidates.filter(candidate => (
       /\.db$/i.test(candidate) && isSqliteFile(candidate)
     ));
@@ -80,30 +85,174 @@ export class ScriptDataResolver {
           try {
             sources.push(...openSqliteItemSources(SQL, filePath));
           } catch {
+            equipmentCatalogComplete = false;
             // A damaged or unrelated DB must not prevent the visual preview.
           }
         }
       } catch {
+        equipmentCatalogComplete = false;
         // Database values will fall back to the variable family's safe default.
       }
     }
     for (const filePath of candidates) {
-      if (/\.mdb$/i.test(filePath)) sources.push(...openAccessItemSources(filePath));
+      if (/\.mdb$/i.test(filePath)) {
+        const loaded = openAccessItemSources(filePath);
+        if (loaded) sources.push(...loaded);
+        else equipmentCatalogComplete = false;
+      }
       else if (/cfg_item\.xls$/i.test(filePath)) {
         const source = openBiff8ItemSource(filePath);
         if (source) sources.push(source);
       }
     }
-    this.databases.set(key, { stamp, sources });
+    this.databases.set(key, { stamp, sources, equipmentCatalogComplete, equipmentMatches: new Map() });
   }
 
   optionsFor(sourceFile: string, engine?: EngineId): NestedVariableAnalysisOptions {
     return {
+      resolvePreviewGlobalValues: () => this.resolvePreviewGlobalValues(sourceFile, engine),
+      resolvePreviewEquipmentSlot: itemName => this.resolvePreviewEquipmentSlot(sourceFile, itemName, engine),
+      resolvePreviewEquipmentMatches: pattern => this.resolvePreviewEquipmentMatches(sourceFile, pattern, engine),
       resolveConfigValues: request => this.resolveConfig(sourceFile, request),
       resolveTableData: request => this.resolveTable(sourceFile, request),
+      resolvePreviewExcelData: request => this.resolvePreviewExcel(sourceFile, request, engine),
+      resolvePreviewCsvData: request => this.resolvePreviewCsv(sourceFile, request, engine),
       resolveListData: request => this.resolveList(sourceFile, request),
       resolveDatabaseField: request => this.resolveDatabaseField(sourceFile, request, engine),
     };
+  }
+
+  private resolvePreviewGlobalValues(sourceFile: string, engine?: EngineId): Readonly<Record<string, string>> {
+    // GOM server evidence and GXX M2Share.LoadGlobalVal agree on these keys.
+    // Read persisted defaults only; never reproduce the server loader's writes.
+    if ((engine !== 'GOM' && engine !== 'GEE') || /^[\\/]{2}/.test(sourceFile)) return {};
+    const envir = findAncestorDirectory(path.resolve(sourceFile), 'Envir');
+    if (!envir) return {};
+    const server = path.dirname(envir);
+    const file = path.join(server, 'GlobalVal.ini');
+    if (!hasOnlyRealPreviewComponents(server, path.dirname(path.resolve(sourceFile)), true)
+      || !hasOnlyRealPreviewComponents(server, file)) return {};
+    try {
+      const before = fs.statSync(file);
+      if (before.size > 2 * 1024 * 1024) return {};
+      const bytes = fs.readFileSync(file);
+      if (!samePreviewFileSnapshot(before, fs.statSync(file)) || bytes.length !== before.size
+        || !hasOnlyRealPreviewComponents(server, file)) return {};
+      const setup = parseIniSections(decodeTextFile(bytes).text).get('SETUP');
+      const values: Record<string, string> = {};
+      const ambiguous = new Set<string>();
+      for (const [key, entries] of setup || []) {
+        const match = /^(GLOBALSTRVAL|GLOBALVAL)(\d{1,4})$/.exec(key);
+        if (!match || Number(match[2]) > 999 || entries.length !== 1) continue;
+        const value = entries[0];
+        const prefix = match[1] === 'GLOBALSTRVAL' ? 'A' : 'G';
+        if (value.length > 4096 || (prefix === 'G' && !/^[+-]?\d{1,128}$/.test(value))) continue;
+        const name = `${prefix}${Number(match[2])}`;
+        if (ambiguous.has(name)) continue;
+        if (Object.prototype.hasOwnProperty.call(values, name)) { delete values[name]; ambiguous.add(name); }
+        else values[name] = value;
+      }
+      return values;
+    } catch { return {}; }
+  }
+
+  private resolvePreviewEquipmentMatches(sourceFile: string, pattern: string, engine?: EngineId): readonly string[] | undefined {
+    if (engine !== 'GEE' || !pattern || pattern.startsWith('[') || pattern.length > 512 || /[<>$"\r\n\x00]/.test(pattern)) return undefined;
+    const envirRoot = findAncestorDirectory(sourceFile, 'Envir');
+    const cached = envirRoot ? this.databases.get(databaseCacheKey(envirRoot, engine)) : undefined;
+    if (!cached?.equipmentCatalogComplete || !cached.sources.length) return undefined;
+    if (cached.equipmentMatches.has(pattern)) return cached.equipmentMatches.get(pattern);
+    const matches = this.resolveEquipmentMatches(cached.sources, pattern);
+    if (cached.equipmentMatches.size >= 128) cached.equipmentMatches.clear();
+    cached.equipmentMatches.set(pattern, matches);
+    return matches;
+  }
+
+  private resolveEquipmentMatches(sources: readonly DatabaseFieldSource[], pattern: string): readonly string[] | undefined {
+    const matches = new Set<string>();
+    const spellings = new Map<string, Set<string>>();
+    for (const source of sources) {
+      const names = source.itemNames?.();
+      if (!names || names.length > 40000) return undefined;
+      for (const name of names) {
+        const identity = name.replace(/[a-z]/g, char => char.toUpperCase());
+        const variants = spellings.get(identity) || new Set<string>();
+        variants.add(name); spellings.set(identity, variants);
+        if (name.includes(pattern)) {
+          // Reject incomplete/unrepresentable sets rather than silently losing matches.
+          if (!name || name.startsWith('[') || name.length > 512 || /[<>$"\r\n\x00]/.test(name)) return undefined;
+          matches.add(name);
+          if (matches.size > 128) return undefined;
+        }
+      }
+    }
+    for (const name of matches) {
+      if ((spellings.get(name.replace(/[a-z]/g, char => char.toUpperCase()))?.size || 0) > 1) return undefined;
+    }
+    return [...matches].sort((a, b) => a.localeCompare(b, 'zh-CN', { numeric: true }));
+  }
+
+  private resolvePreviewEquipmentSlot(sourceFile: string, itemName: string, engine?: EngineId): { key: string; label: string } | undefined {
+    if (engine !== 'GOM' && engine !== 'GEE') return undefined;
+    const envirRoot = findAncestorDirectory(sourceFile, 'Envir');
+    if (!envirRoot) return undefined;
+    // Only equipment matching gains this GEE rule. General DB/IDX queries keep
+    // their original matching/provenance contract; duplicate matches stay unknown.
+    const raw = engine === 'GEE'
+      ? resolveUniqueDatabaseValue(this.databases.get(databaseCacheKey(envirRoot, engine))?.sources || [],
+        source => source.lookup?.(itemName, 'StdMode', true))
+      : this.resolveItemFieldByName(sourceFile, itemName, 'StdMode', engine);
+    if (raw === undefined || !/^\d+$/.test(raw)) return undefined;
+    const mode = Number(raw);
+    if (engine === 'GEE') {
+      // GXX M2Share.CheckUserItems + Grobal2 slot constants. Use legal slots,
+      // not GetTakeOnPosition's preferred slot: 7/25/28/51/96/97 have multiple
+      // legal positions. Rings/bracelets are paired and deliberately omitted.
+      // Do not import GOM CustUserItem rules or its different shield/fashion IDs.
+      const geeSingleSlots: Array<[number[], number, string]> = [
+        [[10,11],0,'衣服'], [[5,6],1,'武器'], [[29,30],2,'勋章'],
+        [[19,20,21],3,'项链'], [[15],4,'头盔'], [[54,64],10,'腰带'],
+        [[52,62],11,'鞋子'], [[53,63,94],12,'宝石'], [[16],13,'斗笠'],
+        [[65],14,'军鼓'], [[12],16,'盾牌'], [[90],17,'灵玉'],
+        [[66,67],18,'时装衣服'], [[68,69],19,'时装武器'], [[75,76,77],20,'时装项链'],
+        [[78],21,'时装头盔'], [[83],26,'时装勋章'], [[84,85],27,'时装腰带'],
+        [[86,87],28,'时装鞋子'], [[88,89],29,'时装宝石'],
+      ];
+      const match = geeSingleSlots.find(([modes]) => modes.includes(mode));
+      return match ? { key: `GEE:${match[1]}`, label: match[2] } : undefined;
+    }
+    const singleSlots: Array<[number[], number, string]> = [
+      [[10,11],0,'衣服'],[[5,6],1,'武器'],[[30],2,'勋章'],[[19,20,21],3,'项链'],[[15],4,'头盔'],
+      [[25],9,'毒符'],[[54,64],10,'腰带'],[[52,62],11,'鞋子'],[[7,53,63],12,'宝石'],[[16],13,'斗笠'],
+      [[65],14,'军鼓'],[[28],15,'马牌'],[[48],16,'盾牌'],[[66,67],17,'时装衣服'],[[68,69],18,'时装武器'],
+      [[75,76,77],19,'时装项链'],[[78],20,'时装头盔'],[[83],25,'时装勋章'],[[84,85],26,'时装腰带'],
+      [[86,87],27,'时装鞋子'],[[88,89],28,'时装宝石'],[[90],48,'时装斗笠'],[[91],49,'时装毒符'],
+      [[92],50,'时装军鼓'],[[93],51,'时装马牌'],[[94],52,'时装盾牌'],
+    ];
+    const candidates = singleSlots.filter(([modes]) => modes.includes(mode)).map(([,slot,label]) => ({slot,label}));
+    if (mode >= 100 && mode <= 111) candidates.push({slot:mode - 70,label:`首饰盒 ${mode - 99}`});
+    const envir = findAncestorDirectory(path.resolve(sourceFile), 'Envir');
+    if (!envir || /^[\\/]{2}/.test(sourceFile)) return undefined;
+    const server = path.dirname(envir), file = path.join(server, '!Setup.txt');
+    if (fs.existsSync(file)) {
+      if (!hasOnlyRealPreviewComponents(server, file)) return undefined;
+      try {
+        const before = fs.statSync(file);
+        if (before.size > 2 * 1024 * 1024) return undefined;
+        const bytes = fs.readFileSync(file);
+        if (!samePreviewFileSnapshot(before, fs.statSync(file))) return undefined;
+        const section = parseIniSections(decodeTextFile(bytes).text).get('CUSTUSERITEM');
+        for (const [key, values] of section || []) {
+          const match = /^WHERE(\d+)$/.exec(key);
+          if (!match || Number(match[1]) >= 50) continue;
+          if (values.length !== 1) { if (values.includes(raw)) return undefined; continue; }
+          if (/^\d+$/.test(values[0]) && Number(values[0]) === mode) candidates.push({slot:71 + Number(match[1]),label:`自定义装备 ${Number(match[1]) + 1}`});
+        }
+      } catch { return undefined; }
+    }
+    // Paired rings/bracelets or custom modes allowed in multiple slots must
+    // not be incorrectly made mutually exclusive merely by equal StdMode.
+    return candidates.length === 1 ? {key:`GOM:${candidates[0].slot}`,label:candidates[0].label} : undefined;
   }
 
   resolveItemFieldByIndex(
@@ -187,6 +336,85 @@ export class ScriptDataResolver {
         complete: true,
       };
     }, tablePath);
+  }
+
+  private resolvePreviewExcel(
+    sourceFile: string,
+    request: NestedTableDataRequest,
+    engine?: EngineId,
+  ): NestedTableDataResult | undefined {
+    if ((engine !== 'GOM' && engine !== '996PC') || request.format !== 'excel') return undefined;
+    const tablePath = safePreviewTablePath(sourceFile, request.path, 'xls');
+    if (!tablePath) return undefined;
+    let handle: number | undefined;
+    try {
+      handle = fs.openSync(tablePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+      const before = fs.fstatSync(handle);
+      // Bound before allocation/read, and read exactly this snapshot's size so
+      // a concurrently growing workbook cannot bypass the 16 MiB ceiling.
+      if (!before.isFile() || before.nlink !== 1 || before.size < 8 || before.size > 16 * 1024 * 1024) return undefined;
+      const buffer = Buffer.alloc(before.size);
+      let offset = 0;
+      while (offset < buffer.length) {
+        const count = fs.readSync(handle, buffer, offset, buffer.length - offset, offset);
+        if (count === 0) return undefined;
+        offset += count;
+      }
+      const after = fs.fstatSync(handle);
+      if (!samePreviewFileSnapshot(before, after) || safePreviewTablePath(sourceFile, request.path, 'xls') !== tablePath
+        || !samePreviewFileSnapshot(after, fs.statSync(tablePath))) return undefined;
+      // Deliberately no size+mtime cache: in-place edits can preserve both.
+      // Every preview uses the bounded bytes just read from this file handle.
+      return readPreviewExcelTable(buffer);
+    } catch {
+      return undefined;
+    } finally {
+      if (handle !== undefined) fs.closeSync(handle);
+    }
+  }
+
+  private resolvePreviewCsv(
+    sourceFile: string,
+    request: NestedTableDataRequest,
+    engine?: EngineId,
+  ): NestedTableDataResult | undefined {
+    if (engine !== 'GOM' || request.format !== 'csv') return undefined;
+    const tablePath = safePreviewTablePath(sourceFile, request.path, 'csv');
+    if (!tablePath) return undefined;
+    let handle: number | undefined;
+    try {
+      handle = fs.openSync(tablePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+      const before = fs.fstatSync(handle);
+      if (!before.isFile() || before.nlink !== 1 || before.size > 8 * 1024 * 1024) return undefined;
+      const bytes = Buffer.alloc(before.size);
+      let offset = 0;
+      while (offset < bytes.length) {
+        const count = fs.readSync(handle, bytes, offset, bytes.length - offset, offset);
+        if (count === 0) return undefined;
+        offset += count;
+      }
+      const after = fs.fstatSync(handle);
+      if (!samePreviewFileSnapshot(before, after)
+        || safePreviewTablePath(sourceFile, request.path, 'csv') !== tablePath
+        || !samePreviewFileSnapshot(after, fs.statSync(tablePath)) || isBinarySpreadsheet(bytes)) return undefined;
+      const decoded = decodeTextFile(bytes);
+      if (decoded.text.includes('\u0000') || !encodeTextFile(decoded.text, decoded.encoding).equals(bytes)) return undefined;
+      // Bound cell allocation before the general CSV parser creates arrays.
+      // Counting separators inside quotes is deliberately conservative.
+      let separators = 0, lineBreaks = 0;
+      for (const character of decoded.text) {
+        if (character === ',' && ++separators > 500000) return undefined;
+        if ((character === '\n' || character === '\r') && ++lineBreaks > 100000) return undefined;
+      }
+      const rows = parseScriptTableData(decoded.text, 'csv');
+      if (rows.length > 50000 || rows.some(row => row.length > 4096)) return undefined;
+      // No size/mtime cache: a new preview must not retain a replaced CSV row.
+      return { rows, complete: true };
+    } catch {
+      return undefined;
+    } finally {
+      if (handle !== undefined) fs.closeSync(handle);
+    }
   }
 
   private resolveList(
@@ -358,14 +586,25 @@ function openSqliteItemSources(SQL: SqlModule, filePath: string): DatabaseFieldS
     const indexColumn = findColumn(columns, ['IDX', 'INDEX']);
     if (!nameColumn && !indexColumn) continue;
     const columnLookup = createColumnLookup(columns);
+    let names: readonly string[] | undefined;
+    let namesRead = false;
     sources.push({
-      lookup(itemName, field) {
+      itemNames() {
+        if (!nameColumn) return undefined;
+        if (!namesRead) {
+          namesRead = true;
+          const rows = database.exec(`SELECT ${quoteIdentifier(nameColumn)} FROM ${quoteIdentifier(tableName)} LIMIT 40001`)[0]?.values || [];
+          if (rows.length <= 40000) names = rows.map(row => String(row[0] ?? '').trim()).filter(Boolean);
+        }
+        return names;
+      },
+      lookup(itemName, field, ignoreAsciiCase = false) {
         if (!nameColumn) return undefined;
         const column = lookupColumn(columnLookup, field);
         if (!column) return undefined;
         const statement = database.prepare(
           `SELECT ${quoteIdentifier(column)} AS value FROM ${quoteIdentifier(tableName)} `
-          + `WHERE TRIM(${quoteIdentifier(nameColumn)}) = ?`
+          + `WHERE TRIM(${quoteIdentifier(nameColumn)}) = ?${ignoreAsciiCase ? ' COLLATE NOCASE' : ''}`
         );
         try {
           statement.bind([itemName]);
@@ -414,7 +653,7 @@ function openSqliteItemSources(SQL: SqlModule, filePath: string): DatabaseFieldS
   return sources;
 }
 
-function openAccessItemSources(filePath: string): DatabaseFieldSource[] {
+function openAccessItemSources(filePath: string): DatabaseFieldSource[] | undefined {
   try {
     const module = require('mdb-reader') as {
       default?: new (buffer: Buffer) => {
@@ -426,7 +665,7 @@ function openAccessItemSources(filePath: string): DatabaseFieldSource[] {
       getTable(name: string): { getColumnNames(): string[]; getData(): Record<string, unknown>[] };
     });
     const MDBReader = typeof module === 'function' ? module : module.default;
-    if (!MDBReader) return [];
+    if (!MDBReader) return undefined;
     const reader = new MDBReader(fs.readFileSync(filePath));
     const result: DatabaseFieldSource[] = [];
     for (const tableName of reader.getTableNames()) {
@@ -441,8 +680,11 @@ function openAccessItemSources(filePath: string): DatabaseFieldSource[] {
       const rowsByIndex = new Map<number, Record<string, unknown>>();
       const ambiguousNames = new Set<string>();
       const ambiguousIndexes = new Set<number>();
+      const names: string[] = [];
       for (const row of table.getData()) {
         if (nameColumn) {
+          const spelling = String(row[nameColumn] ?? '').trim();
+          if (spelling) names.push(spelling);
           const name = String(row[nameColumn] ?? '').trim().toLocaleUpperCase();
           if (name) {
             if (rows.has(name)) ambiguousNames.add(name);
@@ -458,6 +700,7 @@ function openAccessItemSources(filePath: string): DatabaseFieldSource[] {
         }
       }
       result.push({
+        itemNames: () => nameColumn && names.length <= 40000 ? names : undefined,
         lookup(itemName, field) {
           const column = lookupColumn(columnLookup, field);
           const key = itemName.trim().toLocaleUpperCase();
@@ -475,7 +718,7 @@ function openAccessItemSources(filePath: string): DatabaseFieldSource[] {
     }
     return result;
   } catch {
-    return [];
+    return undefined;
   }
 }
 
@@ -604,6 +847,65 @@ function isDirectory(filePath: string): boolean {
 function pathKey(filePath: string): string {
   const resolved = path.resolve(filePath);
   return process.platform === 'win32' ? resolved.toLocaleLowerCase() : resolved;
+}
+
+function samePreviewFileSnapshot(left: fs.Stats, right: fs.Stats): boolean {
+  return left.dev === right.dev && left.ino === right.ino && left.size === right.size
+    && left.mtimeMs === right.mtimeMs && left.ctimeMs === right.ctimeMs && left.nlink === right.nlink;
+}
+
+function insidePreviewRoot(root: string, target: string): boolean {
+  const relative = path.relative(root, target);
+  return relative !== '' && !path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`);
+}
+
+/** Reject links at every level, including an in-root junction to another in-root folder. */
+function hasOnlyRealPreviewComponents(root: string, target: string, directoryTarget = false): boolean {
+  if (target !== root && !insidePreviewRoot(root, target)) return false;
+  try {
+    const rootStat = fs.lstatSync(root);
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink() || pathKey(fs.realpathSync(root)) !== pathKey(root)) return false;
+    const segments = path.relative(root, target).split(path.sep).filter(Boolean);
+    let current = root;
+    for (let index = 0; index < segments.length; index++) {
+      current = path.join(current, segments[index]);
+      const stat = fs.lstatSync(current);
+      if (stat.isSymbolicLink()) return false;
+      const directory = index < segments.length - 1 || directoryTarget;
+      if (directory ? !stat.isDirectory() : !stat.isFile()) return false;
+    }
+    return pathKey(fs.realpathSync(target)) === pathKey(target);
+  } catch { return false; }
+}
+
+function safePreviewTablePath(sourceFile: string, rawPath: string, extension: 'xls' | 'csv'): string | undefined {
+  if (!rawPath || /^[\\/]{2}/.test(sourceFile) || /[\u0000-\u001f]|<\$/.test(rawPath)) return undefined;
+  const trimmed = rawPath.trim();
+  const relativePath = /^(?:".*"|'.*')$/.test(trimmed) ? trimmed.slice(1, -1) : trimmed;
+  // Block UNC/device paths, URLs, drive-relative paths and alternate streams
+  // before probing the filesystem. Absolute paths are allowed only inside
+  // the same proven local Envir boundary below.
+  if (path.extname(relativePath).toLowerCase() !== `.${extension}` || /^[\\/]{2}|^[A-Za-z]:[^\\/]/.test(relativePath)
+    || relativePath.replace(/^[A-Za-z]:/, '').includes(':')) return undefined;
+  const sourcePath = path.resolve(sourceFile);
+  const root = findAncestorDirectory(sourcePath, 'Envir');
+  if (!root || !hasOnlyRealPreviewComponents(root, path.dirname(sourcePath), true)) return undefined;
+  try {
+    // New unsaved files in a real source directory are allowed; an existing
+    // symlink document must not grant its target's unrelated Envir authority.
+    if (fs.existsSync(sourcePath) && fs.lstatSync(sourcePath).isSymbolicLink()) return undefined;
+  } catch { return undefined; }
+  const normalized = relativePath.replace(/[\\/]/g, path.sep);
+  const candidates = path.isAbsolute(normalized) ? [path.resolve(normalized)] : [
+    path.resolve(path.dirname(sourcePath), normalized),
+    path.resolve(root, 'Market_Def', normalized),
+    path.resolve(root, normalized),
+  ];
+  const valid = uniquePaths(candidates).filter(candidate => insidePreviewRoot(root, candidate)
+    && hasOnlyRealPreviewComponents(root, candidate));
+  // Several different existing candidates are ambiguous; never select by
+  // filename order or strip excess ../ prefixes until some file happens to fit.
+  return valid.length === 1 ? valid[0] : undefined;
 }
 
 function parseIniSections(text: string): IniSections {

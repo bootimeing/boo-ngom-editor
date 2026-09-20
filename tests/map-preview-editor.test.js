@@ -57,8 +57,8 @@ function main() {
   );
   assert.match(
     html,
-    /function waitNpcFrameImage\(image\)[\s\S]*image\.decode\(\)[\s\S]*Promise\.all\(images\.map\(waitNpcFrameImage\)\)[\s\S]*ready\[frame\]\.image/,
-    'NPC animation must preload and decode every frame before switching visible frame metadata'
+    /function waitNpcFrameImage\(image\)[\s\S]*image\.decode\(\)[\s\S]*Promise\.all\(images\.map\(image=>image\?waitNpcFrameImage\(image\):Promise\.resolve\(true\)\)\)[\s\S]*ready\[frame\]\.image/,
+    'NPC animation must decode every nonblank frame and retain transparent beats before switching metadata'
   );
   assert.match(
     html,
@@ -503,12 +503,24 @@ function main() {
   const firstImage = { hidden: false, src: 'frame-1' };
   const secondImage = { hidden: true, src: 'preloaded-frame-2' };
   const animatedStyle = { setProperty() {} };
+  const animatedClasses = new Set();
   const animatedNode = {
     dataset: { entityType: 'npc', line: '3' },
-    classList: { toggle() {}, contains: value => value === 'offset-positioned' },
+    classList: {
+      add: value => animatedClasses.add(value),
+      remove: value => animatedClasses.delete(value),
+      toggle: (value, enabled) => enabled ? animatedClasses.add(value) : animatedClasses.delete(value),
+      contains: value => animatedClasses.has(value),
+    },
     querySelectorAll: () => [firstImage, secondImage],
     style: animatedStyle,
   };
+  context.applyNpcFrame(animatedNode, null, { blank: true });
+  assert.equal(animatedClasses.has('blank-hitbox'), true);
+  assert.equal(animatedStyle.width, '24px');
+  assert.equal(animatedStyle.height, '34px');
+  assert.equal(firstImage.hidden, true);
+  assert.equal(secondImage.hidden, true);
   context.applyNpcFrame(animatedNode, secondImage, {
     url: 'frame-2', width: 65, height: 81, offsetX: 7, offsetY: -51, usesOffsets: true,
   });
@@ -518,6 +530,12 @@ function main() {
   assert.equal(animatedNode.dataset.frameOffsetX, '7');
   assert.equal(animatedNode.dataset.frameOffsetY, '-51');
   assert.equal(animatedStyle.width, '65px');
+  assert.equal(animatedStyle.height, '81px');
+  assert.equal(animatedClasses.has('blank-hitbox'), false);
+  context.applyNpcFrame(animatedNode, null, { blank: true });
+  assert.equal(firstImage.hidden, true);
+  assert.equal(secondImage.hidden, true);
+  assert.equal(animatedStyle.width, '65px', 'later blank beats keep the last real hitbox');
   assert.equal(animatedStyle.height, '81px');
 
   const iconImage = { hidden: true, naturalWidth: 100, naturalHeight: 40 };

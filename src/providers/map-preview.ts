@@ -13,12 +13,14 @@ import {
   CachedPatchAssetTable,
   CachedPatchArchiveResolution,
   CachedPatchPak,
+  createPatchCacheSnapshotAsync,
   findCachedPatchImage,
   findUniqueCurrentCachedPatchPakByName,
   isPatchCacheCurrent,
   listCachedPatchPaks,
   loadCachedPatchAssetTable,
   PATCH_MANAGER_STATE_KEY,
+  PatchCacheSnapshot,
   patchImagePath,
   patchManagerStateKey,
   resolveCachedPatchArchiveByName,
@@ -72,6 +74,7 @@ import { ArchiveExtension } from '../utils/archive-types';
 import { clearPakCache, loadPakIndex } from '../utils/pak';
 import {
   collectOriginalMapViewport,
+  classifyOriginalMapTileLayout,
   originalMapAnimationFrameCount,
   originalMapAnimationFrameReferences,
   originalMapAnimationProfileSupportsPlayback,
@@ -141,7 +144,7 @@ const ORIGINAL_MAP_CHUNK_CELL_WIDTH = 16;
 const ORIGINAL_MAP_CHUNK_CELL_HEIGHT = 16;
 const ORIGINAL_MAP_VIEWPORT_CHUNK_LIMIT = 36;
 const ORIGINAL_MAP_STATIC_RENDERER_REVISION = 'browser-canvas-static-v1';
-const ORIGINAL_MAP_STATIC_PLACEMENT_REVISION = 'tile-sm-top-left-48x32-seam1-v1';
+const ORIGINAL_MAP_STATIC_PLACEMENT_REVISION = 'tile-sm-top-left-full-mid-word-single-cell-v3';
 const ORIGINAL_MAP_STATIC_BLEND_REVISION = 'source-over-nearest-v1';
 const ORIGINAL_MAP_STATIC_CHUNK_REVISION = 'cells-16x16-lod0-v1';
 const ORIGINAL_MAP_TILE_DATA_URL_PREFIX = 'data:image/png;base64,';
@@ -191,6 +194,7 @@ interface MapPreviewMessage {
 
 interface ResolvedNpcFrame {
   url: string;
+  blank?: boolean;
   width: number;
   height: number;
   offsetX: number;
@@ -257,6 +261,7 @@ interface OriginalMapSession {
   sourceContextPromise?: Promise<OriginalMapSourceContext>;
   staticCacheIdentity?: OriginalMapTileIdentity | null;
   staticCacheIdentityPromise?: Promise<OriginalMapTileIdentity | undefined>;
+  staticCacheIdentityPromiseGeneration?: number;
 }
 
 interface OriginalMapSourceContext {
@@ -875,28 +880,39 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     const frames: ResolvedNpcFrame[] = [];
     for (let offset = 0; offset < 10; offset++) {
       const imageIndex = startIndex + offset;
-      if (imageIndex >= pak.slotCount || imageIndex >= table.slotCount) break;
-      if (!table.present[imageIndex] || table.blank[imageIndex]) continue;
-      const imagePath = patchImagePath(pak, imageIndex);
-      if (!pak.archiveId && !isFile(imagePath)) continue;
-      frames.push({
-        url: this.panel.webview.asWebviewUri(
-          pak.archiveId
-            ? archiveResourceUri(pak.archiveId, imageIndex)
-            : vscode.Uri.file(imagePath)
-        ).toString(),
-        width: table.width[imageIndex] || 1,
-        height: table.height[imageIndex] || 1,
-        offsetX: table.offsetX[imageIndex] || 0,
-        offsetY: table.offsetY[imageIndex] || 0,
-        usesOffsets: true,
-      });
+      const frame = this.resolveEntityFrame(pak, table, imageIndex);
+      if (!frame) return { frames: [], interval: 0, label: 'SafePointEffect 帧不完整' };
+      frames.push(frame);
     }
     if (!pak.archiveId) context.resourceRoots.add(pak.cacheDir);
     return {
       frames,
       interval: frames.length > 1 ? 120 : 0,
       label: `${path.basename(pak.pakPath)} · ${String(startIndex).padStart(6, '0')}-${String(startIndex + 9).padStart(6, '0')} · ${frames.length}/10 帧`,
+    };
+  }
+
+  // A proved blank is a transparent time slot, not a missing image. Explicit
+  // sequences retain it; missing metadata/PNG rejects the sequence instead of
+  // inventing a URL or shortening its period.
+  private resolveEntityFrame(
+    pak: CachedPatchPak,
+    table: CachedPatchAssetTable | undefined,
+    imageIndex: number
+  ): ResolvedNpcFrame | undefined {
+    if (!this.panel || !table || !Number.isSafeInteger(imageIndex) || imageIndex < 0
+      || imageIndex >= pak.slotCount || imageIndex >= table.slotCount || !table.present[imageIndex]) return undefined;
+    if (table.blank[imageIndex]) {
+      return { url: '', blank: true, width: 0, height: 0, offsetX: 0, offsetY: 0, usesOffsets: false };
+    }
+    if (!(table.width[imageIndex] > 0) || !(table.height[imageIndex] > 0)) return undefined;
+    const imagePath = patchImagePath(pak, imageIndex);
+    if (!pak.archiveId && !isFile(imagePath)) return undefined;
+    return {
+      url: this.panel.webview.asWebviewUri(pak.archiveId
+        ? archiveResourceUri(pak.archiveId, imageIndex) : vscode.Uri.file(imagePath)).toString(),
+      width: table.width[imageIndex], height: table.height[imageIndex],
+      offsetX: table.offsetX[imageIndex], offsetY: table.offsetY[imageIndex], usesOffsets: true,
     };
   }
 
@@ -971,27 +987,9 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         }
         tableByArchive.set(archiveKey, table);
       }
-      const imagePath = patchImagePath(pak, imageIndex);
-      if (!pak.archiveId && !isFile(imagePath)) return { url: '' };
-      if (!pak.archiveId) context.resourceRoots.add(pak.cacheDir);
-      const hasMetadata = Boolean(
-        table
-        && imageIndex < table.slotCount
-        && table.present[imageIndex]
-        && table.width[imageIndex] > 0
-        && table.height[imageIndex] > 0
-      );
-      return {
-        url: this.panel.webview.asWebviewUri(
-          pak.archiveId
-            ? archiveResourceUri(pak.archiveId, imageIndex)
-            : vscode.Uri.file(imagePath)
-        ).toString(),
-        width: hasMetadata ? table!.width[imageIndex] : 0,
-        height: hasMetadata ? table!.height[imageIndex] : 0,
-        offsetX: hasMetadata ? table!.offsetX[imageIndex] : 0,
-        offsetY: hasMetadata ? table!.offsetY[imageIndex] : 0,
-      };
+      const frame = this.resolveEntityFrame(pak, table, imageIndex);
+      if (frame && !pak.archiveId) context.resourceRoots.add(pak.cacheDir);
+      return frame || { url: '' };
     });
     return preview.icons.map(icon => ({
       lineNumber: icon.lineNumber,
@@ -1005,8 +1003,9 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       speedMs: icon.speedMs,
       playCount: icon.playCount,
       layer: icon.layer,
-      frames: icon.frameAssets.map(asset => ({
+      frames: icon.frameAssets.some(asset => !asset.url && !asset.blank) ? [] : icon.frameAssets.map(asset => ({
         url: asset.url,
+        blank: asset.blank === true,
         width: Math.max(0, Math.trunc(Number(asset.width) || 0)),
         height: Math.max(0, Math.trunc(Number(asset.height) || 0)),
         offsetX: Math.trunc(Number(asset.offsetX) || 0),
@@ -1180,28 +1179,9 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     const frames: ResolvedNpcFrame[] = [];
     for (let frame = 0; frame < animation.frameCount; frame++) {
       const imageIndex = animation.startIndex + frame;
-      if (imageIndex >= pak.slotCount) break;
-      const imagePath = patchImagePath(pak, imageIndex);
-      if (!pak.archiveId && !isFile(imagePath)) continue;
-      const hasMetadata = Boolean(
-        assetTable
-        && imageIndex < assetTable.slotCount
-        && assetTable.present[imageIndex]
-        && assetTable.width[imageIndex] > 0
-        && assetTable.height[imageIndex] > 0
-      );
-      frames.push({
-        url: this.panel.webview.asWebviewUri(
-          pak.archiveId
-            ? archiveResourceUri(pak.archiveId, imageIndex)
-            : vscode.Uri.file(imagePath)
-        ).toString(),
-        width: hasMetadata ? assetTable!.width[imageIndex] : 0,
-        height: hasMetadata ? assetTable!.height[imageIndex] : 0,
-        offsetX: hasMetadata ? assetTable!.offsetX[imageIndex] : 0,
-        offsetY: hasMetadata ? assetTable!.offsetY[imageIndex] : 0,
-        usesOffsets: hasMetadata,
-      });
+      const resolved = this.resolveEntityFrame(pak, assetTable, imageIndex);
+      if (!resolved) return { frames: [], interval: 0, label: `${path.basename(configPath)} · 帧不完整` };
+      frames.push(resolved);
     }
     if (!pak.archiveId) resourceRoots.add(pak.cacheDir);
     return {
@@ -1977,10 +1957,18 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     if (session.staticCacheIdentity !== undefined) {
       return session.staticCacheIdentity || undefined;
     }
-    if (session.staticCacheIdentityPromise) return session.staticCacheIdentityPromise;
+    const generation = session.generation;
+    const isCurrent = (): boolean => this.originalMapSession === session
+      && session.generation === generation && this.originalMapVersion === generation
+      && this.currentMap?.key === session.mapKey;
+    if (!isCurrent()) return undefined;
+    if (session.staticCacheIdentityPromise && session.staticCacheIdentityPromiseGeneration === generation) {
+      return session.staticCacheIdentityPromise;
+    }
     const prepare = (async (): Promise<OriginalMapTileIdentity | undefined> => {
       try {
         const source = await this.originalMapSourceContext(session);
+        if (!isCurrent()) return undefined;
         if (source.resourceRoots.length === 0 || source.sourceScanWarning) {
           session.staticCacheIdentity = null;
           return undefined;
@@ -1988,13 +1976,17 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         const staticArchiveNames = session.model.archiveNames.filter(name => (
           /^(?:tiles|smtiles)\d*$/i.test(name)
         ));
+        const patchSnapshot = staticArchiveNames.length
+          ? await createPatchCacheSnapshotAsync(getPatchCacheRoot(this.context), source.resourceRoots, 'direct', isCurrent) : undefined;
+        if (!isCurrent()) return undefined;
         const archives = staticArchiveNames.map(archiveName => {
           const resolution = this.resolveOriginalArchive(
             archiveName,
             source.archiveFiles,
             source.resourceRoots,
             source.supportedExtensions,
-            true
+            true,
+            patchSnapshot
           );
           if (
             (resolution.status === 'ready' || resolution.status === 'shared-cache')
@@ -2030,6 +2022,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         session.staticCacheIdentity = identity;
         return identity;
       } catch (error) {
+        if (!isCurrent()) return undefined;
         console.warn(
           '[BOO] 原始地图持久切片缓存已降级为当前视口流式绘制:',
           error instanceof Error ? error.message : String(error)
@@ -2039,11 +2032,13 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       }
     })();
     session.staticCacheIdentityPromise = prepare;
+    session.staticCacheIdentityPromiseGeneration = generation;
     try {
       return await prepare;
     } finally {
       if (session.staticCacheIdentityPromise === prepare) {
         session.staticCacheIdentityPromise = undefined;
+        session.staticCacheIdentityPromiseGeneration = undefined;
       }
     }
   }
@@ -2120,8 +2115,11 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       version,
       viewportSeq
     );
-    const references = collectOriginalMapViewport(session.model, viewport).filter(reference => (
+    const candidates = collectOriginalMapViewport(session.model, viewport, includeStaticSources).filter(reference => (
       includeStaticSources || reference.layer === 'object'
+    ));
+    const references = candidates.filter(reference => (
+      reference.layer !== 'tile' || (reference.x % 2 === 0 && reference.y % 2 === 0)
     ));
     const baseResourceKeys = new Set<string>();
     const uniqueReferences = new Map<string, OriginalMapDrawReference>();
@@ -2150,6 +2148,16 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       archiveFiles,
       sourceScanWarning,
     } = source;
+    // One selection/currentness pass per viewport, never stored on the long-
+    // lived sourceContext. The selected archive is rechecked by the resolver
+    // and the archive reader still guards source/companion identity on reads.
+    const patchSnapshot = resourceRoots.length
+      ? await createPatchCacheSnapshotAsync(getPatchCacheRoot(this.context), resourceRoots, 'direct',
+        () => this.isOriginalMapViewportCurrent(session, version, viewportSeq))
+      : undefined;
+    if (!this.isOriginalMapViewportCurrent(session, version, viewportSeq)) {
+      throw new Error('原始地图视口加载已取消');
+    }
     const animationControlSupported = originalMapAnimationProfileSupportsPlayback(
       definition.id,
       session.model.animationProfile
@@ -2172,11 +2180,48 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         archiveFiles,
         resourceRoots,
         supportedExtensions,
-        !sourceScanWarning
+        !sourceScanWarning,
+        patchSnapshot
       );
       archiveResolutions.set(archiveName, resolution);
       return resolution;
     };
+    // Classic clients store background Tiles as 96x64 images placed on even
+    // cells. Some newer/converted clients instead store 48x32 single-cell
+    // Tiles. The MAP bytes alone cannot distinguish those layouts, so inspect
+    // the active archive table before requesting the omitted odd cells.
+    const singleCellTileArchives = new Set<string>();
+    for (const archiveName of new Set(
+      candidates.filter(reference => reference.layer === 'tile').map(reference => reference.archiveName)
+    )) {
+      try {
+        const resolution = resolveArchive(archiveName);
+        if (resolution.status !== 'ready' && resolution.status !== 'shared-cache') continue;
+        const table = this.originalAssetTable(resolution.pak);
+        if (classifyOriginalMapTileLayout(table) === 'single-cell') {
+          singleCellTileArchives.add(archiveName);
+        }
+      } catch {
+        // Resource resolution remains fail-closed; a missing/stale archive is
+        // handled by the normal missing-source diagnostics below.
+      }
+    }
+    if (singleCellTileArchives.size > 0) {
+      const expanded = candidates.filter(reference => (
+        reference.layer === 'tile'
+        && (reference.x % 2 !== 0 || reference.y % 2 !== 0)
+        && singleCellTileArchives.has(reference.archiveName)
+      ));
+      for (const reference of expanded) {
+        // A resource can be shared by many cells. Deduplicate decoding below,
+        // never the placements: each odd cell must still reach the canvas.
+        baseResourceKeys.add(reference.resourceKey);
+        references.push(reference);
+        if (!uniqueReferences.has(reference.resourceKey)) {
+          uniqueReferences.set(reference.resourceKey, reference);
+        }
+      }
+    }
     const planAnimationSequence = (reference: OriginalMapDrawReference): void => {
       if (reference.layer !== 'object') return;
       const frameCount = originalMapAnimationFrameCount(reference.animationFrame);
@@ -2729,7 +2774,8 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     archiveFiles: readonly string[],
     resourceRoots: readonly string[],
     supportedExtensions: readonly ArchiveExtension[],
-    allowSharedCache: boolean
+    allowSharedCache: boolean,
+    patchSnapshot?: PatchCacheSnapshot
   ): OriginalArchiveResolution {
     const cacheRoot = getPatchCacheRoot(this.context);
     const exact = resolveCachedPatchArchiveByName(
@@ -2737,8 +2783,12 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       archiveName,
       archiveFiles,
       resourceRoots,
-      supportedExtensions
+      supportedExtensions,
+      patchSnapshot
     );
+    if (exact.status === 'ready' && !isPatchCacheCurrent(exact.pak)) {
+      return { status: 'stale', sourcePath: exact.sourcePath, pak: exact.pak };
+    }
     if (
       exact.status !== 'missing-source'
       || !allowSharedCache

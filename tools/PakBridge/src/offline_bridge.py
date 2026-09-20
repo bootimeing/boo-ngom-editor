@@ -401,14 +401,18 @@ def make_handler(state: BridgeState) -> type[BaseHTTPRequestHandler]:
                 self.send_json(404, {"error": "not found"})
                 return
             try:
-                snapshot = offline.default_gee_vm().snapshot_path
+                # All advertised formats now use native transforms. Exercise
+                # both GEE key paths, not the optional differential-test VM.
+                offline.derive_gee_keys("")
+                gee2.password_state("")
                 self.send_json(
                     200,
                     {
                         "ok": True,
                         "engine": "offline",
                         "gmProcessRequired": False,
-                        "snapshot": snapshot.name,
+                        "cryptoBackend": "native",
+                        "snapshotRequired": False,
                         "formats": [
                             "GEEPAK2",
                             "GEEPAK3",

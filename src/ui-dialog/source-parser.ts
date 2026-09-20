@@ -1,4 +1,9 @@
 import { EngineId } from '../types';
+import { popupCallbackLabel, popupInputRaw, popupInputValueAccepted, popupInputColumn } from './preview-popup-input';
+import { applyClientTextPreviews, hasRecognizedClientTextExpression } from './client-text-preview';
+import { applyConstantDisplayFallback } from './preview-constant-display';
+import { DialogPreviewInput, restorePreviewTextFields, resolvePreviewExpression, effectivePreviewConditionThreshold } from './preview-inputs';
+import { localControlContract, localControlIdentity, localControlValueAccepted, localCompletionReady } from './preview-control-submit';
 import { resolveStateItemImageReference } from '../utils/item-image';
 import { legendColor, resolveLegendColorIndex } from '../utils/legend-colors';
 import { resolveMonsterRepresentativeAsset } from '../utils/monster-image';
@@ -76,6 +81,7 @@ import { DialogStatementSchema } from './statement-catalog';
 import {
   DialogLabelVariableResolution,
   DialogResolvedLine,
+  DialogSayTraceLine,
   resolveDialogVariables,
 } from './variable-resolver';
 
@@ -176,6 +182,10 @@ interface StatementMonsterControl {
 }
 
 export interface ParseNpcDialogOptions {
+  /** Physical primary labels only; imported QuestDiary labels cannot impersonate QFunction content. */
+  addDlgLocalLabels?: readonly string[];
+  previewPath?: readonly import('./variable-resolver').DialogPreviewCall[];
+  previewCall?: import('./variable-resolver').DialogPreviewCall;
   uri: string;
   fileName: string;
   filePath: string;
@@ -186,12 +196,21 @@ export interface ParseNpcDialogOptions {
   offsets: NpcDialogOffsets;
   catalog: DialogStatementSchema[];
   conditionStates?: Readonly<Record<string, boolean>>;
+  previewValues?: import('./preview-inputs').DialogPreviewValues;
   dataOptions?: NestedVariableAnalysisOptions;
 }
 
 export function parseNpcDialogDocument(
   text: string,
   options: ParseNpcDialogOptions
+): NpcDialogDocumentModel {
+  return parseNpcDialogDocumentInternal(text, options, true);
+}
+
+function parseNpcDialogDocumentInternal(
+  text: string,
+  options: ParseNpcDialogOptions,
+  validateHistory: boolean
 ): NpcDialogDocumentModel {
   const lines = scanScriptLines(text);
   const linesByNumber = new Map(lines.map(line => [line.lineNumber, line]));
@@ -210,11 +229,15 @@ export function parseNpcDialogDocument(
     : options.engine === 'GEE'
       ? parseGeeAddDlgWindows(text, root, sourceDocument)
       : [];
-  const reachable = findReachableSections(text, sections, root);
+  const reachable = findReachableSections(text, sections, root, options.engine);
   const rawConditionGroups = reachable.flatMap(section => (
-    collectConditionGroups(section, options.conditionStates)
+    collectConditionGroups(section, options.conditionStates, options.engine)
   ));
-  const coalescedConditions = coalesceEquivalentConditionGroups(
+  const coalescedConditions = options.previewValues !== undefined ? {
+    groups: rawConditionGroups,
+    aliases: new Map(rawConditionGroups.map(group => [group.id, group.id])),
+    expandedStates: {},
+  } : coalesceEquivalentConditionGroups(
     rawConditionGroups,
     options.conditionStates
   );
@@ -226,14 +249,22 @@ export function parseNpcDialogDocument(
     engine: options.engine,
     conditionStates: coalescedConditions.expandedStates,
     dataOptions: options.dataOptions,
+    previewValues: options.previewValues,
+    previewCall: options.previewCall,
+    previewPath: options.previewPath,
   });
+  if (options.previewValues !== undefined) {
+    for (const group of conditionGroups) group.satisfied = variableResolution.conditionStates?.[group.id] === true;
+  }
   warnings.push(...variableResolution.warnings);
-  const actUiPreviews = collectActUiPreviews(
+  const actUiCollection = collectActUiPreviews(
     text,
     reachable,
     options.engine,
-    variableResolution.byLabel
+    variableResolution.byLabel,
+    coalescedConditions.aliases
   );
+  const actUiPreviews = actUiCollection.previews;
   const schemasByToken = groupSchemas(options.catalog);
   const scenes: DialogScene[] = [];
   for (const section of reachable) {
@@ -248,6 +279,20 @@ export function parseNpcDialogDocument(
       sourceDocument,
       variableResolution.byLabel.get(normalizeLabel(section.label))
     );
+    for (const element of sectionScenes.flatMap(scene => scene.elements)) {
+      if (element.sayOccurrence !== undefined) continue;
+      const events = variableResolution.byLabel.get(normalizeLabel(section.label))?.sayEvents
+        ?.filter(event => event.lineNumber === element.lineNumber - 1);
+      const selectedRoot = variableResolution.previewPath?.at(-1)?.targetLabel;
+      if (events?.length === 1 && (events[0].executionRootLabel.toLowerCase() !== section.label.toLowerCase()
+        || (selectedRoot?.toLowerCase() === section.label.toLowerCase()
+          && events[0].executionRootLabel.toLowerCase() === selectedRoot.toLowerCase()))) {
+        element.sayOccurrence = events[0].sayOccurrence;
+        element.executionRootLabel = events[0].executionRootLabel;
+        element.executionFrame = events[0].executionFrame;
+        element.executionSourceLabel = events[0].sourceLabel;
+      }
+    }
     scenes.push(...sectionScenes);
     if (sectionScenes.length === 0) {
       const fallback = parseStaticSectionScene(
@@ -264,6 +309,13 @@ export function parseNpcDialogDocument(
     }
   }
 
+  const executionTrace = variableResolution.executionTrace;
+  if (executionTrace?.some(event => event.sourceLabel.toLowerCase() !== event.executionRootLabel.toLowerCase())) {
+    const scene = parseExecutionComposition(text, linesByNumber, root, executionTrace, options, schemasByToken);
+    scenes.push(scene);
+    warnings.push('跨标签 SAY 已提供独立执行顺序组合视图；各标签页保留源码布局，客户端最终追加/替换规则仍需对照');
+  }
+
   if (options.engine === 'GEE' && addDlgWindows.length > 0) {
     scenes.push(...createGeeAddDlgScenes(addDlgWindows, options.offsets, schemasByToken));
   }
@@ -272,14 +324,20 @@ export function parseNpcDialogDocument(
     warnings.push('部分函数没有 #SAY/#ELSESAY，已按静态界面语句生成只读场景');
   }
   if (options.engine === 'GOM') {
-    attachGomAddDlgWindows(text, sections, scenes, addDlgWindows);
+    attachGomAddDlgWindows(text, sections, scenes, addDlgWindows, options.addDlgLocalLabels);
   }
-  attachAddButtonActionPreviews(
+  const addButtonSurfaceConditionIds = attachAddButtonActionPreviews(
     text,
     reachable,
     scenes,
     options.engine,
-    variableResolution.byLabel
+    variableResolution.byLabel,
+    coalescedConditions.aliases,
+    options.previewValues === undefined
+      ? undefined
+      : new Map(conditionGroups.map(group => [group.id, group.satisfied])),
+    new Set(variableResolution.executedLabels || []),
+    new Set(variableResolution.activeSurfaceActionLines || [])
   );
   for (const window of addDlgWindows) warnings.push(...window.warnings);
   const activePreviewPath = Object.fromEntries(
@@ -297,13 +355,199 @@ export function parseNpcDialogDocument(
     warnings.push(`${options.engineLabel} 未配置 NPC 对话框文字坐标修正，当前按 0,0 预览`);
   }
 
+  const clientInputs = applyClientTextPreviews(scenes, composeDialogPages(scenes, conditionGroups), options.engine, options.previewValues);
+  applyConstantDisplayFallback(scenes, options.engine);
+  restorePreviewTextFields(scenes);
+  for (const element of new Set(scenes.flatMap(scene => scene.elements))) {
+    if (!element.textPreview?.lines.some(line => line.some(run => run.clientValue))) continue;
+    const runs = element.textPreview.lines.flat();
+    if (element.textPreview.simplifyNumber && runs.length === 1 && runs[0].clientValue) {
+      runs[0].clientValue.simplifyNumber = true;
+      element.textPreview.simplifyNumberApproximate = dialogTextNumberSimplificationIsApproximate(runs[0].text);
+      runs[0].text = simplifyDialogTextNumber(runs[0].text);
+      element.text = runs[0].text;
+    }
+    const size = dialogTextPreviewSize(element.textPreview);
+    if (element.kind === 'text') for (const axis of ['width','height'] as const) {
+      if (element.sizePreview?.[axis].mode === 'default' && !element.textPreview[axis === 'width' ? 'scrollWidth' : 'scrollHeight']) {
+        element[axis] = size[axis]; element.sizePreview[axis].baseValue = size[axis];
+      }
+    }
+  }
   const canvas = calculateCanvasSize(scenes, options.offsets);
   applyShowPositionedBackgroundLayout(scenes, {
     width: DEFAULT_PREVIEW_WIDTH,
     height: DEFAULT_PREVIEW_HEIGHT,
   });
-  const pages = composeDialogPages(scenes, conditionGroups);
+  let pages = composeDialogPages(scenes, conditionGroups);
+  if (options.previewValues !== undefined) {
+    const visited = new Set([root.label, ...(variableResolution.previewPath || []).map(call => call.targetLabel)].map(label => label.toLowerCase()));
+    for (const page of pages.filter(item => !item.executionPreview)) {
+      for (const element of page.elements) {
+        if (!visited.has(page.sourceLabel.toLowerCase()) && !(element.executionRootLabel
+          && visited.has(element.executionRootLabel.toLowerCase()) && Number.isInteger(element.sayOccurrence))) continue;
+        const action = element.runtimeActionPreview;
+        const target = action?.link;
+        const control = localControlContract(element, options.engine);
+        const popup = popupInputRaw(element.raw, options.engine);
+        if (popup && sections.filter(section => section.label.toLowerCase() === popup.target.toLowerCase()).length === 1
+          && pages.filter(item => item.sourceLabel.toLowerCase() === popup.target.toLowerCase()).length === 1) {
+          element.localPopupInput = popup;
+        }
+        if (localCompletionReady(element, options.engine) && target && /^@[^()\s<>]+$/u.test(target)
+          && !action?.dynamicFields?.length && !action?.invalidFields?.length
+          && (element.raw.match(/\|link=/gi) || []).length === 1
+          && sections.filter(section => section.label.toLowerCase() === target.toLowerCase()).length === 1
+          && pages.filter(item => item.sourceLabel.toLowerCase() === target.toLowerCase()).length === 1) {
+          element.localCompletionTarget = target;
+        }
+        if (control && target && /^@[^()\s<>]+$/u.test(target)
+          && !action?.dynamicFields?.length && !action?.invalidFields?.length
+          && (element.raw.match(/\|link=/gi) || []).length === 1
+          && page.elements.filter(peer => localControlIdentity(peer, options.engine) === control.variable).length === 1
+          && sections.filter(section => section.label.toLowerCase() === target.toLowerCase()).length === 1
+          && pages.filter(item => item.sourceLabel.toLowerCase() === target.toLowerCase()).length === 1) {
+          element.localControlTarget = target;
+        }
+        const equip = options.engine === '996PC' && /^<(?:HERO)?EquipShow\|/i.test(element.raw);
+        const doubleTarget = action?.doubleClickLink;
+        if (equip && doubleTarget && /^@[^()\s<>]+$/u.test(doubleTarget)
+          && !action.dynamicFields?.length && !action.invalidFields?.length
+          && (element.raw.match(/\|dblink=/gi) || []).length === 1
+          && sections.filter(section => section.label.toLowerCase() === doubleTarget.toLowerCase()).length === 1
+          && pages.filter(item => item.sourceLabel.toLowerCase() === doubleTarget.toLowerCase()).length === 1) {
+          element.localDoubleClickTarget = doubleTarget;
+        }
+        const sharesParameterizedTarget = element.statementId === 'text-link' && (Boolean(element.executionRootLabel && Number.isInteger(element.sayOccurrence)) || page.elements.some(peer => peer.inputPreview) || (variableResolution.previewPath?.length || 0) > 0 || page.elements.some(peer => (
+          peer.statementId === 'text-link-params' && peer.runtimeActionPreview?.link?.toLowerCase() === target?.toLowerCase()
+        )));
+        const legacyButton = (options.engine === 'GOM' && /^<(?:&)?(?:TEXT|IMG|IMGEX|PLAYIMG):/i.test(element.raw))
+          || (options.engine === 'GEE' && /^<(?:&)?(?:TEXT|IMG|IMGEX|PLAYIMG|PLAYIMGEX):/i.test(element.raw));
+        const keyedButton = equip || (options.engine === '996PC' && /^<(?:Button|Img|Text|Layout)\|/i.test(element.raw) && !action?.doubleClickLink);
+        if ((element.statementId !== 'text-link-params' && !sharesParameterizedTarget && !legacyButton && !keyedButton) || (action?.trigger || (keyedButton ? 'click' : '')) !== 'click'
+          || action?.invalidFields?.length || action?.dynamicFields?.length
+          || !target || !/^@[^()\s<>]+$/u.test(target)
+          || (keyedButton ? (element.raw.match(/\|link=/gi) || []).length !== 1 : element.raw.split('/@').length !== 2)
+          || sections.filter(section => section.label.toLowerCase() === target.toLowerCase()).length !== 1
+          || pages.filter(item => item.sourceLabel.toLowerCase() === target.toLowerCase()).length !== 1) continue;
+        element.localParameterTarget = target;
+      }
+    }
+  }
+  // Rebuild each caller before its edge, not from the final page. A self-call
+  // may legitimately remove the button that led to it. Prefix parsing skips
+  // this validation internally, keeping work bounded by the 32-edge history.
+  let validatedPrefixModel: NpcDialogDocumentModel | undefined;
+  const invalidControlCall = validateHistory ? (variableResolution.previewPath || []).findIndex((call, index) => {
+    validatedPrefixModel = parseNpcDialogDocumentInternal(text,
+      {...options, previewPath: variableResolution.previewPath!.slice(0, index)}, false);
+    if (validatedPrefixModel.previewNavigation?.calls.length !== index) return true;
+    const caller = validatedPrefixModel.pages.find(page => !page.executionPreview && page.sourceLabel.toLowerCase() === call.sourceLabel.toLowerCase());
+    const matchingElements = caller?.elements.filter(element => {
+      // Legacy single-emission histories have no occurrence. The exact
+      // line/column and unique-match gate below still reject repeated copies.
+      if (call.sayOccurrence !== undefined && element.sayOccurrence !== call.sayOccurrence) return false;
+      const lineStart = Math.max(text.lastIndexOf('\n', element.sourceRange.start - 1), text.lastIndexOf('\r', element.sourceRange.start - 1)) + 1;
+      const offset = call.trigger === 'popup-submit' ? popupInputColumn(element.raw)
+        : call.trigger === 'double-click' ? element.raw.toLowerCase().indexOf('|dblink=')
+        : element.raw.toLowerCase().includes('|link=') ? element.raw.toLowerCase().indexOf('|link=') : element.raw.indexOf('/@');
+      return offset >= 0 && element.lineNumber - 1 === call.lineNumber && element.sourceRange.start - lineStart + offset === call.column;
+    }) || [];
+    if (matchingElements.length !== 1) return true;
+    const element = matchingElements[0];
+    const matches = (label: string | undefined): boolean => !!label && label.toLowerCase() === call.targetLabel.toLowerCase();
+    if (call.trigger === 'popup-submit') {
+      return !element.localPopupInput || !matches(element.localPopupInput.target) || !popupInputValueAccepted(element.localPopupInput,call.submittedPopup);
+    }
+    if (call.trigger === 'completion') return !matches(element.localCompletionTarget);
+    if (call.trigger === 'double-click') return !matches(element.localDoubleClickTarget);
+    if (!call.trigger || call.trigger === 'click') return !matches(element.localParameterTarget);
+    if (call.trigger !== 'change') return true;
+    const contract = element && localControlContract(element, options.engine), submitted = call.submittedControl;
+    return !matches(element.localControlTarget) || !contract || !submitted || contract.type !== submitted.type || contract.variable !== submitted.variable
+      || !localControlValueAccepted(contract, submitted.value);
+  }) : -1;
+  if (invalidControlCall >= 0) {
+    const reparsed = validatedPrefixModel!;
+    reparsed.warnings.push('控件状态或取值范围已变化，失效的本地提交及其后续路径已清除');
+    return reparsed;
+  }
+  let publishedConditionGroups = conditionGroups;
+  let publishedActUiPreviews = actUiPreviews;
+  let publishedPreviewInputs = options.previewValues === undefined
+    ? undefined
+    : [...(variableResolution.previewInputs || []), ...clientInputs];
+  if (options.previewValues !== undefined) {
+    const surfacePageLabels = new Set(pages
+      .filter(page => !page.executionPreview)
+      .map(page => normalizeLabel(page.sourceLabel)));
+    if (surfacePageLabels.size === 0) surfacePageLabels.add(normalizeLabel(root.label));
+    const activeSurfaceActionLines = new Set(variableResolution.activeSurfaceActionLines || []);
+    const executedLabels = new Set(variableResolution.executedLabels || []);
+    const currentConditionStates = new Map(conditionGroups.map(group => [group.id, group.satisfied]));
+    const actUiSurfaceEntries = actUiCollection.entries.filter(item => {
+      const label = normalizeLabel(item.preview.sourceLabel);
+      return executedLabels.has(label) || surfacePageLabels.has(label);
+    });
+    const visibleActUiEntries = actUiSurfaceEntries.filter(item => {
+      if (item.conditionGroupId && item.branch) {
+        const satisfied = currentConditionStates.get(item.conditionGroupId) === true;
+        if (item.branch === 'act' ? !satisfied : satisfied) return false;
+      }
+      const label = normalizeLabel(item.preview.sourceLabel);
+      return !executedLabels.has(label)
+        || activeSurfaceActionLines.has(item.preview.lineNumber - 1);
+    });
+    publishedActUiPreviews = visibleActUiEntries.map(item => {
+      const activeInPreview = activeSurfaceActionLines.has(item.preview.lineNumber - 1);
+      return activeInPreview ? { ...item.preview, activeInPreview: true } : item.preview;
+    });
+    const visibleConditionIds = new Set([
+      ...scenes.flatMap(scene => scene.conditionGroupId ? [scene.conditionGroupId] : []),
+      // Keep the condition editable even when its current branch hides the
+      // card. Text inputs from that hidden card remain absent until the user
+      // selects the branch and it becomes an actual visible surface.
+      ...actUiSurfaceEntries.flatMap(item => item.conditionGroupId ? [item.conditionGroupId] : []),
+      ...addButtonSurfaceConditionIds,
+      ...conditionGroupsLeadingToVisibleUi(
+        text,
+        reachable,
+        scenes,
+        options.engine,
+        coalescedConditions.aliases,
+        new Set(variableResolution.executedLabels || [])
+      ),
+    ]);
+    publishedConditionGroups = conditionGroups.filter(group => visibleConditionIds.has(group.id));
+    renumberVisibleConditionTitles(publishedConditionGroups);
+    for (const scene of scenes) {
+      scene.previewPath = Object.fromEntries(
+        Object.entries(scene.previewPath).filter(([id]) => visibleConditionIds.has(id))
+      );
+    }
+    pages = composeDialogPages(scenes, publishedConditionGroups);
+    const surfaceControlLabels = new Set([...surfacePageLabels, ...executedLabels]);
+    const surfaceControlVariables = uniqueVariables(
+      [...(variableResolution.surfaceControlVariables || new Map())]
+        .filter(([label]) => surfaceControlLabels.has(normalizeLabel(label)))
+        .flatMap(([, variables]) => variables)
+    );
+    publishedPreviewInputs = projectSurfacePreviewInputs(
+      variableResolution.previewInputs || [],
+      clientInputs,
+      pages,
+      visibleActUiEntries.flatMap(item => item.variables),
+      visibleConditionIds,
+      coalescedConditions.aliases,
+      variableResolution.conditionVariables,
+      surfaceControlVariables
+    );
+  }
   return {
+    previewNavigation: variableResolution.previewPath === undefined ? undefined : {
+      calls: variableResolution.previewPath,
+      activeLabel: variableResolution.previewPath.at(-1)?.targetLabel || root.label,
+    },
     uri: options.uri,
     fileName: options.fileName,
     filePath: options.filePath,
@@ -318,14 +562,15 @@ export function parseNpcDialogDocument(
     clientHeight: DEFAULT_PREVIEW_HEIGHT,
     canvasWidth: canvas.width,
     canvasHeight: canvas.height,
-    conditionGroups,
+    conditionGroups: publishedConditionGroups,
+    previewInputs: publishedPreviewInputs,
     addDlgWindows,
     companionUris: [],
     companionFilePaths: [],
     companionCandidateFilePaths: [],
     scenes,
     pages,
-    actUiPreviews,
+    actUiPreviews: publishedActUiPreviews,
     warnings,
   };
 }
@@ -367,9 +612,11 @@ export function composeDialogPages(
       || pageScenes.find(scene => scene.addDlgWindow)?.addDlgWindow;
     return {
       id: `PAGE:${normalizeLabel(sourceLabel)}`,
+      executionPreview: pageScenes.some(scene => scene.executionPreview) || undefined,
       title: sourceLabel,
       sourceLabel,
-      conditionSummary: pageGroups.length > 0
+      conditionSummary: pageScenes.some(scene => scene.executionPreview) ? '本地执行顺序 · 只读组合'
+        : pageGroups.length > 0
         ? `${pageGroups.length} 个条件，${satisfiedCount} 个满足`
         : '默认界面',
       conditionGroupIds: pageGroups.map(group => group.id),
@@ -396,7 +643,104 @@ function uniqueById<T extends { id: string }>(values: readonly T[]): T[] {
 
 function uniqueVariables(values: readonly DialogResolvedVariable[]): DialogResolvedVariable[] {
   const result = new Map<string, DialogResolvedVariable>();
-  for (const value of values) result.set(value.name, value);
+  for (const value of values) mergeResolvedVariableSnapshot(result, value);
+  return [...result.values()];
+}
+
+function mergeResolvedVariableSnapshot(
+  target: Map<string, DialogResolvedVariable>,
+  value: DialogResolvedVariable,
+  key = value.name
+): void {
+  const previous = target.get(key);
+  if (!previous) {
+    target.set(key, value);
+    return;
+  }
+  // A page may render the same variable at several source-order snapshots.
+  // Keep the latest display value for diagnostics, but union every local input
+  // dependency needed by any visible snapshot so an earlier placeholder never
+  // becomes impossible to control after a later static assignment.
+  const previewInputNames = [...new Set([
+    ...(previous.previewInputNames || []),
+    ...(value.previewInputNames || []),
+  ])];
+  target.set(key, previewInputNames.length > 0
+    ? { ...value, previewInputNames }
+    : value);
+}
+
+function collectPreviewInputDependencies(
+  variables: readonly DialogResolvedVariable[],
+  target: Set<string>
+): void {
+  for (const variable of variables) {
+    if (variable.previewInputNames?.length) {
+      for (const name of variable.previewInputNames) target.add(name);
+      continue;
+    }
+    // Compatibility for values produced before dependency provenance existed:
+    // a direct local input has no source write, while an incomplete runtime
+    // result remains a valid user-supplied display fallback.
+    if ((variable.localPreview && (!variable.sourceReferences || variable.sourceReferences.length === 0))
+      || variable.status === 'default') target.add(variable.name);
+  }
+}
+
+function variablesForDisplaySources(
+  value: unknown,
+  variables: readonly DialogResolvedVariable[]
+): DialogResolvedVariable[] {
+  const requiredNames = new Set<string>();
+  const seen = new Set<object>();
+  const visit = (candidate: unknown): void => {
+    if (!candidate || typeof candidate !== 'object') return;
+    if (seen.has(candidate as object)) return;
+    seen.add(candidate as object);
+    if (Array.isArray(candidate)) {
+      for (const item of candidate) visit(item);
+      return;
+    }
+    const record = candidate as Record<string, unknown>;
+    if (typeof record.field === 'string' && typeof record.expression === 'string'
+      && Array.isArray(record.variableNames)) {
+      for (const name of record.variableNames) if (typeof name === 'string') requiredNames.add(name);
+    }
+    for (const nested of Object.values(record)) visit(nested);
+  };
+  visit(value);
+  return variables.filter(variable => requiredNames.has(variable.name));
+}
+
+function projectSurfacePreviewInputs(
+  candidates: readonly DialogPreviewInput[],
+  clientInputs: readonly DialogPreviewInput[],
+  pages: readonly DialogPagePreview[],
+  actUiVariables: readonly DialogResolvedVariable[],
+  visibleConditionIds: ReadonlySet<string>,
+  conditionAliases: ReadonlyMap<string, string>,
+  conditionVariables: ReadonlyMap<string, readonly DialogResolvedVariable[]> | undefined,
+  surfaceControlVariables: readonly DialogResolvedVariable[] | undefined
+): DialogPreviewInput[] {
+  const required = new Set<string>();
+  collectPreviewInputDependencies(pages.flatMap(page => page.resolvedVariables), required);
+  collectPreviewInputDependencies(actUiVariables, required);
+  collectPreviewInputDependencies(surfaceControlVariables || [], required);
+  for (const [rawId, variables] of conditionVariables || []) {
+    const visibleId = conditionAliases.get(rawId) || rawId;
+    if (visibleConditionIds.has(visibleId)) collectPreviewInputDependencies(variables, required);
+  }
+
+  const result = new Map<string, DialogPreviewInput>();
+  for (const input of candidates) {
+    if (required.has(input.name)) result.set(input.name, input);
+  }
+  // Client text inputs are discovered from an actual rendered surface after
+  // parsing, so they are already part of the UI projection.
+  for (const input of clientInputs) {
+    const existing = result.get(input.name);
+    result.set(input.name, existing ? { ...existing, ...input, value: input.value ?? existing.value } : input);
+  }
   return [...result.values()];
 }
 
@@ -451,51 +795,176 @@ function findFunctionAtOffset(
     || [...sections].reverse().find(section => section.start <= cursorOffset);
 }
 
+interface LinkedFunctionReference {
+  target: string;
+  surface: boolean;
+}
+
 function findReachableSections(
   text: string,
   sections: ScriptFunctionSection[],
-  root: ScriptFunctionSection
+  root: ScriptFunctionSection,
+  engine: EngineId = 'GOM',
+  rootIsStaticSurface = true
 ): ScriptFunctionSection[] {
   const byName = new Map(sections.map(section => [normalizeLabel(section.label), section]));
-  const queue = [root];
+  const queue: Array<{ section: ScriptFunctionSection; staticSurface: boolean }> = [{
+    section: root,
+    staticSurface: rootIsStaticSurface,
+  }];
   const visited = new Set<string>();
+  const scannedModes = new Map<string, number>();
   const result: ScriptFunctionSection[] = [];
   while (queue.length > 0) {
-    const section = queue.shift()!;
+    const { section, staticSurface } = queue.shift()!;
     const key = normalizeLabel(section.label);
-    if (visited.has(key)) continue;
-    visited.add(key);
-    result.push(section);
+    if (!visited.has(key)) {
+      visited.add(key);
+      result.push(section);
+    }
+    // A label can first be reached as an execution helper and later be proved
+    // to be a static AddDlg/page surface. Re-scan only the newly granted static
+    // display mode so its visible links are not lost.
+    const requestedMode = 1 | (staticSurface ? 2 : 0);
+    const previousMode = scannedModes.get(key) || 0;
+    if ((previousMode & requestedMode) === requestedMode) continue;
+    scannedModes.set(key, previousMode | requestedMode);
     const source = text.slice(section.labelEnd, section.end);
-    for (const reference of linkedFunctionReferences(source)) {
-      const target = cleanTargetLabel(reference);
+    for (const reference of linkedFunctionReferences(source, engine, staticSurface)) {
+      const target = popupCallbackLabel(reference.target,engine)
+        || cleanTargetLabel(engine === '996PC' ? reference.target.split('#')[0] : reference.target);
       if (!target || target.includes('<$')) continue;
       const linked = byName.get(normalizeLabel(target));
-      if (linked && !visited.has(normalizeLabel(linked.label))) queue.push(linked);
+      if (linked) queue.push({ section: linked, staticSurface: reference.surface });
     }
   }
   return result;
 }
 
-function linkedFunctionReferences(source: string): string[] {
-  const result = new Set<string>();
-  const patterns = [
-    /\bGOTO\s+(@[^\s;]+)/gi,
-    /\/\s*(@[^>\s|}]+)/g,
-    /\b(?:LINK|CLICK|ACTION|EVENT|ONCLICK)\s*=\s*(@[^|>\s},]+)/gi,
-  ];
-  for (const pattern of patterns) {
-    let match: RegExpExecArray | null;
-    while ((match = pattern.exec(source)) !== null) result.add(match[1]);
+function conditionGroupsLeadingToVisibleUi(
+  text: string,
+  sections: readonly ScriptFunctionSection[],
+  scenes: readonly DialogScene[],
+  engine: EngineId,
+  aliases: ReadonlyMap<string, string>,
+  executedLabels: ReadonlySet<string>
+): string[] {
+  const visibleLabels = new Set(scenes
+    .filter(scene => scene.elements.length > 0 || Boolean(scene.background || scene.addDlgWindow))
+    .map(scene => normalizeLabel(scene.sourceLabel))
+    .filter(label => sections.some(section => normalizeLabel(section.label) === label)));
+  const byLabel = new Map(sections.map(section => [normalizeLabel(section.label), section]));
+  const gotoTargets = new Map<string, string[]>();
+  for (const section of sections) {
+    const targets: string[] = [];
+    let actionContext = false;
+    for (const line of section.lines.slice(1)) {
+      const directive = directiveName(line.text);
+      if (directive) {
+        actionContext = directive === 'ACT' || directive === 'ELSEACT';
+        continue;
+      }
+      if (!actionContext) continue;
+      for (const target of gotoTargetsOnLine(line.text, engine)) {
+        targets.push(normalizeLabel(target));
+      }
+    }
+    gotoTargets.set(normalizeLabel(section.label), targets);
   }
+  const reachesVisibleUi = (start: string): boolean => {
+    const queue = [normalizeLabel(start)];
+    const visited = new Set<string>();
+    while (queue.length > 0) {
+      const label = queue.shift()!;
+      if (visibleLabels.has(label)) return true;
+      if (visited.has(label)) continue;
+      visited.add(label);
+      for (const target of gotoTargets.get(label) || []) {
+        if (byLabel.has(target) && !visited.has(target)) queue.push(target);
+      }
+    }
+    return false;
+  };
+
+  const result = new Set<string>();
+  for (const section of sections) {
+    if (!executedLabels.has(normalizeLabel(section.label))) continue;
+    let conditionNumber = 0;
+    let currentConditionId: string | undefined;
+    let actionContext = false;
+    for (const line of section.lines.slice(1)) {
+      const directive = directiveName(line.text);
+      if (directive === 'IF') {
+        const rawId = makeConditionGroupId(section.label, ++conditionNumber);
+        currentConditionId = aliases.get(rawId) || rawId;
+      }
+      if (directive) {
+        actionContext = directive === 'ACT' || directive === 'ELSEACT';
+        continue;
+      }
+      if (!actionContext || !currentConditionId) continue;
+      for (const target of gotoTargetsOnLine(line.text, engine)) {
+        if (reachesVisibleUi(target)) result.add(currentConditionId);
+      }
+    }
+  }
+  return [...result];
+}
+
+function linkedFunctionReferences(
+  source: string,
+  engine: EngineId,
+  staticDisplaySurface = false
+): LinkedFunctionReference[] {
+  const result = new Map<string, LinkedFunctionReference>();
+  const add = (target: string, surface: boolean): void => {
+    const key = target.toUpperCase();
+    const current = result.get(key);
+    result.set(key, { target: current?.target || target, surface: surface || current?.surface === true });
+  };
+  let actionContext = false;
+  let sayContext = false;
+  let sawDirective = false;
   for (const line of source.split(/\r\n|\n|\r/)) {
+    const directive = directiveName(line);
+    if (directive) {
+      sawDirective = true;
+      actionContext = directive === 'ACT' || directive === 'ELSEACT';
+      sayContext = directive === 'SAY' || directive === 'ELSESAY';
+      continue;
+    }
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(';') || trimmed.startsWith('//')) continue;
+    if (actionContext || !sawDirective) {
+      for (const target of gotoTargetsOnLine(line, engine)) add(target, false);
+    }
+    if (sayContext || (staticDisplaySurface && !sawDirective && !isBareBusinessCommand(line, engine))) {
+      for (const pattern of [
+        /\/\s*(@[^>\s|}]+)/g,
+        /\b(?:LINK|DBLINK|CLICK|ACTION|EVENT|ONCLICK)\s*=\s*(@[^|>\s},]+)/gi,
+      ]) {
+        let match: RegExpExecArray | null;
+        while ((match = pattern.exec(line)) !== null) add(match[1], true);
+      }
+    }
+    if (!actionContext && sawDirective) continue;
     const invocation = findScriptCommandInvocations(line, typedName => (
       /^AddDlg$/i.test(typedName) ? 'AddDlg' : undefined
     )).find(candidate => candidate.form === 'line');
     const target = invocation?.arguments[7]?.text;
-    if (target?.startsWith('@')) result.add(target);
+    if (target?.startsWith('@')) add(target, true);
   }
-  return [...result];
+  return [...result.values()];
+}
+
+function gotoTargetsOnLine(source: string, engine: EngineId): string[] {
+  const invocation = findScriptCommandInvocations(source, typedName => (
+    /^GOTO$/i.test(typedName) ? 'GOTO' : undefined
+  )).find(candidate => candidate.form === 'line');
+  const raw = invocation?.arguments[0]?.text;
+  if (!raw) return [];
+  const target = cleanTargetLabel(engine === '996PC' ? raw.split('#')[0] : raw);
+  return target && target.startsWith('@') && !target.includes('<$') ? [target] : [];
 }
 
 const ADDDLG_CREATE_POSITION_LABELS = [
@@ -1139,6 +1608,8 @@ type AddButtonActionCommand = 'ADDBUTTON' | 'ADDBUTTONEX' | 'DELBUTTON';
 interface AddButtonActionInvocation {
   sourceLabel: string;
   line: ScriptLine;
+  conditionGroupId?: string;
+  branch?: 'act' | 'elseact';
   command: AddButtonActionCommand;
   arguments: Array<{ start: number; end: number; text: string }>;
   commandStart: number;
@@ -1161,24 +1632,66 @@ function attachAddButtonActionPreviews(
   sections: readonly ScriptFunctionSection[],
   scenes: DialogScene[],
   engine: EngineId,
-  variableResolution: ReadonlyMap<string, DialogLabelVariableResolution>
-): void {
-  const invocations = collectAddButtonActionInvocations(sections, engine);
-  if (invocations.length === 0) return;
+  variableResolution: ReadonlyMap<string, DialogLabelVariableResolution>,
+  conditionAliases: ReadonlyMap<string, string>,
+  conditionStates: ReadonlyMap<string, boolean> | undefined,
+  executedLabels: ReadonlySet<string>,
+  activeSurfaceActionLines: ReadonlySet<number>
+): string[] {
+  // Capture page-bearing labels before this function creates any synthetic
+  // ADDBUTTON-only scene. Otherwise a dormant /@ business handler would make
+  // itself look like an existing surface merely by containing ADDBUTTON.
+  const pageLabels = new Set(scenes.map(scene => normalizeLabel(scene.sourceLabel)));
+  const surfaceInvocations = collectAddButtonActionInvocations(sections, engine, conditionAliases)
+    .filter(invocation => {
+      if (!conditionStates) return true;
+      const label = normalizeLabel(invocation.sourceLabel);
+      return executedLabels.has(label) || pageLabels.has(label);
+    });
+  const potentialCreations = surfaceInvocations.flatMap((invocation, index) => (
+    invocation.command === 'DELBUTTON'
+      ? []
+      : [parseAddButtonCreation(source, invocation, engine, index)]
+  ));
+  const potentialTriggerIds = new Set(potentialCreations.flatMap(element => (
+    element.addButtonPreview?.triggerId === undefined ? [] : [element.addButtonPreview.triggerId]
+  )));
+  const relevantSurfaceInvocations = surfaceInvocations.filter(invocation => {
+    if (invocation.command !== 'DELBUTTON') return true;
+    const deletion = parseAddButtonDeleteAction(invocation, engine);
+    return deletion.dynamic
+      ? potentialCreations.length > 0
+      : deletion.buttonId !== undefined && potentialTriggerIds.has(deletion.buttonId);
+  });
+  const surfaceConditionIds = [...new Set(relevantSurfaceInvocations.flatMap(invocation => (
+    invocation.conditionGroupId ? [invocation.conditionGroupId] : []
+  )))];
+  const invocations = relevantSurfaceInvocations
+    .filter(invocation => {
+      if (conditionStates && invocation.conditionGroupId && invocation.branch) {
+        const satisfied = conditionStates.get(invocation.conditionGroupId) === true;
+        if (invocation.branch === 'act' ? !satisfied : satisfied) return false;
+      }
+      if (!conditionStates) return true;
+      const executed = executedLabels.has(normalizeLabel(invocation.sourceLabel));
+      return !executed || activeSurfaceActionLines.has(invocation.line.lineNumber);
+    });
+  if (invocations.length === 0) return surfaceConditionIds;
   const deleteActions = invocations
     .filter(invocation => invocation.command === 'DELBUTTON')
     .map(invocation => parseAddButtonDeleteAction(invocation, engine));
   const parsed = invocations.flatMap((invocation, index) => {
     if (invocation.command === 'DELBUTTON') return [];
     const sourceElement = parseAddButtonCreation(source, invocation, engine, index);
+    const resolution = variableResolution.get(normalizeLabel(invocation.sourceLabel))?.lines.get(
+      invocation.line.lineNumber
+    );
     const element = bindAddButtonDisplayValues(
       sourceElement,
       invocation,
       engine,
       index,
-      variableResolution.get(normalizeLabel(invocation.sourceLabel))?.lines.get(
-        invocation.line.lineNumber
-      )
+      resolution
     );
     const triggerId = element.addButtonPreview?.triggerId;
     if (element.addButtonPreview) {
@@ -1188,15 +1701,21 @@ function attachAddButtonActionPreviews(
         ))
         .map(action => ({ ...action }));
     }
-    return [element];
+    return [{
+      element,
+      variables: variablesForDisplaySources(element, resolution?.variables || []),
+    }];
   });
-  if (parsed.length === 0) return;
+  if (parsed.length === 0) return surfaceConditionIds;
 
-  const byLabel = new Map<string, DialogElement[]>();
+  const byLabel = new Map<string, Array<{
+    element: DialogElement;
+    variables: readonly DialogResolvedVariable[];
+  }>>();
   for (const entry of parsed) {
     const label = invocations.find(invocation => (
       invocation.command !== 'DELBUTTON'
-      && entry.sourceRange.start === invocation.line.start + invocation.commandStart
+      && entry.element.sourceRange.start === invocation.line.start + invocation.commandStart
     ))?.sourceLabel;
     if (!label) continue;
     const key = normalizeLabel(label);
@@ -1207,8 +1726,10 @@ function attachAddButtonActionPreviews(
 
   for (const section of sections) {
     const key = normalizeLabel(section.label);
-    const elements = byLabel.get(key);
-    if (!elements?.length) continue;
+    const entries = byLabel.get(key);
+    if (!entries?.length) continue;
+    const elements = entries.map(entry => entry.element);
+    const variables = uniqueVariables(entries.flatMap(entry => entry.variables));
     const matchingScenes = scenes.filter(scene => normalizeLabel(scene.sourceLabel) === key);
     if (matchingScenes.length === 0) {
       scenes.push({
@@ -1227,18 +1748,20 @@ function attachAddButtonActionPreviews(
         warnings: [...new Set(elements.map(element => element.warning).filter(
           (value): value is string => Boolean(value)
         ))],
-        resolvedVariables: [],
+        resolvedVariables: variables,
       });
       continue;
     }
     for (const scene of matchingScenes) {
       scene.elements.push(...elements);
+      scene.resolvedVariables = uniqueVariables([...scene.resolvedVariables, ...variables]);
       scene.warnings.push(...elements.map(element => element.warning).filter(
         (value): value is string => Boolean(value)
       ));
       scene.warnings = [...new Set(scene.warnings)];
     }
   }
+  return surfaceConditionIds;
 }
 
 function bindAddButtonDisplayValues(
@@ -1337,15 +1860,26 @@ function addButtonDisplayExpressions(
 
 function collectAddButtonActionInvocations(
   sections: readonly ScriptFunctionSection[],
-  engine: EngineId
+  engine: EngineId,
+  conditionAliases: ReadonlyMap<string, string>
 ): AddButtonActionInvocation[] {
   const result: AddButtonActionInvocation[] = [];
   for (const section of sections) {
     let actionContext = false;
+    let actionBranch: 'act' | 'elseact' | undefined;
+    let conditionNumber = 0;
+    let activeConditionGroupId: string | undefined;
     for (const line of section.lines.slice(1)) {
       const directive = /^\s*#(IF|OR|ACT|ELSEACT|SAY|ELSESAY)\b/i.exec(line.text)?.[1]
         ?.toUpperCase();
-      if (directive) actionContext = directive === 'ACT' || directive === 'ELSEACT';
+      if (directive === 'IF') {
+        const rawId = makeConditionGroupId(section.label, ++conditionNumber);
+        activeConditionGroupId = conditionAliases.get(rawId) || rawId;
+      }
+      if (directive) {
+        actionContext = directive === 'ACT' || directive === 'ELSEACT';
+        actionBranch = directive === 'ACT' ? 'act' : directive === 'ELSEACT' ? 'elseact' : undefined;
+      }
       if (!actionContext) continue;
       const invocation = findScriptCommandInvocations(line.text, typedName => {
         if (/^DELBUTTON$/i.test(typedName)) return 'DELBUTTON' as const;
@@ -1357,6 +1891,8 @@ function collectAddButtonActionInvocations(
       result.push({
         sourceLabel: section.label,
         line,
+        conditionGroupId: activeConditionGroupId,
+        branch: actionBranch,
         command: invocation.command,
         arguments: invocation.arguments.map(argument => ({ ...argument })),
         commandStart: invocation.commandSpan.start,
@@ -1370,6 +1906,8 @@ function collectAddButtonActionInvocations(
 interface ActUiActionInvocation {
   sourceLabel: string;
   line: ScriptLine;
+  conditionGroupId?: string;
+  branch?: 'act' | 'elseact';
   command: DialogActUiCommand;
   arguments: Array<{ start: number; end: number; text: string }>;
   commandStart: number;
@@ -1385,19 +1923,42 @@ const ACT_UI_COMMANDS = new Map<string, DialogActUiCommand>([
   ['OPENCLIENTDLG', 'open-client-dialog'],
 ]);
 
+interface ActUiPreviewCollection {
+  entries: Array<{
+    preview: DialogActUiPreview;
+    conditionGroupId?: string;
+    branch?: 'act' | 'elseact';
+    variables: readonly DialogResolvedVariable[];
+  }>;
+  previews: DialogActUiPreview[];
+  conditionGroupIds: string[];
+  resolvedVariables: DialogResolvedVariable[];
+}
+
 function collectActUiPreviews(
   source: string,
   sections: readonly ScriptFunctionSection[],
   engine: EngineId,
-  variableResolution: ReadonlyMap<string, DialogLabelVariableResolution>
-): DialogActUiPreview[] {
+  variableResolution: ReadonlyMap<string, DialogLabelVariableResolution>,
+  conditionAliases: ReadonlyMap<string, string>
+): ActUiPreviewCollection {
   const invocations: ActUiActionInvocation[] = [];
   for (const section of sections) {
     let actionContext = false;
+    let actionBranch: 'act' | 'elseact' | undefined;
+    let conditionNumber = 0;
+    let activeConditionGroupId: string | undefined;
     for (const line of section.lines.slice(1)) {
       const directive = /^\s*#(IF|OR|AND|ACT|ELSEACT|SAY|ELSESAY)\b/i.exec(line.text)?.[1]
         ?.toUpperCase();
-      if (directive) actionContext = directive === 'ACT' || directive === 'ELSEACT';
+      if (directive === 'IF') {
+        const rawId = makeConditionGroupId(section.label, ++conditionNumber);
+        activeConditionGroupId = conditionAliases.get(rawId) || rawId;
+      }
+      if (directive) {
+        actionContext = directive === 'ACT' || directive === 'ELSEACT';
+        actionBranch = directive === 'ACT' ? 'act' : directive === 'ELSEACT' ? 'elseact' : undefined;
+      }
       if (!actionContext) continue;
       const invocation = findScriptCommandInvocations(line.text, typedName => (
         ACT_UI_COMMANDS.get(typedName.toUpperCase())
@@ -1406,6 +1967,8 @@ function collectActUiPreviews(
       invocations.push({
         sourceLabel: section.label,
         line,
+        conditionGroupId: activeConditionGroupId,
+        branch: actionBranch,
         command: invocation.command,
         arguments: invocation.arguments.map(argument => ({ ...argument })),
         commandStart: invocation.commandSpan.start,
@@ -1413,7 +1976,7 @@ function collectActUiPreviews(
       });
     }
   }
-  return invocations
+  const collected = invocations
     .sort((left, right) => (
       left.line.start + left.commandStart - right.line.start - right.commandStart
     ))
@@ -1424,11 +1987,25 @@ function collectActUiPreviews(
       const evaluatedInvocation = resolution
         ? actUiEvaluatedInvocation(invocation, resolution)
         : invocation;
-      return parseActUiPreview(source, invocation, engine, index, {
+      const lineVariables = resolution?.variables || [];
+      const preview = parseActUiPreview(source, invocation, engine, index, {
         invocation: evaluatedInvocation,
-        variables: resolution?.variables || [],
+        variables: lineVariables,
       });
+      const variables = variablesForDisplaySources(preview, lineVariables);
+      return {
+        preview,
+        conditionGroupId: invocation.conditionGroupId,
+        branch: invocation.branch,
+        variables,
+      };
     });
+  return {
+    entries: collected,
+    previews: collected.map(item => item.preview),
+    conditionGroupIds: collected.flatMap(item => item.conditionGroupId ? [item.conditionGroupId] : []),
+    resolvedVariables: uniqueVariables(collected.flatMap(item => item.variables)),
+  };
 }
 
 interface ActUiDisplayEvaluation {
@@ -2479,17 +3056,19 @@ function attachGomAddDlgWindows(
   source: string,
   sections: ScriptFunctionSection[],
   scenes: DialogScene[],
-  windows: DialogAddDlgWindow[]
+  windows: DialogAddDlgWindow[],
+  localLabels?: readonly string[]
 ): void {
   const byName = new Map(sections.map(section => [normalizeLabel(section.label), section]));
   for (const window of windows) {
     if (!window.qfTarget) continue;
+    if (localLabels && !localLabels.some(label => normalizeLabel(label) === normalizeLabel(window.qfTarget!))) continue;
     const root = byName.get(normalizeLabel(window.qfTarget));
     if (!root) {
       window.warnings.push(`AddDlg 未找到 QF 标签 ${window.qfTarget}`);
       continue;
     }
-    const reachable = findReachableSections(source, sections, root);
+    const reachable = findReachableSections(source, sections, root, 'GOM', true);
     const labels = new Set(reachable.map(section => normalizeLabel(section.label)));
     window.closeActions = collectAddDlgCloseActions(reachable);
     for (const scene of scenes) {
@@ -2543,7 +3122,7 @@ export function collectGomAddDlgCloseActions(
 ): DialogAddDlgWindow['closeActions'] {
   const sections = findFunctionSections(source, scanScriptLines(source));
   const root = sections.find(section => normalizeLabel(section.label) === normalizeLabel(targetLabel));
-  return root ? collectAddDlgCloseActions(findReachableSections(source, sections, root)) : [];
+  return root ? collectAddDlgCloseActions(findReachableSections(source, sections, root, 'GOM', true)) : [];
 }
 
 export function findNpcDialogFunctionLabelOffset(
@@ -2556,7 +3135,8 @@ export function findNpcDialogFunctionLabelOffset(
 
 function collectConditionGroups(
   section: ScriptFunctionSection,
-  states: Readonly<Record<string, boolean>> | undefined
+  states: Readonly<Record<string, boolean>> | undefined,
+  engine: EngineId
 ): DialogConditionGroup[] {
   const result: DialogConditionGroup[] = [];
   let groupNumber = 0;
@@ -2564,7 +3144,10 @@ function collectConditionGroups(
   let collecting = false;
   let operator: DialogConditionOperator = 'AND';
   const finish = () => {
-    if (current && current.conditions.length > 0) result.push(current);
+    if (current && current.conditions.length > 0) {
+      current.requiredCount = effectivePreviewConditionThreshold(engine, current.requiredCount, current.conditions.length, operator === 'OR');
+      result.push(current);
+    }
     current = undefined;
   };
 
@@ -2580,6 +3163,8 @@ function collectConditionGroups(
         title: `${section.label} · 条件 ${groupNumber}`,
         conditions: [],
         operators: [],
+        ...((engine === 'GOM' || engine === 'GEE') && /#IF\s*\(\s*\d+\s*\)/i.test(line.text)
+          ? {requiredCount:Number(/\(\s*(\d+)\s*\)/.exec(line.text)![1])} : {}),
         satisfied: states?.[id] === true,
       };
       operator = 'AND';
@@ -2656,6 +3241,7 @@ function conditionGroupSignature(group: DialogConditionGroup): string {
     normalizeLabel(group.sourceLabel),
     group.conditions.map(normalizeConditionIdentity),
     group.operators,
+    group.requiredCount,
   ]);
 }
 
@@ -2681,6 +3267,43 @@ function renumberVisibleConditionTitles(groups: DialogConditionGroup[]): void {
   }
 }
 
+/** Optional comparison canvas, separate from editable source-layout pages. */
+function parseExecutionComposition(source: string, sourceLines: ReadonlyMap<number, ScriptLine>, root: ScriptFunctionSection,
+  trace: readonly DialogSayTraceLine[], options: ParseNpcDialogOptions, schemas: Map<string, DialogStatementSchema[]>): DialogScene {
+  const elements: DialogElement[] = [], unsupported = new Set<string>();
+  const warnings = new Set(['本地执行顺序组合：仅比较已执行输出；不推断客户端 SAY 追加、替换、清屏或窗口生命周期。请切回源标签页编辑或模拟按钮。']);
+  const variables: DialogResolvedVariable[] = [], flow = createFlowLayoutCursor(options.offsets);
+  for (let start = 0; start < trace.length;) {
+    let end = start + 1;
+    while (end < trace.length && trace[end].executionFrame === trace[start].executionFrame && trace[end].block === trace[start].block) end++;
+    const events = trace.slice(start, end);
+    const parsed = parseVisualElements(source, sourceLines,
+      events.map(event => sourceLines.get(event.lineNumber)).filter((line): line is ScriptLine => !!line),
+      options.offsets, schemas, {lines:new Map(events.map(event => [event.lineNumber,event.resolution]))}, flow, true);
+    for (const element of parsed.elements) {
+      const event = events.find(event => event.lineNumber === element.lineNumber - 1) || events[0];
+      element.id = `EXECUTION:${start}:${element.id}`;
+      element.executionPreview = true; element.executionSourceLabel = event.sourceLabel;
+      element.executionRootLabel = event.executionRootLabel; element.executionFrame = event.executionFrame;
+      element.sayOccurrence = undefined; element.sourceTemplateId = undefined; element.editable = false;
+      // Retain source-authored link appearance; executionPreview independently
+      // denies actions in renderer, Provider and coordinate patchers.
+      delete element.localParameterTarget; delete element.localDoubleClickTarget; delete element.localControlTarget;
+      delete element.localCompletionTarget; delete element.localPopupInput;
+      appendElementWarning(element, `执行序号 ${start + 1} · ${event.sourceLabel} · 调用实例 ${event.executionFrame}；组合只读，请在源标签页编辑`);
+      elements.push(element);
+    }
+    parsed.unsupported.forEach(item => unsupported.add(item)); parsed.warnings.forEach(item => warnings.add(item));
+    variables.push(...parsed.resolvedVariables); start = end;
+  }
+  const layoutWarnings: string[] = [];
+  applyContainerLayout(elements, options.offsets, layoutWarnings); layoutWarnings.forEach(item => warnings.add(item));
+  const executionRoot = trace[0]?.executionRootLabel || root.label;
+  return {id:`EXECUTION:${normalizeLabel(executionRoot)}`,title:'执行顺序组合',sourceLabel:`执行顺序 · ${executionRoot}`,
+    executionPreview:true,marker:'#SAY',conditions:[],conditionOperators:[],previewPath:{},conditionSummary:'本地执行顺序 · 只读组合',
+    sourceStart:root.start,sourceEnd:root.end,elements,unsupportedStatements:[...unsupported],warnings:[...warnings],resolvedVariables:uniqueVariables(variables)};
+}
+
 function parseSectionScenes(
   source: string,
   sourceLines: ReadonlyMap<number, ScriptLine>,
@@ -2692,9 +3315,120 @@ function parseSectionScenes(
   sourceDocument: DialogSourceDocument,
   variableResolution?: DialogLabelVariableResolution
 ): DialogScene[] {
+  if (variableResolution?.sayTrace?.length) {
+    const trace = variableResolution.sayTrace;
+    const lastEventByLine = new Map(trace.map((event, index) => [event.lineNumber, index]));
+    const flow = createFlowLayoutCursor(offsets);
+    const elements: DialogElement[] = [];
+    const unsupported = new Set<string>();
+    const warnings = new Set<string>(['重复输出按本地执行顺序累计展示；不模拟客户端逐帧时序']);
+    const variables = new Map<string, DialogResolvedVariable>();
+    for (let start = 0; start < trace.length;) {
+      let end = start + 1;
+      while (end < trace.length && trace[end].block === trace[start].block && trace[end].executionFrame === trace[start].executionFrame) end++;
+      const events = trace.slice(start, end);
+      const lines = events.map(event => sourceLines.get(event.lineNumber)).filter((line): line is ScriptLine => !!line);
+      const parsed = parseVisualElements(source, sourceLines, lines, offsets, schemasByToken,
+        { lines: new Map(events.map(event => [event.lineNumber, event.resolution])) }, flow, true);
+      for (const element of parsed.elements) {
+        // Each execution instance owns an ID, but not a new source span.
+        // Keep one editable source template, not several conflicting patches
+        // to the same source span. Earlier copies remain individually locatable.
+        if (events.some(event => event.inLoop) || trace.filter(event => event.lineNumber === element.lineNumber - 1).length > 1) {
+          const lastInstance = (lastEventByLine.get(element.lineNumber - 1) ?? Infinity) < end;
+          if (element.editable && element.x && element.y) {
+            element.sourceTemplateId = `${normalizeLabel(section.label)}:${element.id}`;
+          }
+          element.id = `${element.id}:SAY:${start}`;
+          const eventIndex = events.findIndex(event => event.lineNumber === element.lineNumber - 1);
+          if (eventIndex >= 0) {
+            element.sayOccurrence = events[eventIndex].sayOccurrence;
+            element.executionRootLabel = events[eventIndex].executionRootLabel;
+            element.executionFrame = events[eventIndex].executionFrame;
+            element.executionSourceLabel = events[eventIndex].sourceLabel;
+          }
+          else if (element.runtimeActionPreview) element.runtimeActionPreview = { ...element.runtimeActionPreview,
+            invalidFields: [...new Set([...(element.runtimeActionPreview.invalidFields || []), 'link' as const])] };
+          element.editable = element.editable && lastInstance;
+          element.warning = mergeWarningClauses(element.warning, lastInstance && element.editable
+            ? '循环源码模板：坐标草稿同步显示到同一源码生成的全部实例，应用时只修改一处源码'
+            : '循环生成实例：请修改最后一个可编辑实例或定位源码模板');
+        }
+        elements.push(element);
+      }
+      parsed.unsupported.forEach(value => unsupported.add(value));
+      parsed.warnings.forEach(value => warnings.add(value));
+      parsed.resolvedVariables.forEach(value => mergeResolvedVariableSnapshot(variables, value));
+      start = end;
+    }
+    // A unique named parent can receive anonymous children from many SAY calls.
+    // Only repeated declarations have an unproved overwrite/append lifecycle.
+    const declarations = new Set<string>();
+    const duplicateIds = new Set<string>();
+    const graph = new Map<string, Set<string>>();
+    const references = (element: DialogElement): string[] => [element.containerElementId,
+      element.containerParentId, ...(element.containerChildIds || [])].filter((id): id is string => !!id);
+    for (const element of elements) {
+      if (element.containerElementId) {
+        if (declarations.has(element.containerElementId)) duplicateIds.add(element.containerElementId);
+        declarations.add(element.containerElementId);
+      }
+      const ids = references(element);
+      for (const id of ids) {
+        if (!graph.has(id)) graph.set(id, new Set());
+        for (const other of ids) graph.get(id)!.add(other);
+      }
+    }
+    let composedElements = elements;
+    if (duplicateIds.size) {
+      const affected = new Set(duplicateIds), queue = [...affected];
+      for (let index = 0; index < queue.length; index++) {
+        for (const id of graph.get(queue[index]) || []) {
+          if (!affected.has(id)) { affected.add(id); queue.push(id); }
+        }
+      }
+      const isAffected = (element: DialogElement): boolean => references(element).some(id => affected.has(id));
+      const fallback = parseSectionScenes(source, sourceLines, section, engine, offsets, schemasByToken,
+        conditionAliases, sourceDocument, { ...variableResolution, sayTrace: undefined });
+      const retained = [...new Map(fallback.flatMap(scene => scene.elements).filter(isAffected)
+        .map(element => [element.id, element])).values()];
+      const warning = `循环中容器 ID ${[...duplicateIds].join(', ')} 重复；跨次覆盖/追加规则未确认，仅相关容器保留源行快照，其他输出仍按执行顺序展示`;
+      for (const element of retained) {
+        appendElementWarning(element, warning);
+        if (element.runtimeActionPreview) element.runtimeActionPreview = { ...element.runtimeActionPreview,
+          invalidFields: [...new Set([...(element.runtimeActionPreview.invalidFields || []), 'link' as const])] };
+      }
+      let inserted = false;
+      composedElements = elements.flatMap(element => {
+        if (!isAffected(element)) return [element];
+        if (inserted) return [];
+        inserted = true;
+        return retained;
+      });
+      warnings.add(warning);
+    }
+    const layoutWarnings: string[] = [];
+    applyContainerLayout(composedElements, offsets, layoutWarnings);
+    layoutWarnings.forEach(warning => warnings.add(warning));
+    for (const element of composedElements) {
+      if (element.sayOccurrence !== undefined && element.parentElementId && isLegacyContainerFlowText(element)) {
+        // Changing 0:0 to explicit coordinates switches off container flow.
+        // Do not promise a shared-delta draft that collapses on source reparse.
+        element.editable = false;
+        element.sourceTemplateId = undefined;
+        appendElementWarning(element, '循环容器流式文字由父容器排列；可移动父容器，独立排版请修改源码坐标或换行');
+      }
+    }
+    return [{ id: `${normalizeLabel(section.label)}:say-trace`, title: `${section.label} · 重复输出`, sourceLabel: section.label,
+      marker: '#SAY', conditions: [], conditionOperators: [], previewPath: {}, conditionSummary: '本地执行输出',
+      sourceStart: section.start, sourceEnd: section.end,
+      background: findBackgroundBefore(section.lines, section.lines.length, source, engine, sourceDocument),
+      elements: composedElements, unsupportedStatements: [...unsupported], warnings: [...warnings], resolvedVariables: [...variables.values()] }];
+  }
   const result: DialogScene[] = [];
   let conditions: string[] = [];
   let conditionOperators: DialogConditionOperator[] = [];
+  let requiredCount: number | undefined;
   let conditionGroupNumber = 0;
   let conditionGroupId: string | undefined;
   let conditionOperator: DialogConditionOperator = 'AND';
@@ -2704,14 +3438,31 @@ function parseSectionScenes(
   const defaultUnsupported = new Set<string>();
   const defaultWarnings = new Set<string>();
   const defaultVariables = new Map<string, DialogResolvedVariable>();
+  const loopConditions: {
+    conditions: typeof conditions; conditionOperators: typeof conditionOperators;
+    conditionGroupId: string | undefined; conditionOperator: DialogConditionOperator;
+    collectingConditions: boolean;
+    requiredCount?: number;
+  }[] = [];
 
   for (let index = 1; index < section.lines.length; index++) {
     const line = section.lines[index];
     const trimmed = line.text.trim();
+    // A condition inside a GOM loop does not own SAY blocks after ENDWHILE.
+    if (engine === 'GOM' && /^WHILE\s/i.test(trimmed)) {
+      loopConditions.push({ conditions, conditionOperators, conditionGroupId, conditionOperator, collectingConditions, requiredCount });
+      continue;
+    }
+    if (engine === 'GOM' && /^ENDWHILE(?:\s*(?:;.*)?)?$/i.test(trimmed) && loopConditions.length) {
+      ({ conditions, conditionOperators, conditionGroupId, conditionOperator, collectingConditions, requiredCount } = loopConditions.pop()!);
+      continue;
+    }
     const directive = directiveName(trimmed);
     if (directive === 'IF') {
       conditions = [];
       conditionOperators = [];
+      const threshold = /^#IF\s*\(\s*(\d+)\s*\)$/i.exec(trimmed);
+      requiredCount = (engine === 'GOM' || engine === 'GEE') && threshold ? Number(threshold[1]) : undefined;
       const rawConditionGroupId = makeConditionGroupId(section.label, ++conditionGroupNumber);
       conditionGroupId = conditionAliases.get(rawConditionGroupId) || rawConditionGroupId;
       conditionOperator = 'AND';
@@ -2730,6 +3481,10 @@ function parseSectionScenes(
     if (directive === 'SAY' || directive === 'ELSESAY') {
       const marker = `#${directive}` as '#SAY' | '#ELSESAY';
       const blockEndIndex = findSayBlockEnd(section.lines, index + 1);
+      if (variableResolution?.inactiveLoopSayLines?.has(line.lineNumber)) {
+        index = blockEndIndex - 1;
+        continue;
+      }
       const blockLines = section.lines.slice(index + 1, blockEndIndex);
       const background = findBackgroundBefore(
         section.lines,
@@ -2757,8 +3512,9 @@ function parseSectionScenes(
         ...parsed.warnings,
       ])];
       const sceneVariables = new Map(defaultVariables);
-      parsed.resolvedVariables.forEach(variable => sceneVariables.set(variable.name, variable));
-      const conditionSummary = summarizeCondition(marker, conditions, conditionOperators);
+      parsed.resolvedVariables.forEach(variable => mergeResolvedVariableSnapshot(sceneVariables, variable));
+      const effectiveRequiredCount = effectivePreviewConditionThreshold(engine, requiredCount, conditions.length, conditionOperator === 'OR');
+      const conditionSummary = summarizeCondition(marker, conditions, conditionOperators, effectiveRequiredCount);
       result.push({
         id: `${normalizeLabel(section.label)}:${line.start}`,
         title: `${section.label} · ${conditionSummary || `场景 ${sceneNumber + 1}`}`,
@@ -2766,6 +3522,7 @@ function parseSectionScenes(
         marker,
         conditions: [...conditions],
         conditionOperators: [...conditionOperators],
+        ...(effectiveRequiredCount !== undefined ? {requiredCount: effectiveRequiredCount} : {}),
         conditionGroupId: conditions.length > 0 ? conditionGroupId : undefined,
         previewPath: {},
         conditionSummary,
@@ -2781,7 +3538,7 @@ function parseSectionScenes(
         defaultElements.push(...parsed.elements);
         parsed.unsupported.forEach(value => defaultUnsupported.add(value));
         parsed.warnings.forEach(value => defaultWarnings.add(value));
-        parsed.resolvedVariables.forEach(variable => defaultVariables.set(variable.name, variable));
+        parsed.resolvedVariables.forEach(variable => mergeResolvedVariableSnapshot(defaultVariables, variable));
       }
       sceneNumber++;
       index = Math.max(index, blockEndIndex - 1);
@@ -2806,7 +3563,7 @@ function parseStaticSectionScene(
   sourceDocument: DialogSourceDocument,
   variableResolution?: DialogLabelVariableResolution
 ): DialogScene | undefined {
-  const blockLines = staticDisplayLines(section.lines.slice(1));
+  const blockLines = staticDisplayLines(section.lines.slice(1), schemasByToken, engine);
   const parsed = parseVisualElements(
     source,
     sourceLines,
@@ -2842,7 +3599,11 @@ function parseStaticSectionScene(
   };
 }
 
-function staticDisplayLines(lines: ScriptLine[]): ScriptLine[] {
+function staticDisplayLines(
+  lines: ScriptLine[],
+  schemasByToken: ReadonlyMap<string, DialogStatementSchema[]>,
+  engine: EngineId
+): ScriptLine[] {
   const result: ScriptLine[] = [];
   let display = true;
   for (const line of lines) {
@@ -2855,9 +3616,49 @@ function staticDisplayLines(lines: ScriptLine[]): ScriptLine[] {
       display = false;
       continue;
     }
-    if (display) result.push(line);
+    if (display && isStaticDisplaySurfaceLine(line.text, schemasByToken, engine)) result.push(line);
   }
   return result;
+}
+
+function isStaticDisplaySurfaceLine(
+  source: string,
+  schemasByToken: ReadonlyMap<string, DialogStatementSchema[]>,
+  engine: EngineId
+): boolean {
+  const text = source.trim();
+  if (!text || text.startsWith(';') || text.startsWith('//')) return false;
+  if (!isBareBusinessCommand(text, engine)) return true;
+  return findScriptCommandInvocations(text, typedName => (
+    schemasByToken.has(typedName.toUpperCase()) ? typedName : undefined
+  )).some(invocation => invocation.form === 'line');
+}
+
+const bareCommandNames = new Map<EngineId, Set<string>>();
+
+function isBareBusinessCommand(source: string, engine: EngineId): boolean {
+  const head = /^\s*#?([A-Za-z][A-Za-z0-9_.]*)(?=\s|$)/u.exec(source)?.[1];
+  if (!head) return false;
+  let names = bareCommandNames.get(engine);
+  if (!names) {
+    // Name recognition only: never infer command syntax from an English caption.
+    // Use the installed runtime's own engine catalog, including command aliases.
+    const catalog = (engine === '996PC' ? require('../../data/functions-996pc.json')
+      : engine === 'GEE' ? require('../../data/functions-gee.json')
+      : require('../../data/functions.json')) as Record<string, { name?: string; aliases?: string[] }>;
+    names = new Set(Object.entries(catalog).flatMap(([key, value]) => (
+      [key, value.name || key, ...(value.aliases || [])].map(name => name.toUpperCase())
+    )));
+    const shared = require('../../data/commands.json') as {
+      commands: Array<{ name: string; engines?: EngineId[] }>;
+      execCommands: Array<{ name: string; engines?: EngineId[] }>;
+    };
+    for (const entry of [...shared.commands, ...shared.execCommands]) {
+      if (entry.engines?.includes(engine)) names.add(entry.name.toUpperCase());
+    }
+    bareCommandNames.set(engine, names);
+  }
+  return names.has(head.toUpperCase()) || names.has(head.split('.').at(-1)!.toUpperCase());
 }
 
 function findSayBlockEnd(lines: ScriptLine[], start: number): number {
@@ -3176,7 +3977,9 @@ function parseVisualElements(
   lines: ScriptLine[],
   offsets: NpcDialogOffsets,
   schemasByToken: Map<string, DialogStatementSchema[]>,
-  variableResolution?: DialogLabelVariableResolution
+  variableResolution?: DialogLabelVariableResolution,
+  sharedFlow?: FlowLayoutCursor,
+  deferContainerLayout = false
 ): {
   elements: DialogElement[];
   unsupported: string[];
@@ -3187,7 +3990,7 @@ function parseVisualElements(
   const unsupported = new Set<string>();
   const warnings: string[] = [];
   const resolvedVariables = new Map<string, DialogResolvedVariable>();
-  const flow = createFlowLayoutCursor(offsets);
+  const flow = sharedFlow || createFlowLayoutCursor(offsets);
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const firstLineIndex = lineIndex;
@@ -3196,7 +3999,7 @@ function parseVisualElements(
     const lastLineIndex = coalesced?.lastLineIndex ?? lineIndex;
     for (let coveredIndex = lineIndex; coveredIndex <= lastLineIndex; coveredIndex++) {
       variableResolution?.lines.get(lines[coveredIndex].lineNumber)?.variables
-        .forEach(variable => resolvedVariables.set(variable.name, variable));
+        .forEach(variable => mergeResolvedVariableSnapshot(resolvedVariables, variable));
     }
     lineIndex = lastLineIndex;
     if (!line.text.trim() || /^\s*;/.test(line.text)) continue;
@@ -3227,7 +4030,7 @@ function parseVisualElements(
     parsed.unsupported.forEach(value => unsupported.add(value));
   }
 
-  applyContainerLayout(elements, offsets, warnings);
+  if (!deferContainerLayout) applyContainerLayout(elements, offsets, warnings);
 
   if (elements.some(element => element.warning?.includes('动态坐标'))) {
     warnings.push('动态表达式坐标只做占位预览，不能通过拖动改写');
@@ -3274,9 +4077,20 @@ function resolveCoalescedMarkupLine(
         // A single unresolved occurrence keeps the combined text field in the
         // runtime-placeholder state even if another physical row proved the
         // same variable on its own static path.
-        if (!previous || (previous.status === 'resolved' && variable.status === 'default')) {
+        if (!previous) {
           variables.set(key, variable);
+          continue;
         }
+        const selected = previous.status === 'resolved' && variable.status === 'default'
+          ? variable
+          : previous;
+        const previewInputNames = [...new Set([
+          ...(previous.previewInputNames || []),
+          ...(variable.previewInputNames || []),
+        ])];
+        variables.set(key, previewInputNames.length > 0
+          ? { ...selected, previewInputNames }
+          : selected);
       }
     } else {
       parts.push(physicalLine.text);
@@ -3371,7 +4185,8 @@ function parseResolvedMarkupLine(
         element,
         sourceElement,
         sourceElement.lineNumber === originalLine.lineNumber + 1,
-        variables
+        variables,
+        schemasByToken.get(element.token.toUpperCase())?.[0]?.engine || 'GOM'
       );
     }
     return {
@@ -3444,13 +4259,15 @@ function bindResolvedPreviewToSource(
   preview: DialogElement,
   sourceElement: DialogElement,
   sourceIsOriginalDisplayLine: boolean,
-  variables: readonly DialogResolvedVariable[]
+  variables: readonly DialogResolvedVariable[],
+  engine: EngineId
 ): DialogElement {
   let sourceBound = bindSourceSensitiveControlPreview(
     preview,
     sourceElement,
     sourceIsOriginalDisplayLine,
-    variables
+    variables,
+    engine
   );
   const sourceLegacyLayoutUnsafe = Boolean(
     sourceElement.layoutPreview?.legacyCenterDynamicAxes?.length
@@ -3536,7 +4353,8 @@ function bindSourceSensitiveControlPreview(
   preview: DialogElement,
   sourceElement: DialogElement,
   sourceIsOriginalDisplayLine: boolean,
-  variables: readonly DialogResolvedVariable[]
+  variables: readonly DialogResolvedVariable[],
+  engine: EngineId
 ): DialogElement {
   const allSourceVariablesResolved = variables.length > 0
     && variables.every(variable => variable.status === 'resolved');
@@ -4005,6 +4823,41 @@ function bindSourceSensitiveControlPreview(
         ? { invalidFields: [...sourceProgress.invalidFields] }
         : {}),
     };
+    // GOM and LFM each document this N/X/V range as a local display snapshot.
+    // Evaluate each original operand independently: display fallback zero must
+    // not manufacture a ratio, and this capability grants no resource/timer rights.
+    if ((engine === 'GOM' || engine === 'GEE') && /^<&?ProgressBar:/i.test(sourceElement.raw)) {
+      const fields = ['minimum', 'maximum', 'value'] as const;
+      const expressions = Object.fromEntries(fields.map((field, index) => [field,
+        sourceElement.parameters?.find(parameter => parameter.index === index + 10)?.value || '',
+      ])) as Record<typeof fields[number], string>;
+      let unsafe = false, reads = 0, explicitInput = false;
+      const numbers = fields.map(field => {
+        const expression = expressions[field];
+        const resolved = expression.includes('<$') ? resolvePreviewExpression(expression, name => {
+          reads++;
+          const variable = variables.find(item => item.name === name
+            || (/^[A-Za-z]+\d+$/.test(name) && item.name.toUpperCase() === name.toUpperCase()));
+          const local = variable?.localPreview && ['本地预览初始值', '本地预览输入'].includes(variable.sourceLabel || '');
+          if (!variable || variable.status !== 'resolved' || (variable.localPreview && !local)) {
+            unsafe = true;
+            return undefined;
+          }
+          explicitInput ||= !!local;
+          return variable.value;
+        }, engine) : expression;
+        if (resolved === undefined || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(String(resolved).trim())) unsafe = true;
+        return Number(resolved);
+      });
+      const [minimum, maximum, value] = numbers;
+      if (!unsafe && reads > 0 && numbers.every(Number.isFinite)
+        && maximum > minimum && Number.isFinite(maximum - minimum) && value >= minimum && value <= maximum) {
+        progressPreview.localDisplayRange = {
+          minimum, maximum, value, ratio: (value - minimum) / (maximum - minimum),
+          valueOrigin: explicitInput ? 'preview-input' : 'resolved-static', expressions,
+        };
+      }
+    }
     bound = {
       ...bound,
       parameters: sourceElement.parameters,
@@ -4279,9 +5132,37 @@ function bindSourceSensitiveControlPreview(
       ),
       };
   }
+  // Only an independently proved scalar projection may supply local geometry.
+  // Do not reuse this channel for resource IDs, actions or source patching.
+  for (const axis of ['width', 'height'] as const) {
+    if (sourceElement.sizePreview?.[axis].mode !== 'dynamic') continue;
+    const expression = sourceElement.parameters?.find(parameter => parameter.key?.toLowerCase() === axis)?.value || '';
+    let unsafe = false, explicitInput = false, reads = 0;
+    const resolved = expression.includes('<$') ? resolvePreviewExpression(expression, name => {
+      reads++;
+      const variable = variables.find(item => item.name === name
+        || (/^[A-Za-z]+\d+$/.test(name) && item.name.toUpperCase() === name.toUpperCase()));
+      const local = variable?.localPreview && ['本地预览初始值', '本地预览输入'].includes(variable.sourceLabel || '');
+      if (!variable || variable.status !== 'resolved' || (variable.localPreview && !local)) { unsafe = true; return undefined; }
+      explicitInput ||= !!local;
+      return variable.value;
+    }, engine) : undefined;
+    const value = Number(resolved);
+    if (unsafe || reads === 0 || resolved === undefined
+      || !Number.isFinite(value) || value <= 0 || value > 16384
+      || preview.sizePreview?.[axis].mode !== 'explicit' || preview.sizePreview[axis].baseValue !== value) continue;
+    bound = { ...bound, [axis]: value, sizePreview: {
+      width: { ...(bound.sizePreview?.width || sourceElement.sizePreview.width) },
+      height: { ...(bound.sizePreview?.height || sourceElement.sizePreview.height) },
+      [axis]: { mode: 'explicit', baseValue: value, sourceExpression: expression,
+        valueOrigin: explicitInput ? 'preview-input' : 'resolved-static' },
+    } };
+  }
   const sourceWidthDynamic = sourceElement.sizePreview?.width.mode === 'dynamic'
+    && !bound.sizePreview?.width.valueOrigin
     && !bound.textPreview?.resolvedFields?.includes('scroll-width');
   const sourceHeightDynamic = sourceElement.sizePreview?.height.mode === 'dynamic'
+    && !bound.sizePreview?.height.valueOrigin
     && !bound.textPreview?.resolvedFields?.includes('scroll-height');
   if (sourceWidthDynamic || sourceHeightDynamic) {
     const widthAxis = sourceWidthDynamic
@@ -4307,6 +5188,96 @@ function bindSourceSensitiveControlPreview(
         `控件 ${dynamicAxes.join('/')} 尺寸来自动态表达式；Ctrl+F12 保留源码安全尺寸，不采用变量当前值`
       ),
     };
+  }
+  if (sourceContainsRuntimeExpression && /^<IMG:/i.test(sourceElement.raw)
+    && preview.assetRef && !preview.itemPreview && !preview.assetLayers) {
+    const slots = (sourceElement.parameters || []).filter(parameter => parameter.index === 1 || parameter.index === 2);
+    const expressions = slots.filter(parameter => parameter.value.includes('<$'));
+    const proved = expressions.length > 0 && expressions.every(parameter => {
+      const projection = /^<\$STR\(([^()]+)\)>$/i.exec(parameter.value.trim());
+      const name = projection?.[1]?.trim();
+      const variable = name && variables.find(value => value.name === name
+        || (/^[A-Za-z]+\d+$/.test(name) && value.name.toUpperCase() === name.toUpperCase()));
+      return variable && variable.status === 'resolved' && !variable.localPreview
+        && /^\d+$/.test(variable.value) && Number.isSafeInteger(Number(variable.value));
+    });
+    if (proved) bound = { ...bound, assetRef: { ...preview.assetRef }, previewAssetOrigin: 'resolved-static' };
+  }
+  if (engine !== '996PC' && /^<(?:&)?IMGEX:/i.test(sourceElement.raw) && bound.assetStateDiagnostics && preview.assetStateDiagnostics) {
+    const indexes: Record<string, number> = { normal: 2, hover: 3, pressed: 4 };
+    const provedSlot = (index: number): boolean => {
+      const expression = sourceElement.parameters?.find(parameter => parameter.index === index)?.value || '';
+      if (!expression.includes('<$')) return true;
+      const projection = /^<\$STR\(([^()]+)\)>$/i.exec(expression.trim());
+      const name = projection?.[1]?.trim();
+      const variable = name && variables.find(value => value.name === name
+        || (/^[A-Za-z]+\d+$/.test(name) && value.name.toUpperCase() === name.toUpperCase()));
+      return !!variable && variable.status === 'resolved' && !variable.localPreview
+        && /^\d+$/.test(variable.value) && Number.isSafeInteger(Number(variable.value));
+    };
+    bound.assetStateDiagnostics = bound.assetStateDiagnostics.map(diagnostic => {
+      const projected = preview.assetStateDiagnostics!.find(item => item.role === diagnostic.role);
+      if (diagnostic.status !== 'dynamic' || !indexes[diagnostic.role] || !provedSlot(1) || !provedSlot(indexes[diagnostic.role])
+        || projected?.status !== 'static' || !projected.assetRef) return diagnostic;
+      bound.previewAssetOrigin = 'resolved-static';
+      return { ...projected, assetRef: { ...projected.assetRef } };
+    });
+    const normal = bound.assetStateDiagnostics.find(diagnostic => diagnostic.role === 'normal');
+    if (normal?.status === 'static' && normal.assetRef) bound.assetRef = { ...normal.assetRef };
+  }
+  // Proved scalar state drives a local control without rewriting source state
+  // diagnostics or granting a dynamic resource/variable-name capability.
+  if (engine === '996PC' && (bound.togglePreview || bound.sliderPreview)) {
+    const keys = bound.togglePreview ? ['default'] : ['maxvalue', 'defvalue'];
+    const expressions = Object.fromEntries(keys.map(key => [key,
+      sourceElement.parameters?.find(parameter => parameter.key?.toLowerCase() === key)?.value
+        ?? (key === 'maxvalue' ? '100' : '0'),
+    ]));
+    let unsafe = false, reads = 0, explicitInput = false;
+    const numbers = keys.map(key => {
+      const expression = expressions[key];
+      const resolved = expression.includes('<$') ? resolvePreviewExpression(expression, name => {
+        reads++;
+        const variable = variables.find(item => item.name === name
+          || (/^[A-Za-z]+\d+$/.test(name) && item.name.toUpperCase() === name.toUpperCase()));
+        const local = variable?.localPreview && ['本地预览初始值', '本地预览输入'].includes(variable.sourceLabel || '');
+        if (!variable || variable.status !== 'resolved' || (variable.localPreview && !local)) { unsafe = true; return undefined; }
+        explicitInput ||= !!local;
+        return variable.value;
+      }, engine) : expression;
+      if (resolved === undefined || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(String(resolved).trim())) unsafe = true;
+      return Number(resolved);
+    });
+    const maximum = bound.togglePreview ? 1 : numbers[0], value = bound.togglePreview ? numbers[0] : numbers[1];
+    if (!unsafe && reads > 0 && numbers.every(Number.isFinite) && maximum > 0 && maximum <= Number.MAX_SAFE_INTEGER
+      && value >= 0 && value <= maximum && (!bound.togglePreview || value === 0 || value === 1)) {
+      bound.localControlState = {minimum:0, maximum, value, origin:explicitInput ? 'preview-input' : 'resolved-static', expressions};
+    }
+  }
+  // GOM documents loop-derived container IDs. This projection grants only a
+  // local parent/child relationship, never a resource ID or edit capability.
+  const containerExpression = sourceElement.parameters?.find(parameter => parameter.index === 1)?.value || '';
+  if (engine === 'GOM' && sourceIsOriginalDisplayLine
+    && containerExpression.includes('~') && containerExpression.includes('<$')) {
+    let unsafe = false, reads = 0, explicitInput = false;
+    const resolved = resolvePreviewExpression(containerExpression, name => {
+      reads++;
+      const variable = variables.find(item => item.name === name
+        || (/^[A-Za-z]+\d+$/.test(name) && item.name.toUpperCase() === name.toUpperCase()));
+      if (!variable) { unsafe = true; return undefined; }
+      const scenarioValue = resolvedScenarioScalar(variable, variables);
+      if (!scenarioValue.safe
+        || !/^[A-Za-z0-9_$.-]*$/.test(String(variable.value))) { unsafe = true; return undefined; }
+      explicitInput ||= scenarioValue.usesExplicitInput;
+      return variable.value;
+    }, engine);
+    const pair = !unsafe && reads > 0 ? parseContainerPair(resolved) : undefined;
+    const proved = pair && pair.elementId === preview.containerElementId && pair.parentId === preview.containerParentId;
+    bound = { ...bound, containerElementId: proved ? pair.elementId : undefined,
+      containerParentId: proved ? pair.parentId : undefined, containerChildIds: undefined,
+      warning: mergeWarningClauses(bound.warning, proved
+        ? `容器编号按${explicitInput ? '明确本地输入' : '源码确定值'}建立本地父子关系，不代表资源或动作授权`
+        : '容器编号未能由源码或明确本地输入确定，未使用默认占位值建立父子关系') };
   }
   return bound;
 }
@@ -4789,7 +5760,7 @@ function parseCatalogFlowElement(
 
   if (directive.name === '@') {
     const actionSource = inner.slice(directive.index + 1).trim();
-    const action = parseLegacyClickAction(actionSource);
+    const action = parseLegacyClickAction(actionSource, flowCatalogSchema(schemasByToken, 'text-link')?.engine);
     const statementId = action.parameterized ? 'text-link-params' : 'text-link';
     const schema = flowCatalogSchema(schemasByToken, statementId);
     if (!schema) return undefined;
@@ -4867,12 +5838,21 @@ function flowCatalogSchema(
   return schemasByToken.get(token)?.find(schema => schema.id === id);
 }
 
-function parseLegacyClickAction(value: string): {
+function parseLegacyClickAction(value: string, engine?: EngineId): {
   preview: DialogRuntimeActionPreview;
   parameterized: boolean;
 } {
   const actionEnd = findTopLevelCharacter(value, '|');
   const action = (actionEnd >= 0 ? value.slice(0, actionEnd) : value).trim();
+  if (engine === '996PC' && action.includes('#')) {
+    const [link, ...parameters] = action.split('#');
+    const names = parameters.map(part => /^([A-Za-z0-9_\u3400-\u9fff]+)=([\s\S]*)$/.exec(part));
+    const valid = /^@[^\s<>()#]+$/u.test(link) && parameters.length <= 99 && names.every(Boolean)
+      && new Set(names.map(match => match?.[1])).size === names.length;
+    return { parameterized: true, preview: { localOnly: true, trigger: 'click', link, parameters,
+      ...(!valid ? { invalidFields: ['link-parameters'] } : {}),
+      ...(parameters.some(part => /<\$/.test(part)) ? { dynamicFields: ['link-parameters'] } : {}) } };
+  }
   const parameterStart = findTopLevelCharacter(action, '(');
   const parameterized = parameterStart >= 0 && action.endsWith(')');
   const linkSource = (parameterized ? action.slice(0, parameterStart) : action).trim();
@@ -4896,7 +5876,7 @@ function parseLegacyClickAction(value: string): {
     if (parameters.some(parameter => /<\$/i.test(parameter))) {
       dynamicFields.push('link-parameters');
     }
-    if (parameters.length === 0 || parameters.some(parameter => !parameter)) {
+    if (parameters.some(parameter => !parameter)) {
       invalidFields.push('link-parameters');
     }
   }
@@ -5364,6 +6344,7 @@ function parseStatement(
       controlPreview.imageTextPreview
       || controlPreview.modelPreview
       || controlPreview.costItemPreview
+      || controlPreview.itemPreview?.paintProfile === 'gee-itemshow'
       || assetRef
       || controlPreview.assetLayers?.some(layer => (
       layer.role === 'background' || layer.role === 'progress'
@@ -5482,7 +6463,13 @@ function statementContainerBinding(
   }
 
   const first = positionalValue(values, 1);
-  const pair = parseContainerPair(first?.raw);
+  const literalPair = parseContainerPair(first?.raw);
+  // Recognize the optional slot structurally even when its ID is dynamic,
+  // otherwise TEXT's content and X/Y slots shift by one. Do not assign an ID
+  // from this sentinel; the proved-value projection is a separate gate.
+  const dynamicPairSlot = schema.engine === 'GOM' && first?.raw.includes('<$')
+    && parseContainerPair(resolvePreviewExpression(first.raw, () => 'DYNAMIC', schema.engine));
+  const pair = literalPair || (dynamicPairSlot ? {} : undefined);
   if (!pair) return { childIds: [], shifted: false };
   const firstMeaning = normalizeContainerMeaning(schema.parameterMeanings.get(1) || '');
   const declared = firstMeaning.includes('父子容器')
@@ -6022,7 +7009,7 @@ function statementAssetStateDiagnostics(
     role: DialogAssetStateDiagnostic['role'];
     image: ValueSpan | undefined;
   }>;
-  if (/^imgex-(?:absolute|relative-996pc)$/.test(schema.id)) {
+  if (/^imgex-(?:absolute(?:-relative-compat)?|relative-996pc)$/.test(schema.id)) {
     archiveMode = 'will-index';
     archive = positionalValue(values, 1);
     states = [
@@ -6099,6 +7086,12 @@ function statementControlPreview(
     countdownPreview,
     primaryAsset
   );
+  const clientAtlasText = schema.id === 'newui-textatlas-996pc'
+    && hasRecognizedClientTextExpression(keyedValue(values, 'text')?.raw || '');
+  // Display recognition changes the diagnostic only. Resource contracts remain
+  // untouched until the separate client display pass and Provider validation.
+  const atlasDynamicWarnings = imageTextPreview?.dynamicFields?.filter(field => !clientAtlasText || field !== 'text');
+  const atlasInvalidWarnings = imageTextPreview?.invalidFields?.filter(field => !clientAtlasText || field !== 'text');
   const imagePreview = statementImagePreview(values, schema);
   const modelPreview = statementModelPreview(values, schema);
   const menuPreview = statementMenuPreview(values, schema);
@@ -6236,7 +7229,7 @@ function statementControlPreview(
         ? `MenuItem ${menuPreview.menuId || '未绑定变量'} 的选择仅本地预览，不提交服务器`
         : undefined,
       menuPreview?.link
-        ? `MenuItem 点击标签 ${menuPreview.link} 仅展示，Ctrl+F12 不执行服务器脚本`
+        ? `MenuItem 标签 ${menuPreview.link} 可在本地选择预览中跳转，Ctrl+F12 不执行服务器脚本`
         : undefined,
       menuPreview?.dynamicFields?.length
         ? `MenuItem 的 ${menuPreview.dynamicFields.join('、')} 包含动态值，静态预览使用可确定内容和安全回退，不把变量默认值冒充运行时结果`
@@ -6266,7 +7259,7 @@ function statementControlPreview(
         ? '996PC ItemShow 手册未公开锁图标素材编号，Ctrl+F12 使用 CSS 锁形静态近似'
         : undefined,
       itemPreview?.lightCode
-        ? `发光代码 ${itemPreview.lightCode} 已保留，但手册未公开精确混合算法，Ctrl+F12 不伪造客户端发光`
+        ? `发光代码 ${itemPreview.lightCode} 按 GXX 客户端映射请求发光帧；混合算法使用浏览器近似，缺失发光包时保留主体物品`
         : undefined,
       itemPreview?.drawEffect
         ? '物品特效开关已保留；实际特效需要数据库字段、特效列表和素材映射，当前不猜测图层'
@@ -6383,11 +7376,14 @@ function statementControlPreview(
         && !invalidGeeImageNumberType
         ? '图片数字素材序号无法静态确定或字符没有对应素材，部分字符使用占位预览'
         : undefined,
-      imageTextPreview?.textAtlasVariant && imageTextPreview.dynamicFields?.length
-        ? `TextAtlas 的 ${imageTextPreview.dynamicFields.join('、')} 包含动态值；静态预览不借用 MOV 当前值，也不按表达式源码长度伪造数字几何`
+      imageTextPreview?.textAtlasVariant && atlasDynamicWarnings?.length
+        ? `TextAtlas 的 ${atlasDynamicWarnings.join('、')} 包含动态值；静态预览不借用 MOV 当前值，也不按表达式源码长度伪造数字几何`
         : undefined,
-      imageTextPreview?.textAtlasVariant && imageTextPreview.invalidFields?.length
-        ? `TextAtlas 的 ${imageTextPreview.invalidFields.join('、')} 参数无效；素材序号必须是非负整数，字形宽高必须是正整数，显示内容只接受 0-9`
+      imageTextPreview?.textAtlasVariant && atlasInvalidWarnings?.length
+        ? `TextAtlas 的 ${atlasInvalidWarnings.join('、')} 参数无效；素材序号必须是非负整数，字形宽高必须是正整数，显示内容只接受 0-9`
+        : undefined,
+      clientAtlasText
+        ? 'TextAtlas 客户端显示值仅在本地预览：数字使用已验证的字形素材，非 0-9 内容按普通文字显示；不改变服务器变量、坐标或素材序号'
         : undefined,
       imageTextPreview?.textAtlasVariant === 'legacy-individual'
         ? '传统 996PC TextAtlas 使用连续 0-9 单图；X/Y 精细偏移的客户端流式布局规则未完整公开，Ctrl+F12 保留相对静态近似'
@@ -7089,7 +8085,7 @@ function statementRuntimeActionPreview(
   schema: DialogStatementSchema
 ): DialogRuntimeActionPreview | undefined {
   const completionControl = /^(?:(?:image-)?countdown(?:-relative-compat)?|time-tips|newui-(?:countdown|timetips|loadingbar)-996pc)$/i.test(schema.id);
-  const sliderControl = schema.id === 'newui-slider-996pc';
+  const sliderControl = schema.id === 'newui-slider-996pc' || schema.id === 'newui-menuitem-996pc';
   if (completionControl || sliderControl) {
     const linkSpan = schema.syntax === 'key-value' ? keyedValue(values, 'link') : undefined;
     const dynamic = statementLinkIsDynamic(values, schema)
@@ -7258,11 +8254,28 @@ function legacyStatementClickActionPreview(
   if (![
     'TEXT', 'IMG', 'IMGEX', 'IMGNUM', 'ITEMSHOW', 'USERITEM', 'HEROUSERITEM',
     'MAKEINDEXITEM', 'STATEITEM', 'DNITEMS',
+    ...(schema.engine === 'GOM' ? ['PLAYIMG'] : schema.engine === 'GEE' ? ['PLAYIMG', 'PLAYIMGEX'] : []),
   ].includes(command)) return undefined;
   for (const value of values.positional) {
     const directive = findTopLevelSlashDirective(value.raw);
     if (!directive || directive.name !== '@') continue;
-    return parseLegacyClickAction(value.raw.slice(directive.index + 1)).preview;
+    const preview = parseLegacyClickAction(value.raw.slice(directive.index + 1)).preview;
+    const position = schema.engine === 'GOM' ? ({ TEXT: 4, IMG: 5, IMGEX: 7, PLAYIMG: 9 } as Record<string, number>)[command]
+      : schema.engine === 'GEE' ? ({ TEXT: 4, IMG: 5, IMGEX: 7, PLAYIMG: 9, PLAYIMGEX: 10 } as Record<string, number>)[command] : undefined;
+    const submit = positionalValue(values, position);
+    if (preview && submit) {
+      const raw = stripValueSuffix(submit.raw).trim();
+      // Latest GOM help distinguishes a #-terminated title from legacy IDs.
+      if (schema.engine === 'GOM' && ['IMG', 'PLAYIMG'].includes(command) && raw.endsWith('#')) return preview;
+      if (schema.engine === 'GEE' && raw === '*') { preview.submitAllInputs = true; return preview; }
+      if (/<\$/i.test(raw)) preview.dynamicFields = [...(preview.dynamicFields || []), 'submit-inputs'];
+      else if (raw && raw !== '0' && raw !== '*') {
+        const tokens = raw.split(',').map(part => part.trim());
+        if (tokens.every(part => /^[1-9]\d?$/.test(part) && Number(part) <= 40)) preview.submitInputIds = [...new Set(tokens.map(Number))];
+        else preview.invalidFields = [...(preview.invalidFields || []), 'submit-inputs'];
+      }
+    }
+    return preview;
   }
   return undefined;
 }
@@ -7737,6 +8750,7 @@ function statementCountdownPreview(
     format,
     dynamic: dynamicFields.length > 0,
     initialText: seconds === undefined ? '?' : formatCountdownText(seconds, format),
+    ...(secondsSpan ? { displaySecondsSource: secondsSpan.raw } : {}),
     ...(link ? { link } : {}),
     ...(dynamicFields.length > 0 ? { dynamicFields } : {}),
     ...(invalidFields.length > 0 ? { invalidFields } : {}),
@@ -8529,7 +9543,7 @@ function interactiveAssetReferences(
   let hover: number | undefined;
   let pressed: number | undefined;
   let base: Omit<DialogAssetReference, 'imageIndex'> | undefined;
-  if (/^imgex-(?:absolute|relative-996pc)$/.test(schema.id)) {
+  if (/^imgex-(?:absolute(?:-relative-compat)?|relative-996pc)$/.test(schema.id)) {
     const willIndex = numericValue(positionalValue(values, 1));
     if (willIndex !== undefined) base = { willIndex };
     hover = numericValue(positionalValue(values, 3));
@@ -9047,7 +10061,9 @@ function statementItemPreview(
   schema: DialogStatementSchema
 ): DialogItemPreview | undefined {
   switch (schema.id) {
+    case 'item-show-relative-compat':
     case 'item-show': {
+      if (schema.id === 'item-show-relative-compat' && schema.engine !== 'GEE') return undefined;
       const gom = schema.engine === 'GOM';
       const gee = schema.engine === 'GEE';
       const diagnostics: ItemPreviewDiagnostics = { dynamicFields: [], invalidFields: [] };
@@ -9108,6 +10124,7 @@ function statementItemPreview(
           ...(!effectSpan ? { drawEffect: false } : drawEffect === undefined ? {} : { drawEffect }),
         } as const : {}),
         ...(gee ? {
+          paintProfile: 'gee-itemshow' as const,
           ...(!lightSpan ? { lightCode: 0 } : lightCode === undefined ? {} : { lightCode }),
           ...(!unitSpan
             ? { compactQuantity: false }
@@ -10730,9 +11747,14 @@ function flowTextElement(
 function summarizeCondition(
   marker: '#SAY' | '#ELSESAY',
   conditions: string[],
-  operators: DialogConditionOperator[]
+  operators: DialogConditionOperator[],
+  requiredCount?: number
 ): string {
   if (conditions.length === 0) return marker === '#ELSESAY' ? '否则界面' : '默认界面';
+  if (requiredCount !== undefined) {
+    const text = `${requiredCount === 1 ? '满足任意一项' : `至少满足 ${requiredCount} 项`}: ${conditions.join(' / ')}`;
+    return marker === '#ELSESAY' ? `否则: ${text}` : text;
+  }
   const joined = conditions.map((condition, index) => {
     if (index === 0) return condition;
     return `${operators[index] === 'OR' ? '或' : '且'} ${condition}`;
@@ -11020,6 +12042,15 @@ function intrinsicAssetDimension(
   element: DialogElement,
   axis: 'width' | 'height'
 ): number | undefined {
+  if (element.itemPreview?.paintProfile === 'gee-itemshow') {
+    const frame = element.assetLayers?.find(layer => layer.role === 'background')?.asset;
+    const item = element.assetLayers?.find(layer => layer.role === 'item')?.asset;
+    // A missing/degenerate frame is disabled by the client. The frame, when
+    // usable, owns the control bounds even if the centered item is larger.
+    const surface = frame?.status === 'ready' && Number(frame.width) > 4 && Number(frame.height) > 4
+      ? frame : item?.status === 'ready' ? item : undefined;
+    return surface && Number(surface[axis]) > 0 ? Number(surface[axis]) : undefined;
+  }
   const modelBounds = element.modelPreview?.bounds;
   if (modelBounds) return modelBounds[axis];
   const animationBounds = element.animationPreview?.bounds;
@@ -11333,6 +12364,7 @@ function runtimeTextValueStatus(
   sourceText: string,
   variables: readonly DialogResolvedVariable[]
 ): NonNullable<DialogTextPreview['textValueStatus']> {
+  if (variables.some(variable => variable.localPreview)) return 'preview-input';
   const names = runtimeVariableNamesInText(sourceText);
   if (names.length === 0) return 'runtime-placeholder';
   const statuses = new Map(variables.map(variable => [
@@ -11342,6 +12374,36 @@ function runtimeTextValueStatus(
   return names.every(name => statuses.get(name) === 'resolved')
     ? 'resolved-static'
     : 'runtime-placeholder';
+}
+
+/**
+ * Decide whether a resolved scalar may shape a local-only preview scenario.
+ * Direct inputs are allowed, as are deterministic values whose complete input
+ * dependencies are present beside them. A neutral default or an unresolved
+ * runtime fallback never receives structural authority from its display value.
+ */
+function resolvedScenarioScalar(
+  variable: DialogResolvedVariable,
+  variables: readonly DialogResolvedVariable[]
+): { safe: boolean; usesExplicitInput: boolean } {
+  if (variable.status !== 'resolved') return { safe: false, usesExplicitInput: false };
+  const isExplicitInput = (candidate: DialogResolvedVariable): boolean => (
+    candidate.localPreview === true
+    && ['本地预览初始值', '本地预览输入'].includes(candidate.sourceLabel || '')
+  );
+  if (!variable.localPreview) return { safe: true, usesExplicitInput: false };
+  if (isExplicitInput(variable)) return { safe: true, usesExplicitInput: true };
+  const dependencies = variable.previewInputNames || [];
+  if (dependencies.length === 0) return { safe: false, usesExplicitInput: false };
+  const byName = new Map(variables.map(candidate => [
+    candidate.name.trim().toUpperCase(),
+    candidate,
+  ]));
+  const completeInputs = dependencies.every(name => {
+    const candidate = byName.get(name.trim().toUpperCase());
+    return candidate?.status === 'resolved' && isExplicitInput(candidate);
+  });
+  return { safe: completeInputs, usesExplicitInput: completeInputs };
 }
 
 function runtimeVariableNamesInText(value: string): string[] {
@@ -11379,7 +12441,8 @@ function directRuntimeVariableName(value: string): string | undefined {
  * A visible MOV snapshot is not allowed to select an asset. The one safe
  * exception is a complete GETDBITEMFIELDVALUE ... IDX result: it is already a
  * static lookup against the same workspace database that Provider will use for
- * IDX -> Looks. Other database fields, copies and mutations are not IDX proof.
+ * IDX -> Looks. The name may come from an exact literal MOV. Other database
+ * fields, copies and mutations of the IDX itself are not IDX proof.
  */
 function staticallyResolvedDatabaseItemIndex(
   sourceElement: DialogElement,
@@ -11437,6 +12500,7 @@ function runtimeExpressionStatus(
   variables: readonly DialogResolvedVariable[]
 ): DialogTextValueStatus {
   if (!/<\$/i.test(expression)) return 'literal';
+  if (variables.some(variable => variable.localPreview)) return 'preview-input';
   const names = runtimeVariableNamesInText(expression);
   if (names.length === 0) return 'runtime-placeholder';
   const statuses = new Map(variables.map(variable => [
@@ -11728,9 +12792,10 @@ function parseInteger(value: string | undefined): number | undefined {
 }
 
 function cleanTargetLabel(value: string): string {
-  return value.trim()
-    .replace(/[>,}\]]+$/, '')
-    .replace(/\([^)]*\)$/, '');
+  // References may be truncated at the first nested template's '>'. The label
+  // is still the literal prefix before the call arguments, not their contents.
+  return value.slice(0, value.indexOf('(') < 0 ? value.length : value.indexOf('(')).trim()
+    .replace(/[>,}\]]+$/, '');
 }
 
 function directiveName(line: string): string | undefined {

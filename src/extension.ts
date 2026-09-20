@@ -107,6 +107,7 @@ import {
 } from './utils/client-resources';
 import { registerZoneSyncCommand } from './commands/zone-sync';
 import { registerQuickFileCommands } from './commands/quick-files';
+import { registerDropRateAnalysisCommand } from './commands/drop-rate-analysis';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 let extensionContext: vscode.ExtensionContext;
@@ -180,6 +181,7 @@ export function activate(context: vscode.ExtensionContext) {
   activateAssistant(context);
   context.subscriptions.push(registerZoneSyncCommand(context));
   context.subscriptions.push(registerQuickFileCommands(context));
+  context.subscriptions.push(registerDropRateAnalysisCommand());
   context.subscriptions.push(registerNpcDialogVisualEditor(context));
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(event => {
@@ -657,6 +659,7 @@ ${tools.map(t => '<a class="t" href="command:' + t.cmd + '" title="' + t.desc + 
 <h3>快捷键</h3>
 <div class="shortcut-group">BOO 脚本</div>
 <div class="desc"><span class="key">Ctrl+D</span> 将选中变量转为 &lt;$STR(...)&gt;</div>
+<div class="desc"><span class="key">Ctrl+E</span> 将选中文字包裹为 {选中内容/fcolor=250}，支持多选区</div>
 <div class="desc"><span class="key">Ctrl+Q</span> 执行当前问题的首选修复</div>
 <div class="desc"><span class="key">Ctrl+F1</span> 快速插入颜色代码（256色调色板）</div>
 <div class="desc"><span class="key">Alt+Shift+U</span> 选中文本智能大小写转换</div>

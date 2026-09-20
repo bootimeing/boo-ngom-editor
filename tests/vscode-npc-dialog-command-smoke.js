@@ -137,6 +137,47 @@ async function runScenario() {
     assert.equal(document.isDirty, false);
     const afterBytes = Buffer.from(await vscode.workspace.fs.readFile(sourceUri));
     assert.deepEqual(afterBytes, beforeBytes, 'Ctrl+F12 command modified the source fixture');
+
+    const dropCommand = 'boo.analyzeDropRates';
+    assert.ok(commands.includes(dropCommand), 'drop analysis command must activate in the real host');
+    const dropUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'drop-smoke.txt');
+    const dropBytes = Buffer.from('#CHILD 1/2 RANDOM\r\n(\r\n1/4 Sword\r\n1/1 Gold 100\r\n)\r\n');
+    await vscode.workspace.fs.writeFile(dropUri, dropBytes); // Isolated test workspace only.
+    const dropDocument = await vscode.workspace.openTextDocument(dropUri);
+    await vscode.window.showTextDocument(dropDocument);
+    await withTimeout(vscode.commands.executeCommand(dropCommand), 5_000, 'read-only drop analysis');
+    const report = vscode.window.activeTextEditor?.document;
+    assert.ok(report?.isUntitled && report.languageId === 'markdown', 'analysis must open a separate unsaved report');
+    assert.match(report.getText(), /Sword/);
+    assert.match(report.getText(), /1\/4/);
+    assert.equal(dropDocument.isDirty, false);
+    assert.deepEqual(Buffer.from(await vscode.workspace.fs.readFile(dropUri)), dropBytes);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+
+    const envir = vscode.Uri.joinPath(workspaceFolders[0].uri, 'Mir200', 'Envir');
+    const monItems = vscode.Uri.joinPath(envir, 'MonItems');
+    const diary = vscode.Uri.joinPath(envir, 'QuestDiary');
+    await vscode.workspace.fs.createDirectory(monItems);
+    await vscode.workspace.fs.createDirectory(diary);
+    const externalUri = vscode.Uri.joinPath(diary, 'r20-smoke.txt');
+    const callerUri = vscode.Uri.joinPath(monItems, 'r20-drop-smoke.txt');
+    const externalBytes = Buffer.from('[@smoke]\r\n{\r\n1/2 CalledPotion\r\n}\r\n');
+    const callerBytes = Buffer.from('#CALL [\\r20-smoke.txt] @smoke\r\n');
+    await vscode.workspace.fs.writeFile(externalUri, externalBytes);
+    await vscode.workspace.fs.writeFile(callerUri, callerBytes);
+    const caller = await vscode.workspace.openTextDocument(callerUri);
+    await vscode.window.showTextDocument(caller);
+    await withTimeout(vscode.commands.executeCommand(dropCommand), 5_000, 'external read-only drop analysis');
+    const externalReport = vscode.window.activeTextEditor?.document;
+    assert.ok(externalReport?.isUntitled && externalReport.languageId === 'markdown');
+    assert.match(externalReport.getText(), /CalledPotion/);
+    assert.match(externalReport.getText(), /1\/2/);
+    assert.ok(externalReport.getText().includes('r20-smoke\\.txt:3'), 'report must retain the Markdown-escaped physical source line');
+    assert.match(externalReport.getText(), /外部 CALL：展开 1 处，未展开 0 处/);
+    assert.equal(caller.isDirty, false);
+    assert.deepEqual(Buffer.from(await vscode.workspace.fs.readFile(callerUri)), callerBytes);
+    assert.deepEqual(Buffer.from(await vscode.workspace.fs.readFile(externalUri)), externalBytes);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
   } finally {
     subscription.dispose();
     if (panelTab && !panelClosed) {
@@ -163,6 +204,9 @@ async function runScenario() {
     viewType: observed.viewType,
     title: observed.title,
     sourceBytesUnchanged: true,
+    dropAnalysisCommand: 'boo.analyzeDropRates',
+    dropAnalysisSourceUnchanged: true,
+    externalDropCallSourceUnchanged: true,
   };
   console.log('[BOO Ctrl+F12 host smoke]', result);
   return result;

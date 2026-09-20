@@ -101,14 +101,16 @@ function fixtureModel() {
     'MOV N$TIME 5',
     '#SAY',
     '<CheckBox|id=CHECK_STATIC|x=20|y=20|checkboxid=N10|wil=NewopUI|pcnimg=192|pcpimg=193|default=0|delay=1|count=2|link=@toggleDone>',
-    '<CheckBox|id=CHECK_DYNAMIC|x=100|y=20|checkboxid=N11|wil=NewopUI|pcnimg=192|pcpimg=193|default=<$STR(N$CHECK)>|link=@dynamicToggle>',
+    // Unknown values remain gated. Proved MOV/local values now have a separate
+    // scalar snapshot, covered by preview-control-values and submit browser tests.
+    '<CheckBox|id=CHECK_DYNAMIC|x=100|y=20|checkboxid=N11|wil=NewopUI|pcnimg=192|pcpimg=193|default=<$STR(N$UNKNOWN_CHECK)>|link=@dynamicToggle>',
     '<CheckBox|id=CHECK_MIXED|x=180|y=20|checkboxid=N12|wil=NewopUI|pcnimg=192|pcpimg=<$STR(N$SELECTED)>|default=0|link=@mixedToggle>',
     '<CheckBox|id=CHECK_INVALID|x=260|y=20|checkboxid=N13|wil=NewopUI|pcnimg=192|pcpimg=193|default=2|link=@invalidToggle>',
     '<CheckBox|id=CHECK_MISSING|x=400|y=20|checkboxid=N14|wil=NewopUI|default=0|link=@missingToggle>',
     '<Slider|id=SLIDER_STATIC|x=20|y=70|width=200|height=20|sliderid=N20|wil=NewopUI|pcbgimg=298|pcbarimg=299|pcballimg=297|maxvalue=100|defvalue=25|link=@sliderDone>',
     '<Slider|id=SLIDER_DEFAULT|x=20|y=110|width=200|height=20|sliderid=N21|wil=NewopUI|pcbgimg=298|pcbarimg=299|pcballimg=297>',
-    '<Slider|id=SLIDER_DYNAMIC_MAX|x=20|y=150|width=200|height=20|sliderid=N22|wil=NewopUI|pcbgimg=298|pcbarimg=299|pcballimg=297|maxvalue=<$STR(N$MAX)>|defvalue=25>',
-    '<Slider|id=SLIDER_DYNAMIC_VALUE|x=20|y=190|width=200|height=20|sliderid=N23|wil=NewopUI|pcbgimg=298|pcbarimg=299|pcballimg=297|maxvalue=100|defvalue=<$STR(N$VALUE)>>',
+    '<Slider|id=SLIDER_DYNAMIC_MAX|x=20|y=150|width=200|height=20|sliderid=N22|wil=NewopUI|pcbgimg=298|pcbarimg=299|pcballimg=297|maxvalue=<$STR(N$UNKNOWN_MAX)>|defvalue=25>',
+    '<Slider|id=SLIDER_DYNAMIC_VALUE|x=20|y=190|width=200|height=20|sliderid=N23|wil=NewopUI|pcbgimg=298|pcbarimg=299|pcballimg=297|maxvalue=100|defvalue=<$STR(N$UNKNOWN_VALUE)>>',
     '<Slider|id=SLIDER_INVALID|x=20|y=390|width=200|height=20|sliderid=N24|wil=NewopUI|pcbgimg=298|pcbarimg=299|pcballimg=297|maxvalue=0|defvalue=-1|link=@invalidSlide>',
     '<COUNTDOWN|id=COUNT_TEXT|x=20|y=250|time=1|count=2|showWay=0|size=18|link=@textDone>',
     '<COUNTDOWN|id=COUNT_DYNAMIC|x=20|y=290|time=<$STR(N$TIME)>|count=1|showWay=0|link=@dynamicDone>',
@@ -369,22 +371,22 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
       }
     });
 
-    await check('Button dynamic size source safety', async function () {
+    await check('Button resolved size preserves source expression', async function () {
       var wrapper = node('BUTTON_DYNAMIC');
       if (!wrapper) throw new Error('dynamic button missing');
-      if (px(wrapper.style.width) === 240 || px(wrapper.style.height) === 90) {
-        throw new Error('borrowed MOV values 240x90 were used as deterministic geometry');
+      if (px(wrapper.style.width) !== 240 || px(wrapper.style.height) !== 90) {
+        throw new Error('proved MOV dimensions 240x90 were not used for local geometry');
       }
-      if (wrapper.dataset.sizeWidthMode !== 'dynamic'
-        || wrapper.dataset.sizeHeightMode !== 'dynamic') {
-        throw new Error('dynamic source size modes are not preserved in DOM');
+      if (wrapper.dataset.sizeWidthMode !== 'explicit'
+        || wrapper.dataset.sizeHeightMode !== 'explicit') {
+        throw new Error('resolved size modes are not exposed in DOM');
       }
       var rect = wrapper.getBoundingClientRect();
       mouse(wrapper, 'click', rect.left + 2, rect.top + 2, 0);
       await wait(10);
-      var boundary = document.getElementById('elementWarning').textContent;
-      if (!boundary.includes('动态') || !/不采用|不借用|未知/.test(boundary)) {
-        throw new Error('dynamic size safety boundary is not retained in Inspector');
+      var raw = document.getElementById('rawStatement').textContent;
+      if (!raw.includes('width=') || !raw.includes('STR(')) {
+        throw new Error('resolved size lost its source expression in Inspector');
       }
     });
 

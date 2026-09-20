@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { assertCatalogRevision, assertReviewedCatalog } = require('./helpers/help-review-20260905');
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -194,20 +195,33 @@ function main() {
   assert.match(findFunction(gomFunctions, 'SetIcon').syntax, /0-19/);
   assert.match(findFunction(geeFunctions, 'SetIcon').syntax, /0-9/);
 
-  for (const catalog of [gomFunctions, geeFunctions, pc996Functions]) {
-    for (const [name, entry] of Object.entries(catalog)) {
-      assert.ok(
-        entry.source,
-        `${name} engine function needs help evidence`
-      );
-      if (entry.source) {
-        assert.ok(
-          ['2026-07-19', '2026-07-23', '2026-07-26'].includes(entry.source.revision),
-          `${name} has an unexpected help revision`
-        );
-      }
-    }
+  for (const [engine, catalog] of Object.entries({ GOM: gomFunctions, GEE: geeFunctions, '996PC': pc996Functions })) {
+    assertReviewedCatalog(engine, catalog);
   }
+  // Negative controls: a reviewed date is not blanket permission for new names,
+  // another engine, changed signatures, or promoting name-only evidence.
+  const reviewedEntry = findFunction(gomFunctions, 'CHECKMAINHITTARGET');
+  assert.throws(() => assertCatalogRevision('GOM', 'UNKNOWNREVIEWEDCOMMAND', reviewedEntry), /not in the reviewed delta/);
+  assert.throws(() => assertCatalogRevision('GEE', 'CHECKMAINHITTARGET', reviewedEntry), /must not borrow GOM evidence/);
+  assert.throws(() => assertCatalogRevision('996PC', 'CHECKMAINHITTARGET', reviewedEntry), /must not borrow GOM evidence/);
+  for (const sourceChange of [{ revision: '2099-01-01' }, { revision: '2026-07-19' }, { page: 'another-engine.htm' }, { evidenceLine: 7 }]) {
+    assert.throws(() => assertCatalogRevision('GOM', 'CHECKMAINHITTARGET', {
+      ...reviewedEntry, source: { ...reviewedEntry.source, ...sourceChange },
+    }), /reviewed help source/);
+  }
+  assert.throws(() => assertCatalogRevision('GOM', 'CHECKMAINHITTARGET', {
+    ...reviewedEntry, maxArgs: 1,
+  }), /reviewed help maxArgs/);
+  const nameOnlyEntry = findFunction(gomFunctions, 'CHECKGROUPITEM');
+  assert.throws(() => assertCatalogRevision('GOM', 'CHECKGROUPITEM', {
+    ...nameOnlyEntry, completionEnabled: true,
+  }), /reviewed help completionEnabled/);
+  assert.throws(() => assertCatalogRevision('GOM', 'CHECKGROUPITEM', {
+    ...nameOnlyEntry, minArgs: 1, maxArgs: 1,
+  }), /reviewed help minArgs/);
+  const missingReviewedEntry = { ...gomFunctions };
+  delete missingReviewedEntry.CHECKMAINHITTARGET;
+  assert.throws(() => assertReviewedCatalog('GOM', missingReviewedEntry), /exactly the 12 approved additions/);
   for (const [engine, catalog] of Object.entries(constantCatalogs)) {
     for (const entry of catalog.constants) {
       if (!entry.completionEnabled && !entry.diagnosticSupported) continue;

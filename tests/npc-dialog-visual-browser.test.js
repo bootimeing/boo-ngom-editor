@@ -93,7 +93,7 @@ function firstCachedPng() {
   return undefined;
 }
 
-function parseModel(source, conditionStates, engine = 'GOM') {
+function parseModel(source, conditionStates, engine = 'GOM', previewValues) {
   return parseNpcDialogDocument(source, {
     uri: 'file:///D:/MirServer/Mir200/Envir/QuestDiary/dom-test.txt',
     fileName: 'dom-test.txt',
@@ -105,6 +105,7 @@ function parseModel(source, conditionStates, engine = 'GOM') {
     offsets: workspaceNpcDialogOffsets(0, 0),
     catalog: buildDialogStatementCatalog(staticLanguage, engine),
     conditionStates,
+    previewValues,
   });
 }
 
@@ -780,23 +781,23 @@ function buildModels(imageUrl) {
     '普通<绿色/FCOLOR=250><黄色/FCOLOR=251>尾部',
     '<UNCONFIRMEDUI:1:2:3>',
     '#IF',
-    'CHECKGAMEGOLD > 0',
+    'CHECK [101] 1',
     '#SAY',
     '<&TEXT:条件满足:20:60{FCOLOR=251}>',
     '#ELSESAY',
     '<&TEXT:条件不满足:20:60{FCOLOR=253}>',
     '#IF',
-    'CHECKGAMEGOLD > 0',
+    'CHECK [101] 1',
     '#SAY',
     '<&TEXT:第二处条件满足:20:90{FCOLOR=251}>',
     '#ELSESAY',
     '<&TEXT:第二处条件不满足:20:90{FCOLOR=253}>',
   ].join('\n');
-  const falseModel = parseModel(source);
-  assert.equal(falseModel.conditionGroups.length, 1,
-    'equivalent source conditions must share one browser switch');
+  const falseModel = parseModel(source, undefined, 'GOM', {});
+  assert.equal(falseModel.previewInputs.filter(input => input.name === '[101]').length, 1,
+    'equivalent source conditions must share one flag input');
   const groupId = falseModel.conditionGroups[0].id;
-  const trueModel = parseModel(source, { [groupId]: true });
+  const trueModel = parseModel(source, undefined, 'GOM', { '[101]': '1' });
   return {
     groupId,
     falseModel: hydrateDomFixture(falseModel, imageUrl),
@@ -854,12 +855,12 @@ window.acquireVsCodeApi = function () {
           preserveDrafts: false, geeOffsetHelp: ''
         }}));
       }, 0);
-    } else if (message.type === 'previewCondition') {
+    } else if (message.type === 'previewInput') {
       setTimeout(function () {
         window.dispatchEvent(new MessageEvent('message', { data: {
           type: 'model',
-          model: message.satisfied ? window.__models.trueModel : window.__models.falseModel,
-          previewRevision: message.satisfied ? 2 : 3, preserveDrafts: true, geeOffsetHelp: ''
+          model: message.value === '1' ? window.__models.trueModel : window.__models.falseModel,
+          previewRevision: message.value === '1' ? 2 : 3, preserveDrafts: true, geeOffsetHelp: ''
         }}));
       }, 0);
     } else if (message.type === 'resetPreview') {
@@ -915,7 +916,7 @@ window.acquireVsCodeApi = function () {
       return element.containerElementId === 'LVDISABLED';
     });
     var flowLayout = page.elements.find(function (element) { return element.containerElementId === 'FLOW'; });
-    if (!root || !child || !item || !progress || !animatedProgress || !staticProgress || !imageCountdown || !imageNumber || !textAtlas || !slider || !loadingStyle || !loadingHidden || !loadingAnimated || !variablePreview || !coloredFlow || !costItem || !itemShowOn || !itemShowOff || !verticalList || !horizontalList || !disabledHorizontalList || !flowLayout) throw new Error('fixture elements missing');
+    if (!root || !child || !item || !progress || !animatedProgress || !staticProgress || !imageCountdown || !imageNumber || !textAtlas || !slider || !loadingStyle || !loadingHidden || !loadingAnimated || !variablePreview || !coloredFlow || !costItem || !itemShowOn || !itemShowOff || !verticalList || !horizontalList || !disabledHorizontalList || !flowLayout) throw new Error('fixture elements missing: ' + Object.entries({root,child,item,progress,animatedProgress,staticProgress,imageCountdown,imageNumber,textAtlas,slider,loadingStyle,loadingHidden,loadingAnimated,variablePreview,coloredFlow,costItem,itemShowOn,itemShowOff,verticalList,horizontalList,disabledHorizontalList,flowLayout}).filter(entry => !entry[1]).map(entry => entry[0]).join(','));
     if (!variablePreview.editable || node(variablePreview.id).classList.contains('locked')) {
       throw new Error('variable preview with literal source coordinates remained locked');
     }
@@ -2319,8 +2320,8 @@ window.acquireVsCodeApi = function () {
     if (animation.src === animationStart) throw new Error('animation frame did not advance');
     if (!document.getElementById('unsupportedList').textContent.includes('UNCONFIRMEDUI')) throw new Error('locked statement missing');
     if (document.querySelectorAll('.kind-unknown').length !== 1) throw new Error('unknown statement duplicated');
-    if (document.querySelectorAll('.scene-group').length !== 1) throw new Error('equivalent conditions were not coalesced');
-    if ((document.getElementById('conditionText').textContent.match(/CHECKGAMEGOLD > 0/g) || []).length !== 1) throw new Error('condition summary duplicated');
+    if ([...document.querySelectorAll('[data-preview-name]')].filter(input => input.dataset.previewName === '[101]').length !== 1) throw new Error('flag input duplicated');
+    if (!document.getElementById('conditionText').textContent.includes('[101] = 开')) throw new Error('compact condition summary missing');
     if (!document.getElementById('dialogCanvas').textContent.includes('默认内容')) throw new Error('TEXT content missing');
     if (document.getElementById('dialogCanvas').textContent.toLowerCase().includes('<&text')) throw new Error('TEXT token leaked into canvas');
     var tooltipElement = page.elements.find(function (element) { return element.tooltipPreview; });
@@ -2385,7 +2386,7 @@ window.acquireVsCodeApi = function () {
     document.getElementById('zoomReset').click();
     if (document.getElementById('zoomValue').textContent !== '100%') throw new Error('zoom reset failed');
 
-    var trueButton = document.querySelector('.scene-group .branch-button:nth-child(2)');
+    var trueButton = [...document.querySelectorAll('[data-preview-name]')].find(input => input.dataset.previewName === '[101]');
     trueButton.click();
     await wait(80);
     if (!document.getElementById('dialogCanvas').textContent.includes('条件满足')) throw new Error('satisfied branch missing');

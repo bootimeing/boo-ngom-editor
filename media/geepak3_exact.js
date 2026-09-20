@@ -447,8 +447,16 @@
 
   function toRgba(raw, block) {
     if (!(raw instanceof Uint8Array)) raw = new Uint8Array(raw);
-    if (raw.length !== block.rawSize) throw new Error('GEE raw image size mismatch');
     const width = block.width, height = block.height;
+    if (!Number.isInteger(width) || !Number.isInteger(height)
+      || width < 1 || height < 1 || width > 4096 || height > 4096) {
+      throw new Error('GEE image dimensions are invalid');
+    }
+    // Direct-cache consumers may supply metadata without running the archive
+    // header parser again. Do not interpret an unknown layout as BGRA or trust
+    // a self-consistent but forged rawSize from that metadata.
+    const expectedSize = rawImageSize(block.imageType, block.flags, width, height);
+    if (raw.length !== expectedSize || block.rawSize !== expectedSize) throw new Error('GEE raw image size mismatch');
     const rgba = new Uint8ClampedArray(width * height * 4);
     if (block.imageType === 3) {
       const stride = (width + 3) & ~3;

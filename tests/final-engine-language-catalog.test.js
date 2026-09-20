@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { assertReviewedCatalog, baselineRuntimeEntries } = require('./helpers/help-review-20260905');
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -36,7 +37,8 @@ function assertRuntimeMatchesLedger(engine, index, ledger) {
     systemConstants: index.constants,
   };
 
-  for (const [category, runtimeEntries] of Object.entries(runtimeCategories)) {
+  for (const [category, currentRuntimeEntries] of Object.entries(runtimeCategories)) {
+    const runtimeEntries = baselineRuntimeEntries(engine, category, currentRuntimeEntries);
     const ledgerEntries = ledger[category];
     assert.equal(ledgerEntries.length, runtimeEntries.length, `${engine}.${category} is stale`);
     assert.deepEqual(
@@ -76,6 +78,7 @@ function main() {
 
   for (const definition of ENGINE_DEFINITIONS) {
     functionCatalogs[definition.id] = readJson(`data/${definition.functionFile}`);
+    assertReviewedCatalog(definition.id, functionCatalogs[definition.id]);
     constantCatalogs[definition.id] = readJson(`data/${definition.constantsFile}`);
   }
 
@@ -107,6 +110,16 @@ function main() {
       constantCatalogs
     );
     assertRuntimeMatchesLedger(engine, index, ledger);
+    if (engine === 'GOM') {
+      assert.throws(() => assertRuntimeMatchesLedger(engine, {
+        ...index,
+        commands: [...index.commands, { name: 'UNREVIEWEDNEWCOMMAND' }],
+      }, ledger), /executionCommands is stale/, 'unknown additions must not disappear with the reviewed delta');
+      assert.throws(() => assertRuntimeMatchesLedger(engine, {
+        ...index,
+        commands: index.commands.filter(entry => normalizeName(entry.name) !== 'CHECKMAINHITTARGET'),
+      }, ledger), /exact reviewed delta/, 'missing approved additions must not pass as the old baseline');
+    }
 
     for (const [category, entries] of Object.entries(ledger)) {
       assertUnique(entries, `${engine}.${category}`);

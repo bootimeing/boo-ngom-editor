@@ -50,7 +50,7 @@ export function buildDialogCoordinateEdits(
     if (isExternalElement(model, element)) {
       throw new Error(`${element.token} 来自外部 QFunction companion，当前为只读预览，不能写入主 NPC 文件`);
     }
-    if (!element.editable || !element.x || !element.y) {
+    if (element.executionPreview || !element.editable || !element.x || !element.y) {
       throw new Error(`${element.token} 的坐标不是可安全修改的直接数值`);
     }
     const display = requested.get(change.elementId)!;

@@ -492,6 +492,39 @@ export function listArchiveIndexSummaries(indexRoot: string): ArchiveIndexSummar
   return result;
 }
 
+/** Same validation as the synchronous enumerator, with bounded UI-thread batches. */
+export async function listArchiveIndexSummariesAsync(
+  indexRoot: string,
+  assertCurrent: () => void = () => undefined
+): Promise<ArchiveIndexSummary[]> {
+  assertCurrent();
+  if (!fs.existsSync(indexRoot)) return [];
+  const result: ArchiveIndexSummary[] = [];
+  let yieldedAt = Date.now();
+  for (const entry of fs.readdirSync(indexRoot, { withFileTypes: true })) {
+    assertCurrent();
+    if (entry.isDirectory()) {
+      const cacheDir = path.join(indexRoot, entry.name);
+      const summary = readValidArchiveSummary(
+        path.join(cacheDir, ARCHIVE_SUMMARY_FILE),
+        path.join(cacheDir, ARCHIVE_INDEX_FILE),
+        { archiveId: entry.name }
+      );
+      if (summary) {
+        rememberSummary(indexRoot, summary);
+        result.push(summary);
+      }
+    }
+    if (Date.now() - yieldedAt >= 8) {
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assertCurrent();
+      yieldedAt = Date.now();
+    }
+  }
+  assertCurrent();
+  return result;
+}
+
 export function updateArchiveSourceMd5(
   indexRoot: string,
   archiveId: string,

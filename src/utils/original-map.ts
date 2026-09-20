@@ -51,6 +51,31 @@ export interface OriginalMapDrawReference {
   animationTick: number;
 }
 
+export type OriginalMapTileLayout = 'single-cell' | 'quad' | 'unknown';
+
+/**
+ * Classify a Tiles archive from its indexed image geometry. MAP bytes carry no
+ * pixel dimensions, so callers must keep `unknown` fail-closed when the table
+ * has no usable samples. The bounded sample is deliberately deterministic.
+ */
+export function classifyOriginalMapTileLayout(table: {
+  slotCount: number;
+  present: ArrayLike<number>;
+  blank: ArrayLike<number>;
+  width: ArrayLike<number>;
+  height: ArrayLike<number>;
+}): OriginalMapTileLayout {
+  let sampled = 0;
+  for (let index = 0; index < Math.max(0, Math.trunc(Number(table.slotCount) || 0)) && sampled < 32; index++) {
+    if (!table.present[index] || table.blank[index]) continue;
+    sampled++;
+    const width = Number(table.width[index]) || 0;
+    const height = Number(table.height[index]) || 0;
+    if (width <= 0 || height <= 0 || width > 48 || height > 32) return 'quad';
+  }
+  return sampled > 0 ? 'single-cell' : 'unknown';
+}
+
 const HEADER_SIZE = 52;
 const FOREGROUND_LOOKAHEAD_ROWS = 35;
 const LEGEND_MAP_TITLE = Buffer.from('Legend of mir', 'ascii');
@@ -212,7 +237,11 @@ export async function parseOriginalMap(
       const offset = HEADER_SIZE + (x * height + y) * cellSize;
       const index = y * width + x;
       const back = mapImageReference(data.readUInt16LE(offset));
-      const middle = mapImageReference(data.readUInt16LE(offset + 2));
+      // SmTiles uses the full Word as an image number (GXX PlayScn.wMidImg),
+      // unlike back/front whose top bit encodes collision. Masking it selects
+      // a different sprite 32768 slots earlier, often a half-size ground tile.
+      const rawMiddle = data.readUInt16LE(offset + 2);
+      const middle = rawMiddle === 0xffff ? 0 : rawMiddle;
       const front = mapImageReference(data.readUInt16LE(offset + 4));
       const animationFrame = data[offset + 8] || 0;
       const animationTick = data[offset + 9] || 0;
@@ -227,7 +256,9 @@ export async function parseOriginalMap(
       objectFiles[index] = objectFile;
       tileFiles[index] = tileFile;
       smTileFiles[index] = smTileFile;
-      if (back > 0 && x % 2 === 0 && y % 2 === 0) {
+      // Include potential single-cell archives in cache identity even when
+      // they occur only on odd cells. Geometry is resolved later by Provider.
+      if (back > 0) {
         archives.add(originalMapArchiveName('tile', tileFile));
         referenceCount++;
       }
@@ -296,7 +327,8 @@ export function permanentMapEffectFramesIntersectViewport(
 
 export function collectOriginalMapViewport(
   model: OriginalMapModel,
-  viewport: OriginalMapViewport
+  viewport: OriginalMapViewport,
+  includeSingleCellTiles = false
 ): OriginalMapDrawReference[] {
   const left = clampInteger(viewport.left, 0, model.width - 1);
   const top = clampInteger(viewport.top, 0, model.height - 1);
@@ -335,7 +367,7 @@ export function collectOriginalMapViewport(
   for (let y = backgroundTop; y <= backgroundBottom; y++) {
     for (let x = backgroundLeft; x <= backgroundRight; x++) {
       const index = y * model.width + x;
-      if (x % 2 === 0 && y % 2 === 0) {
+      if ((includeSingleCellTiles || (x % 2 === 0 && y % 2 === 0))) {
         append('tile', x, y, model.backImages[index], model.tileFiles[index]);
       }
       append('smTile', x, y, model.middleImages[index], model.smTileFiles[index]);

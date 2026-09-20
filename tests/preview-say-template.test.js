@@ -1,0 +1,34 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const { parse } = require('./preview-inputs-integration.test');
+const runtime = path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT || path.join(__dirname, '..'));
+const { buildDialogCoordinateEdits, applyTextReplacements } = require(path.join(runtime, 'out/ui-dialog/source-patcher'));
+const source = '[@main]\n#ACT\nMOV N0 0\nWHILE N0 < U101\n#SAY\n<&TEXT:实例<$STR(N0)>:40:50>\\\n#ACT\nINC N0 1\nENDWHILE\n#SAY\n<&TEXT:独立:240:80>';
+const templates = m => m.pages[0].elements.filter(e => e.text.startsWith('实例'));
+function run() {
+  const model = parse(source, { U101: '3' });
+  const copies = templates(model);
+  assert.equal(copies.length, 3);
+  assert.ok(copies.every(e => typeof e.sourceTemplateId === 'string'), 'editable source copies need an explicit template identity');
+  assert.equal(new Set(copies.map(e => e.sourceTemplateId)).size, 1);
+  assert.deepEqual(copies.map(e => e.editable), [false, false, true]);
+  assert.equal(templates(parse(source, { U101: '2' }))[1].sourceTemplateId, copies[2].sourceTemplateId, 'identity survives a changed last occurrence');
+  assert.equal(model.pages[0].elements.at(-1).sourceTemplateId, undefined, 'independent source not grouped');
+  const paired = parse(source.replace(':40:50>\\', ':40:50> <&TEXT:实例B<$STR(N0)>:120:50>\\'), { U101: '3' });
+  assert.equal(new Set(templates(paired).map(e => e.sourceTemplateId)).size, 2, 'two controls on the same source line are separate templates');
+  const relative = parse(source.replace('<&TEXT:', '<TEXT:'), { U101: '3' }, 'GOM', { offsets: { ...model.offsets, memoX: 13, memoY: 17 } });
+  const relativeEdits = buildDialogCoordinateEdits(source.replace('<&TEXT:', '<TEXT:'), relative, [{ elementId: templates(relative)[2].id, x: 90, y: 100 }]);
+  assert.ok(applyTextReplacements(source.replace('<&TEXT:', '<TEXT:'), relativeEdits.replacements).includes(':81:87>'), 'relative offsets and paint bias each applied once');
+  const dynamic = parse(source.replace(':40:50>', ':40:<$STR(N0)>>'), { U101: '3' });
+  assert.ok(templates(dynamic).every(e => !e.sourceTemplateId), 'unknown coordinate source must not acquire template editability');
+  const edits = buildDialogCoordinateEdits(source, model, [{ elementId: copies[2].id, x: 90, y: 100 }]);
+  assert.equal(edits.changedElements, 1);
+  assert.equal(edits.replacements.length, 2);
+  const rewritten = applyTextReplacements(source, edits.replacements);
+  assert.ok(rewritten.includes(':94:104>'), 'source paint bias applied once');
+  assert.ok(templates(parse(rewritten, { U101: '3' })).every(e => e.layoutX === 90 && e.layoutY === 100));
+  assert.throws(() => buildDialogCoordinateEdits(source, model, [{ elementId: copies[0].id, x: 90, y: 100 }]), /直接数值/);
+  console.log('preview-say-template.test.js: PASS');
+}
+if (require.main === module) run();
+module.exports = { source, templates, run };

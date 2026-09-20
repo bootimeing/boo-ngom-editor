@@ -16,10 +16,18 @@ export interface DialogConditionGroup {
   title: string;
   conditions: string[];
   operators: DialogConditionOperator[];
+  requiredCount?: number;
   satisfied: boolean;
 }
 
 export interface DialogResolvedVariable {
+  localPreview?: boolean;
+  /**
+   * Canonical local-preview inputs that can change this resolved value.
+   * This is evaluator provenance used to project the public input panel; it
+   * never grants runtime, file, database, or asset capabilities.
+   */
+  previewInputNames?: string[];
   name: string;
   value: string;
   status: 'resolved' | 'default';
@@ -151,6 +159,8 @@ export type DialogItemPreviewField =
 
 export interface DialogItemPreview {
   mode: DialogItemPreviewMode;
+  /** GEE ITEMSHOW pixel placement, distinct from GOM and 996PC item controls. */
+  paintProfile?: 'gee-itemshow';
   itemIndex?: number;
   itemName?: string;
   equipmentSlot?: number;
@@ -169,6 +179,8 @@ export interface DialogItemPreview {
   imageSource?: 'items' | 'std-item';
   drawEffect?: boolean;
   lightCode?: number;
+  /** GXX/GEE light overlay; frames are hydrated from the active client. */
+  lightPreview?: DialogItemLightPreview;
   compactQuantity?: boolean;
   displayTarget?: 'self' | 'viewed-character';
   showTips?: boolean;
@@ -186,6 +198,17 @@ export interface DialogItemPreview {
   dynamic?: boolean;
   dynamicFields?: DialogItemPreviewField[];
   invalidFields?: DialogItemPreviewField[];
+}
+
+export interface DialogItemLightPreview {
+  archiveName: string;
+  startIndex: number;
+  frameCount: number;
+  offsetX: number;
+  offsetY: number;
+  intervalMs: number;
+  blendMode: 'src-alpha-color';
+  frames?: DialogAssetPreview[];
 }
 
 export interface DialogCostItemPreview {
@@ -225,6 +248,15 @@ export type DialogProgressPreviewField =
   | 'text';
 
 export interface DialogProgressPreview {
+  /** Proved GOM/GEE display snapshot only; never authorizes timers, assets or actions. */
+  localDisplayRange?: {
+    minimum: number;
+    maximum: number;
+    value: number;
+    ratio: number;
+    valueOrigin: 'resolved-static' | 'preview-input';
+    expressions: Record<'minimum' | 'maximum' | 'value', string>;
+  };
   minimum?: number;
   maximum?: number;
   value?: number;
@@ -350,14 +382,17 @@ export type DialogRuntimeActionTrigger =
 
 /**
  * Client/server actions retained for an auditable local simulation. The Webview
- * must never execute script labels, reload the real client, or submit values.
+ * must never execute server labels, reload the real client, or submit values to
+ * the server. Validated input snapshots may feed bounded local preview paths.
  */
 export interface DialogRuntimeActionPreview {
   /** Explicit when the manual proves a gesture/event; omitted for older keyed controls. */
   trigger?: DialogRuntimeActionTrigger;
   submitInputIds?: number[];
+  /** Explicit own-engine wildcard; distinct from GOM plain-text implicit submission. */
+  submitAllInputs?: boolean;
   link?: string;
-  /** Source-order SCRIPTPARAM1..N values. They are displayed, never submitted. */
+  /** Source-order parameter expressions; evaluated only in a validated local call. */
   parameters?: string[];
   doubleClickLink?: string;
   reload?: boolean;
@@ -416,6 +451,15 @@ export interface DialogAddButtonPreview {
 
 export interface DialogTextRun {
   text: string;
+  /** 996PC client display only; never a server variable or resource capability. */
+  clientValue?: {
+    inputName: string;
+    expression: string;
+    kind: 'number' | 'text';
+    origin: 'local-input' | 'local-slider' | 'placeholder';
+    simplifyNumber?: boolean;
+    sliderElementId?: string;
+  };
   color?: string;
   colorValues?: string[];
   colorFrames?: string[];
@@ -439,6 +483,7 @@ export type DialogTextPreviewField =
 
 export type DialogTextValueStatus =
   | 'literal'
+  | 'preview-input'
   | 'resolved-static'
   | 'runtime-placeholder'
   | 'invalid-static';
@@ -526,6 +571,8 @@ export interface DialogMenuAssetDiagnostic {
 export interface DialogMenuPreview {
   items: string[];
   selected: string;
+  /** Display-only runs, aligned with source-owned options; never submission values. */
+  clientDisplay?: { items: DialogTextRun[][]; selected: DialogTextRun[] };
   /** 996PC server-side selection target. Ctrl+F12 only mirrors it in local preview state. */
   menuId?: string;
   /** Documented server script target; retained for display and never executed by the preview. */
@@ -571,6 +618,8 @@ export type DialogCountdownFormat =
   | 'pc-dhms';
 
 export interface DialogCountdownPreview {
+  /** Display-only source; must never supply seconds or timer eligibility. */
+  displaySecondsSource?: string;
   seconds?: number;
   repeatCount?: number;
   format: DialogCountdownFormat;
@@ -606,6 +655,8 @@ export interface DialogImageTextPreview {
   mode: 'individual' | 'atlas';
   textAtlasVariant?: 'legacy-individual' | 'newui-atlas';
   value: string;
+  /** 996PC display-only runs; never a source of atlas or geometry authority. */
+  clientText?: DialogTextRun[];
   gap: number;
   glyphWidth?: number;
   glyphHeight?: number;
@@ -839,6 +890,8 @@ export interface DialogAnimationPreview {
 export interface DialogTooltipRun {
   text: string;
   color?: string;
+  /** Display-only binding; never changes itemIndex or tooltip source. */
+  clientValue?: DialogTextRun['clientValue'];
 }
 
 export interface DialogTooltipPreview {
@@ -1012,6 +1065,9 @@ export type DialogSizeMode =
 export interface DialogSizeAxisPreview {
   mode: DialogSizeMode;
   baseValue: number;
+  /** Local layout value only; the expression remains the source for editing. */
+  sourceExpression?: string;
+  valueOrigin?: 'resolved-static' | 'preview-input';
 }
 
 export interface DialogSizePreview {
@@ -1048,6 +1104,28 @@ export interface DialogCoordinateBinding {
 }
 
 export interface DialogElement {
+  /** Read-only execution composition; not a source-layout/action capability. */
+  executionPreview?: boolean;
+  executionSourceLabel?: string;
+  executionRootLabel?: string;
+  executionFrame?: number;
+  /** Audited GOM text link on an entry/visited page; local preview only. */
+  localParameterTarget?: string;
+  localPopupInput?: import('./preview-popup-input').LocalPopupInput;
+  localDoubleClickTarget?: string;
+  /** User-operated control event, separate from ordinary clicks and client timers. */
+  localControlTarget?: string;
+  localCompletionTarget?: string;
+  /** Independently proved local scalar state; raw resource/runtime diagnostics remain unchanged. */
+  localControlState?: {
+    minimum: number; maximum: number; value: number;
+    origin: 'resolved-static' | 'preview-input';
+    expressions: Record<string, string>;
+  };
+  /** Index of the actual emitted SAY event; assigned only by the parser. */
+  sayOccurrence?: number;
+  /** Shared directly editable source template; execution instances retain their own IDs. */
+  sourceTemplateId?: string;
   id: string;
   statementId: string;
   token: string;
@@ -1076,6 +1154,7 @@ export interface DialogElement {
   color?: string;
   parameters?: DialogElementParameter[];
   assetRef?: DialogAssetReference;
+  previewAssetOrigin?: 'resolved-static';
   asset?: DialogAssetPreview;
   assetLayers?: DialogAssetLayer[];
   assetStateDiagnostics?: DialogAssetStateDiagnostic[];
@@ -1213,12 +1292,14 @@ export interface DialogAddDlgWindow {
 }
 
 export interface DialogScene {
+  executionPreview?: boolean;
   id: string;
   title: string;
   sourceLabel: string;
   marker: '#SAY' | '#ELSESAY' | 'STATIC';
   conditions: string[];
   conditionOperators: DialogConditionOperator[];
+  requiredCount?: number;
   conditionGroupId?: string;
   previewPath: Record<string, boolean>;
   conditionSummary: string;
@@ -1233,6 +1314,7 @@ export interface DialogScene {
 }
 
 export interface DialogPagePreview {
+  executionPreview?: boolean;
   id: string;
   title: string;
   sourceLabel: string;
@@ -1288,6 +1370,8 @@ export interface DialogActUiPreview {
   id: string;
   command: DialogActUiCommand;
   sourceLabel: string;
+  /** Executed on the current local preview path even when its source label has no page. */
+  activeInPreview?: boolean;
   lineNumber: number;
   sourceRange: SourceSpan;
   fields: DialogActUiField[];
@@ -1300,6 +1384,8 @@ export interface DialogActUiPreview {
 }
 
 export interface NpcDialogDocumentModel {
+  previewNavigation?: { calls: import('./variable-resolver').DialogPreviewCall[]; activeLabel: string };
+  previewInputs?: import('./preview-inputs').DialogPreviewInput[];
   uri: string;
   fileName: string;
   filePath: string;
@@ -1320,6 +1406,8 @@ export interface NpcDialogDocumentModel {
   companionUris: string[];
   companionFilePaths: string[];
   companionCandidateFilePaths: string[];
+  /** Validated CALL/CALLEX dependency candidates, including currently missing files. */
+  scriptSourceCandidateFilePaths?: string[];
   scenes: DialogScene[];
   pages: DialogPagePreview[];
   actUiPreviews: DialogActUiPreview[];

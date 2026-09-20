@@ -17,7 +17,9 @@ function main() {
     readme.startsWith(`# BOO 可视化编辑器 V${manifest.version}\n`),
     'README 标题版本必须与 package.json 一致'
   );
-  assert.match(readme, /## V4\.3\.5 更新重点/);
+  assert.match(readme, /\[CHANGELOG\.md\]\(CHANGELOG\.md\)/, 'README 应链接独立版本记录');
+  const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+  assert.ok(changelog.includes(`## V${manifest.version}`), '当前版本增量应保留在版本记录中');
   assert.match(readme, /ITEMSHOW[^\n]*IDX[^\n]*Looks/);
   assert.match(readme, /## 安装/);
 

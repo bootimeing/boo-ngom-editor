@@ -36,10 +36,11 @@ function decodeAttribute(value) {
     .replace(/&amp;/g, '&');
 }
 
-function scenarioScript() {
+function scenarioScript(singleCellData) {
   return `<script>
 (async function(){
   var results={};
+  var singleCellData=${JSON.stringify(singleCellData).replace(/</g, '\\u003c')};
   var nativeToBlob=HTMLCanvasElement.prototype.toBlob;
   var nativeDrawImage=CanvasRenderingContext2D.prototype.drawImage;
   function check(value,message){if(!value)throw new Error(message)}
@@ -179,6 +180,52 @@ function scenarioScript() {
       smTiles:state.original.layer.smTiles.length,objects:state.original.layer.objects.length,
       mapEffects:state.original.layer.permanentMapEffects.length};
 
+    // Consume the real Provider's repeated-image placements, not a hand-built
+    // list. Verify raw, newly baked and reloaded persistent drawing paths.
+    resetOriginal(21);
+    state.map={width:4,height:4};state.worldW=192;state.worldH=128;
+    var single=Object.assign(baseData('single-cell',21),singleCellData);
+    single.viewport={left:0,top:0,right:3,bottom:3};
+    single.resources=single.resources.map(function(meta){return Object.assign({},meta,{url:solidPng('#ff0000',48,32)})});
+    single.staticCacheEnabled=false;
+    function expectNoHoles(target,width,height,label){
+      var values=target.getImageData(0,0,width,height).data,holes=0;
+      for(var i=0;i<values.length;i+=4){
+        if(values[i]!==255||values[i+1]!==0||values[i+2]!==0||values[i+3]!==255)holes++;
+      }
+      check(holes===0,label+' uncovered/non-red pixels: '+holes);
+      return width*height;
+    }
+    await loadOriginalMapData(single,false);
+    releaseOriginalMapBase();drawOriginalMap(0,0);
+    var rawPixelCount=expectNoHoles(ctx,192,128,'single-cell raw drawing');
+    state.original.viewportSeq=22;
+    single.viewportSeq=22;single.staticCacheEnabled=true;
+    single.staticChunks=[Object.assign(staticChunk('c0-r0',false,''),{width:192,height:128})];
+    await loadOriginalMapData(single,false);
+    await waitFor(function(){return window.__tilePosted.some(function(item){
+      return item.type==='storeOriginalMapTile'&&item.cacheKey==='single-cell';
+    })},'single-cell map did not upload a baked chunk');
+    var singleUpload=window.__tilePosted.find(function(item){return item.type==='storeOriginalMapTile'&&item.cacheKey==='single-cell'});
+    var singleImage=await loadImage(singleUpload.pngDataUrl),singleCanvas=document.createElement('canvas');
+    singleCanvas.width=192;singleCanvas.height=128;
+    var singleContext=singleCanvas.getContext('2d');singleContext.drawImage(singleImage,0,0);
+    var bakedPixelCount=expectNoHoles(singleContext,192,128,'single-cell baked PNG');
+    releaseOriginalMapBase();drawOriginalMap(0,0);
+    expectNoHoles(ctx,192,128,'single-cell cold chunk');
+    state.original.viewportSeq=23;
+    var singleCached=Object.assign(baseData('single-cell-reload',23),{
+      viewport:{left:0,top:0,right:3,bottom:3},staticSourceIncluded:false,
+      staticChunks:[Object.assign(staticChunk('c0-r0',true,singleUpload.pngDataUrl),{width:192,height:128})]
+    });
+    await loadOriginalMapData(singleCached,false);
+    releaseOriginalMapBase();drawOriginalMap(0,0);
+    var cachedPixelCount=expectNoHoles(ctx,192,128,'single-cell persistent reload');
+    state.scale=.53;releaseOriginalMapBase();drawOriginalMap(0,0);
+    var zoomPixelCount=expectNoHoles(ctx,101,67,'single-cell screenshot zoom');
+    results.singleCell={placements:single.tiles.length/3,resources:single.resources.length,
+      rawPixelCount:rawPixelCount,bakedPixelCount:bakedPixelCount,cachedPixelCount:cachedPixelCount,zoomPixelCount:zoomPixelCount};
+
     stopOriginalMapAnimation();releaseOriginalMapBase();clearOriginalStaticChunkCache();
     check(ORIGINAL_STATIC_CHUNK_CACHE_ENTRY_LIMIT===96,'static chunk entry limit is not 96');
     check(ORIGINAL_STATIC_CHUNK_CACHE_BYTE_LIMIT===128*1024*1024,'static chunk byte limit is not 128 MiB');
@@ -259,7 +306,9 @@ function scenarioScript() {
 </script>`;
 }
 
-function main() {
+async function main() {
+  const { resolveFixture } = require('./map-single-cell-provider.test');
+  const { data: singleCellData } = await resolveFixture({ upperLayers: false });
   const candidates = browserCandidates();
   assert.ok(candidates.length > 0, 'no installed Chromium browser was found');
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-original-map-tile-browser-'));
@@ -273,7 +322,7 @@ function main() {
         + 'window.addEventListener("unhandledrejection",function(event){setTimeout(function(){if(document.body){var reason=event.reason;document.body.dataset.originalMapTileTest="fail";document.body.dataset.originalMapTileErrors=reason&&reason.stack?reason.stack:String(reason)}},0)});'
         + '</script><script>'
     );
-    html = html.replace('</body>', `${scenarioScript()}</body>`);
+    html = html.replace('</body>', `${scenarioScript(singleCellData)}</body>`);
     fs.writeFileSync(harness, html, 'utf8');
 
     const attempts = [];
@@ -329,6 +378,9 @@ function main() {
     assert.equal(results.lru.entryLimit, 96);
     assert.equal(results.lru.byteLimit, 128 * 1024 * 1024);
     assert.equal(results.stale.posted, 0);
+    assert.equal(results.singleCell.placements, 16);
+    assert.equal(results.singleCell.resources, 1);
+    assert.equal(results.singleCell.bakedPixelCount, 24576);
     console.log(`original-map-tile-browser.test.js: browser=${selected.candidate}`);
     console.log(`original-map-tile-browser.test.js: results=${JSON.stringify(results)}`);
   } finally {
@@ -337,4 +389,4 @@ function main() {
   console.log('original-map-tile-browser.test.js: PASS');
 }
 
-main();
+main().catch(error => { console.error(error); process.exitCode = 1; });

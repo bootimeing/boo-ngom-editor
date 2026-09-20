@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 import gm_offline_crypto as offline
+import gee2_native
 
 
 SIGNATURE = b"\x07GEEPAK2"
@@ -70,16 +71,7 @@ def fixed_material() -> offline.PasswordMaterial:
 @lru_cache(maxsize=64)
 def password_state(password: str) -> PasswordState:
     material = offline.derive_password_material(password, offline.GEE_PASSWORD_SALT)
-    object_state = offline.default_gee_vm().set_password_v2(material)
-    if object_state[0x178:0x1F8] != material.des_schedule:
-        raise GEEPak2Error("GEEPAK2 password schedule derivation failed")
-    if object_state[0x1F8:0x20C] != material.seed20:
-        raise GEEPak2Error("GEEPAK2 password seed derivation failed")
-    secondary = object_state[
-        IMAGE_SECONDARY_OFFSET : IMAGE_SECONDARY_OFFSET + IMAGE_SECONDARY_SIZE
-    ]
-    if len(secondary) != IMAGE_SECONDARY_SIZE:
-        raise GEEPak2Error("GEEPAK2 image header state is incomplete")
+    secondary = gee2_native.image_header_secondary(material.des_schedule, material.seed20)
     stream = offline.des_encrypt_block(material.des_key, material.seed20[:8])
     image_header_mask = bytes(left ^ right for left, right in zip(stream, secondary))
     return PasswordState(material, image_header_mask)
@@ -95,9 +87,11 @@ def parse_global_header(
     if not prefix.startswith(SIGNATURE):
         raise GEEPak2Error("not a GEEPAK2 file")
 
-    plaintext = offline.default_gee_vm().decrypt_global_v2(
+    fixed = fixed_material()
+    plaintext = gee2_native.decrypt_global_header(
         prefix[10:HEADER_SIZE],
-        fixed_material(),
+        fixed.des_schedule,
+        fixed.seed20,
     )
     title_length = plaintext[1]
     title_end = 2 + title_length

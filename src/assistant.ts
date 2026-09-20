@@ -100,6 +100,7 @@ import {
   buildSemanticCommandIndex,
   classifySemanticCommand,
   findCommandCandidates,
+  findScriptFlowTokens,
   SemanticCommandKind,
 } from './utils/semantic-commands';
 import {
@@ -1779,7 +1780,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
           }
 
           // 4. 自定义变量 N$xxx S$xxx P0 等 → 绿色 (排除<$>内)
-          const cvRe = /[NSLDnsld]\$[A-Za-z0-9_\u4e00-\u9fff]*|[Gg][Ll]\$[A-Za-z0-9_\u4e00-\u9fff]*|[PDMNSIGAUTJZpdmnigautjz]\d+/g;
+          const cvRe = /[NSLD]\$[A-Za-z0-9_\u4e00-\u9fff]*|GL\$[A-Za-z0-9_\u4e00-\u9fff]*|(?<![A-Za-z0-9_])[PDMNSIGAUTJZ]\d+(?![A-Za-z0-9_])/gi;
           let cvm;
           while ((cvm = cvRe.exec(line)) !== null) {
             // 跳过已覆盖区域
@@ -1807,16 +1808,24 @@ export function activateAssistant(context: vscode.ExtensionContext) {
             }
           }
 
+          // 爆率指令按当前引擎着色，不借用 NPC 命令的补全资格。
+          for (const token of findScriptFlowTokens(line, languageIndex.engine)) {
+            push(token.start, token.end, 0, MOD_FLOW);
+          }
+
           // 7. 命令和关键字。候选扫描保留 M./H./FS. 等对象前缀。
           for (const candidate of findCommandCandidates(line)) {
-            if (covered[candidate.start]) continue;
+            // S1.GameGold 的变量前缀已有绿色，命令部分仍需单独着色。
+            const commandStart = covered[candidate.start] && candidate.name.includes('.')
+              ? candidate.start + candidate.name.lastIndexOf('.') + 1 : candidate.start;
+            if (covered[commandStart]) continue;
             const word = candidate.name;
             const wu = word.toUpperCase();
 
-            if (wu === 'CALL') {
+            if (wu === 'CALL' && line[candidate.start - 1] === '#') {
               const hashIdx = line.lastIndexOf('#', candidate.start);
               if (hashIdx >= 0) push(hashIdx, Math.min(candidate.end, len), 0, MOD_FLOW);
-            } else if (/^(IF|ACT|SAY|ELSEACT|ELSESAY|INCLUDE|OR)$/i.test(word)) {
+            } else if (line[candidate.start - 1] === '#' && /^(IF|ACT|SAY|ELSEACT|ELSESAY|INCLUDE|OR)$/i.test(word)) {
               const hashIdx = line.lastIndexOf('#', candidate.start);
               if (hashIdx >= 0) push(hashIdx, Math.min(candidate.end, len), 0, MOD_FLOW);
             } else {
@@ -1826,9 +1835,9 @@ export function activateAssistant(context: vscode.ExtensionContext) {
                 commandContext
               );
               if (commandKind === 'check') {
-                push(candidate.start, candidate.end, 0, MOD_CHECK);
+                push(commandStart, candidate.end, 0, MOD_CHECK);
               } else if (commandKind === 'action') {
-                push(candidate.start, candidate.end, 0, MOD_ACTION);
+                push(commandStart, candidate.end, 0, MOD_ACTION);
               }
             }
           }
@@ -1942,6 +1951,15 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       if (isComment(lines[i])) continue;
       const up = lines[i].trim().toUpperCase();
       if (up.startsWith('#IF(') || up.startsWith('#IF ') || up === '#IF' || up.startsWith('#OR')) {
+        // 996PC / 新 GOM 条件爆率使用 #IF [比较条件|参数] [RANDOM] + (...)，
+        // 可被 #CALL 引用到 QuestDiary，不能只按 MonItems 路径识别。
+        // 这里只区分语法类型，不代表已验证条件表达式或爆率块本身合法。
+        if ((languageIndex.engine === '996PC' || languageIndex.engine === 'GOM')
+          && /^\s*#IF\s+\[[^\]\r\n]*(?:<>|>=|<=|>|<|=)[^\]\r\n]*\](?:\s+RANDOM)?\s*(?:(?:;|\/\/).*)?$/i.test(lines[i])) {
+          let next = i + 1;
+          while (next < lines.length && (!lines[next].trim() || isComment(lines[next]))) next++;
+          if (next < lines.length && /^\(\s*(?:(?:;|\/\/).*)?$/.test(lines[next].trim())) continue;
+        }
         let hasBlock = false;
         for (let j = i + 1; j < Math.min(i + 101, lines.length); j++) {
           const uj = lines[j].trim().toUpperCase();
@@ -3524,6 +3542,15 @@ progress::-webkit-progress-value{background:linear-gradient(90deg,#0ea5e9,#00d4f
         vscode.window.setStatusBarMessage('已转换为大写', 3000);
       }
       editor.edit(eb => eb.replace(selection, transformed));
+    }),
+
+    // ---- 选中文字添加固定颜色 (Ctrl+E)，所有选区共用一次可撤销编辑 ----
+    vscode.commands.registerTextEditorCommand('boo.wrapFColor250', (editor, editBuilder) => {
+      for (const selection of editor.selections) {
+        if (selection.isEmpty) continue;
+        const text = editor.document.getText(selection);
+        editBuilder.replace(selection, `{${text}/fcolor=250}`);
+      }
     }),
 
     // ---- 变量转STR包裹 (Ctrl+D) ----

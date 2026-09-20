@@ -1,0 +1,37 @@
+const assert = require('node:assert/strict');
+const { parse } = require('./preview-inputs-integration.test');
+const path = require('node:path');
+const runtime = path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT || path.join(__dirname,'..'));
+const {buildDialogCoordinateEdits,applyTextReplacements}=require(path.join(runtime,'out/ui-dialog/source-patcher'));
+const source = '[@main]\n#ACT\nMOV N0 0\nWHILE N0 < 3\n#SAY\nA<$STR(N0)>\\\nB<$STR(N0)>\\\n#ACT\nINC N0 1\nENDWHILE\n#SAY\n结束';
+function run() {
+ const m=parse(source);
+ const elements=m.pages[0].elements;
+ assert.deepEqual(elements.map(e=>e.text),['A0','B0','A1','B1','A2','B2','结束']);
+ assert.equal(new Set(elements.map(e=>e.id)).size,elements.length,'execution instances need distinct IDs');
+ assert.ok(elements[2].layoutY>elements[1].layoutY,'trace order survives flow layout');
+ const positionedSource=source.replace('A<$STR(N0)>\\','<&TEXT:第<$STR(N0)>次:40:50>\\');
+ const positioned=parse(positionedSource);
+ const templates=positioned.pages[0].elements.filter(e=>e.raw.startsWith('<&TEXT:'));
+ assert.deepEqual(templates.map(e=>e.editable),[false,false,true],'one editable template prevents conflicting source writes');
+ assert.throws(()=>buildDialogCoordinateEdits(positionedSource,positioned,[{elementId:templates[0].id,x:70,y:80}]),/直接数值/);
+ const edits=buildDialogCoordinateEdits(positionedSource,positioned,[{elementId:templates[2].id,x:70,y:80}]);
+ assert.equal(edits.changedElements,1);
+ const rewritten=applyTextReplacements(positionedSource,edits.replacements);
+ assert.ok(rewritten.includes(':74:84>'),'TEXT source paint bias retained');
+ assert.ok(parse(rewritten).pages[0].elements.filter(e=>e.raw.startsWith('<&TEXT:')).every(e=>e.layoutX===70&&e.layoutY===80),'all template copies move after source reparse');
+ const conditional=source.replace('A<$STR(N0)>\\\nB<$STR(N0)>\\','#IF\nEQUAL N0 1\n#SAY\n中间\\\n#ELSESAY\n其他<$STR(N0)>\\\n#IF');
+ assert.deepEqual(parse(conditional).pages[0].elements.map(e=>e.text),['其他0','中间','其他2','结束']);
+ const one=conditional.replace('N0 < 3','N0 < 2');
+ assert.deepEqual(parse(one).pages[0].elements.map(e=>e.text),['其他0','中间','结束'],'different branches retained even when each source line executes once');
+ const attack=parse(source.replace('A<$STR(N0)>','<$STR(S1)>'),{S1:'<IMG:1:1:1:1>/@hack'});
+ assert.equal(attack.pages[0].elements.length,7,'user text must not create markup in repeated outputs');
+ assert.ok(attack.pages[0].elements.every(e=>!e.localParameterTarget));
+ const button=parse(source.replace('A<$STR(N0)>','<点击/@page(<$STR(N0)>)>')+'\n[@page]\n#SAY\n参数<$SCRIPTPARAM1>');
+ assert.ok(button.pages[0].elements.filter(e=>e.runtimeActionPreview).every(e=>e.localParameterTarget&&Number.isInteger(e.sayOccurrence)),'each callable loop instance carries its own event identity');
+ const limited=parse(source.replace('N0 < 3','N0 < 3000'));
+ assert.ok(limited.pages[0].elements.length<=4096);
+ assert.ok(limited.warnings.some(w=>w.includes('4096')),'truncation is explicit');
+ console.log('preview-say-trace.test.js: PASS');
+}
+if(require.main===module)run(); module.exports={source,run};

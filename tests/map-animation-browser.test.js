@@ -6,7 +6,7 @@ const { spawnSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
 
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT || path.join(__dirname, '..'));
 
 function browserCandidates() {
   return [...new Set([
@@ -223,6 +223,117 @@ function scenarioScript() {
     await wait(260);
     assertState(scheduledAnimationTimers===scheduledBeforeMapChange,'old timer restarted after changing maps');
     assertState(maxActiveAnimationTimers===1,'more than one map animation timer was pending');
+
+    // Explicit entity sequences must retain a blank beat in both Canvas and
+    // DOM consumers. These are real decoded SVGs, not URL/count-only checks.
+    var entityFrames=[
+      {url:images[2].src,width:8,height:8,offsetX:0,offsetY:0,usesOffsets:true},
+      {url:'',blank:true,width:0,height:0},
+      {url:images[3].src,width:8,height:8,offsetX:0,offsetY:0,usesOffsets:true}
+    ];
+    await Promise.all(entityFrames.filter(function(frame){return frame.url}).map(function(frame){return originalImage(frame).promise}));
+    state.scale=1;state.offsetX=0;state.offsetY=0;
+    var zone={frames:entityFrames},zonePixels=[];
+    for(var beat=0;beat<3;beat++){
+      ctx.clearRect(0,0,canvas.width,canvas.height);state.safeZoneFrame=beat;
+      drawSafeZoneFrame(zone,1,1);zonePixels.push(pixelAt(73,49));
+    }
+    assertState(isBlue(zonePixels[0])&&zonePixels[1][3]===0&&isYellow(zonePixels[2]),
+      'safe zone must render blue, transparent, yellow without squeezing the blank beat');
+    var savedInterval=window.setInterval,iconTick=null;
+    window.setInterval=function(callback){iconTick=callback;return 998877};
+    state.npcs=[{lineNumber:901,x:1,y:1}];
+    var icon={frames:entityFrames,speedMs:120,x:0,y:0,layer:0,playCount:0};
+    appendNpcIcon(state.npcs[0],icon,0);
+    for(var pending=0;pending<40&&!iconTick;pending++)await wait(10);
+    window.setInterval=savedInterval;
+    assertState(typeof iconTick==='function','NPC icon did not start its preserved sequence');
+    var iconNode=entityLayer.querySelector('[data-icon-index="0"]');
+    function visibleIcons(){return Array.from(iconNode.querySelectorAll('img')).filter(function(img){return !img.hidden})}
+    assertState(visibleIcons().length===1&&visibleIcons()[0].src===images[2].src,'NPC icon first frame mismatch');
+    iconTick();assertState(visibleIcons().length===0,'NPC icon blank time slot must hide all sprites');
+    iconTick();assertState(visibleIcons().length===1&&visibleIcons()[0].src===images[3].src,'NPC icon third frame mismatch');
+    iconTick();assertState(visibleIcons()[0].src===images[2].src,'NPC icon wrap changed period');
+    appendNpcIcon(state.npcs[0],{...icon,frames:[entityFrames[0],{url:''},entityFrames[2]]},1);
+    assertState(!entityLayer.querySelector('[data-icon-index="1"]'),'missing frame must not become a shorter animation');
+    clearEntityAnimationTimers();
+    var npcTick=null;
+    window.setInterval=function(callback){npcTick=callback;return 998878};
+    state.original.active=true;state.npcs=[{lineNumber:902,x:1,y:1,frames:entityFrames,frameInterval:120,icons:[]}];
+    state.spawns=[];rebuildEntities();
+    for(var pendingNpc=0;pendingNpc<40&&!npcTick;pendingNpc++)await wait(10);
+    window.setInterval=savedInterval;
+    var npcNode=entityLayer.querySelector('.npc-entity');
+    function visibleNpcs(){return Array.from(npcNode.querySelectorAll('.npc-sprite')).filter(function(img){return !img.hidden})}
+    assertState(typeof npcTick==='function'&&visibleNpcs().length===1,'custom NPC did not start');
+    npcTick();assertState(visibleNpcs().length===0,'custom NPC lost blank beat');
+    npcTick();assertState(visibleNpcs().length===1&&visibleNpcs()[0].src===images[3].src,'custom NPC third frame mismatch');
+    clearEntityAnimationTimers();
+
+    // A first/all-blank NPC sequence remains transparent but keeps a bounded
+    // hit area, so it can still be selected and dragged in the map editor.
+    state.npcs=[{lineNumber:903,x:2,y:2,displayName:'全空NPC',frames:[
+      {url:'',blank:true,width:0,height:0},
+      {url:'',blank:true,width:0,height:0}
+    ],frameInterval:120,icons:[]}];
+    state.selectedEntityType='';state.selectedEntityLine=0;
+    rebuildEntities();
+    var blankNpcNode=entityLayer.querySelector('.npc-entity');
+    var blankRect=blankNpcNode.getBoundingClientRect();
+    assertState(blankNpcNode.classList.contains('blank-hitbox')&&blankRect.width>=24&&blankRect.height>=34,
+      'all-blank NPC did not retain a bounded transparent hitbox');
+    assertState(blankNpcNode.querySelectorAll('img').length===0,'all-blank NPC fabricated a sprite');
+    var blankHit=document.elementFromPoint(blankRect.left+blankRect.width/2,blankRect.top+blankRect.height/2);
+    assertState(blankHit===blankNpcNode||blankHit.closest('.npc-entity')===blankNpcNode,
+      'all-blank NPC hitbox was not a real DOM hit target');
+    blankNpcNode.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    assertState(state.selectedEntityType==='npc'&&state.selectedEntityLine===903,
+      'all-blank NPC hitbox did not select the entity');
+
+    // A leading blank beat gets the same hitbox while the following image is
+    // loading, then yields to the real frame dimensions without painting the
+    // blank beat.
+    var firstBlankFrames=[
+      {url:'',blank:true,width:0,height:0},
+      {url:images[2].src,width:8,height:8,offsetX:0,offsetY:0,usesOffsets:true}
+    ];
+    var firstBlankTick=null;
+    window.setInterval=function(callback){firstBlankTick=callback;return 998879};
+    state.npcs=[{lineNumber:904,x:2,y:2,displayName:'首空NPC',frames:firstBlankFrames,frameInterval:120,icons:[]}];
+    rebuildEntities();
+    var firstBlankNode=entityLayer.querySelector('.npc-entity');
+    var firstBlankRect=firstBlankNode.getBoundingClientRect();
+    assertState(firstBlankNode.classList.contains('blank-hitbox')&&firstBlankRect.width>=24&&firstBlankRect.height>=34,
+      'leading blank NPC did not retain an initial hitbox');
+    for(var pendingFirstBlank=0;pendingFirstBlank<40&&!firstBlankTick;pendingFirstBlank++)await wait(10);
+    window.setInterval=savedInterval;
+    assertState(typeof firstBlankTick==='function','leading blank NPC did not schedule its sequence');
+    firstBlankTick();
+    assertState(!firstBlankNode.classList.contains('blank-hitbox')&&firstBlankNode.querySelector('.npc-sprite:not([hidden])'),
+      'leading blank NPC did not switch to its real frame/hitbox');
+    clearEntityAnimationTimers();
+
+    // If a nonblank frame fails to decode, retain the first valid frame as a
+    // static fallback and never compress the sequence into a shorter timer.
+    var decodeTick=null;
+    window.setInterval=function(callback){decodeTick=callback;return 998880};
+    var decodeFrames=[
+      {url:images[2].src,width:8,height:8,offsetX:0,offsetY:0,usesOffsets:true},
+      {url:'data:image/png;base64,not-a-real-png',width:8,height:8,offsetX:0,offsetY:0,usesOffsets:true},
+      {url:images[3].src,width:8,height:8,offsetX:0,offsetY:0,usesOffsets:true}
+    ];
+    state.npcs=[{lineNumber:905,x:2,y:2,displayName:'坏帧NPC',frames:decodeFrames,frameInterval:120,icons:[]}];
+    rebuildEntities();
+    var decodeNode=entityLayer.querySelector('.npc-entity');
+    for(var pendingDecode=0;pendingDecode<60&&decodeNode.querySelectorAll('.npc-sprite:not([hidden])').length===0;pendingDecode++)await wait(10);
+    window.setInterval=savedInterval;
+    var decodedVisible=decodeNode.querySelectorAll('.npc-sprite:not([hidden])');
+    assertState(decodedVisible.length===1&&decodedVisible[0].src===images[2].src,
+      'decode failure did not retain the first valid static frame');
+    assertState(decodeTick===null,'decode failure started a compressed animation timer');
+    clearEntityAnimationTimers();
+
+    document.body.dataset.mapEntityBlankBeats=JSON.stringify(zonePixels);
 
     document.body.dataset.mapAnimationFrames=JSON.stringify({
       map:{first:mapFirst,held:mapHeld,second:mapSecond,wrapped:mapWrapped},

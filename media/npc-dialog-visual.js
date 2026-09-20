@@ -4,17 +4,19 @@
   const vscode = acquireVsCodeApi();
   const elements = Object.fromEntries([
     'functionTitle', 'fileTitle', 'engineBadge', 'zoomOut', 'zoomIn', 'zoomReset', 'zoomValue',
-    'canvasDiagnosticsToggle',
+    'canvasDiagnosticsToggle', 'previewBackButton',
     'undoButton', 'redoButton', 'reloadButton', 'applyButton', 'saveButton', 'statusBanner',
     'offsetBar', 'offsetSource', 'offsetX', 'offsetY', 'saveOffsets', 'offsetHelp', 'sceneCount',
-    'resetPreview', 'sceneList', 'advancedConditions', 'advancedConditionCount', 'advancedConditionList',
-    'conditionText', 'variableList', 'changeList', 'sceneTitle', 'canvasSize', 'coordinateReadout',
+    'resetPreview', 'sceneList', 'previewInputSection', 'previewInputList', 'previewInputSearch',
+    'conditionSection', 'conditionText', 'variableSection', 'variableList', 'changeSection', 'changeList',
+    'sceneTitle', 'canvasSize', 'coordinateReadout',
     'actUiPreviewPanel', 'actUiPreviewCount', 'actUiPreviewList',
     'canvasViewport', 'canvasStage', 'dialogCanvas', 'selectionState', 'emptyInspector',
     'elementInspector', 'elementToken', 'elementDescription', 'elementX', 'elementY', 'sourceX',
     'sourceY', 'coordinateMode', 'elementText', 'elementLocalPreview', 'elementLocalPreviewValue',
-    'elementLocalPreviewState', 'assetState', 'elementParameters', 'elementWarning', 'locateButton',
-    'patchButton', 'rawStatement', 'sceneWarnings', 'unsupportedList', 'toast',
+    'elementLocalPreviewState', 'assetState', 'elementParameters', 'elementWarning', 'locateButton', 'elementSourcePath',
+    'patchButton', 'rawStatement', 'sceneWarningsSection', 'sceneWarnings',
+    'unsupportedSection', 'unsupportedList', 'toast',
   ].map(id => [id, document.getElementById(id)]));
 
   let model = null;
@@ -24,6 +26,8 @@
   let showCanvasDiagnostics = false;
   let conflict = false;
   let drafts = new Map();
+  let templateDraftKeys = new Map();
+  let templateDraftOwners = new Map();
   let history = [];
   let historyIndex = 0;
   let drag = null;
@@ -45,8 +49,10 @@
   let runtimeActionStates = new Map();
   let countdownStates = new Map();
   let animationStates = new Map();
+  let itemLightStates = new Map();
   let renderGeneration = 0;
   const showPositionedSubtreeCache = new WeakMap();
+  const clientAtlasRefreshers = new WeakMap();
 
   bindEvents();
   vscode.postMessage({ type: 'ready' });
@@ -58,7 +64,8 @@
         message.model,
         message.geeOffsetHelp || '',
         message.preserveDrafts === true,
-        Number(message.previewRevision) || 0
+        Number(message.previewRevision) || 0,
+        message.navigatePageId
       );
     }
     else if (message.type === 'conflict') showConflict(message.message || '源码已发生变化');
@@ -79,6 +86,10 @@
     elements.redoButton.addEventListener('click', redo);
     elements.reloadButton.addEventListener('click', () => vscode.postMessage({ type: 'reload' }));
     elements.resetPreview.addEventListener('click', resetPreviewState);
+    elements.previewBackButton?.addEventListener('click', () => {
+      captureVisibleInputValues();
+      vscode.postMessage({ type: 'previewBack', previewRevision: lastPreviewRevision });
+    });
     elements.applyButton.addEventListener('click', () => submit('apply'));
     elements.saveButton.addEventListener('click', () => submit('save'));
     elements.saveOffsets.addEventListener('click', () => vscode.postMessage({
@@ -103,7 +114,8 @@
     window.addEventListener('mouseup', finishDrag);
   }
 
-  function loadModel(nextModel, geeOffsetHelp, preserveDrafts, previewRevision) {
+  function loadModel(nextModel, geeOffsetHelp, preserveDrafts, previewRevision, navigatePageId) {
+    closeLocalInputDialog();
     if (previewRevision < lastPreviewRevision) return;
     lastPreviewRevision = previewRevision;
     const modelIdentityChanged = Boolean(model && (
@@ -111,13 +123,21 @@
       || model.engine !== nextModel?.engine
       || model.functionLabel !== nextModel?.functionLabel
     ));
+    const previousControlSnapshots = new Map((model?.scenes || []).flatMap(scene => (scene.elements || []).map(e => [e.id, JSON.stringify(e.localControlState)])));
     model = nextModel;
+    rebuildTemplateDraftGroups();
+    if (elements.previewBackButton) elements.previewBackButton.disabled = !model.previewNavigation?.calls?.length;
     if (modelIdentityChanged) currentPageId = '';
+    if (navigatePageId && model.pages.some(page => page.id === navigatePageId)) {
+      currentPageId = navigatePageId;
+      selectedElementId = '';
+    }
     conflict = false;
     const validElements = new Set((model.scenes || []).flatMap(scene => [
       ...(scene.elements || []).map(element => element.id),
       ...coordinateBindingElements(scene).map(element => element.id),
     ]));
+    const validDraftKeys = new Set([...validElements].map(draftKeyFor));
     if (!preserveDrafts) {
       drafts = new Map();
       history = [];
@@ -134,9 +154,10 @@
       runtimeActionStates = new Map();
       countdownStates = new Map();
       animationStates = new Map();
+      itemLightStates = new Map();
     } else {
-      drafts = new Map([...drafts].filter(([id]) => validElements.has(id)));
-      history = history.filter(entry => validElements.has(entry.id));
+      drafts = new Map([...drafts].filter(([id]) => validDraftKeys.has(id)));
+      history = history.filter(entry => validDraftKeys.has(entry.id));
       historyIndex = Math.min(historyIndex, history.length);
       expandedMenuIds = new Set([...expandedMenuIds].filter(id => validElements.has(id)));
       menuSelections = filterRuntimeMap(menuSelections, validElements);
@@ -163,6 +184,9 @@
     }
     for (const scene of model.scenes || []) {
       for (const element of scene.elements || []) {
+        if (previousControlSnapshots.get(element.id) !== JSON.stringify(element.localControlState)) {
+          toggleStates.delete(element.id); sliderStates.delete(element.id);
+        }
         if (element.containerPreview?.variant !== 'list' || listScrollOffsets.has(element.id)) continue;
         listScrollOffsets.set(element.id, Number(element.containerPreview.scrollOffset) || 0);
       }
@@ -179,9 +203,9 @@
     lastDirtyState = collectChanges().length > 0;
     renderOffsets(geeOffsetHelp);
     renderAll();
-    const warnings = model.warnings || [];
-    if (warnings.length) showBanner(warnings.join('；'), 'info');
-    else hideBanner();
+    // Model warnings are non-blocking diagnostics. They remain available in
+    // Details instead of taking a permanent row above the editing canvas.
+    hideBanner();
   }
 
   function filterRuntimeMap(runtime, validElements) {
@@ -221,14 +245,15 @@
       );
     }
     if (element.togglePreview && !toggleStates.has(element.id)) {
-      const initial = element.togglePreview.initialChecked ?? element.togglePreview.checked;
+      const initial = element.localControlState ? element.localControlState.value === 1 : element.togglePreview.initialChecked ?? element.togglePreview.checked;
       if (typeof initial === 'boolean') toggleStates.set(element.id, initial);
     }
     if (element.sliderPreview && !sliderStates.has(element.id)) {
-      const dynamic = element.sliderPreview.dynamicFields?.length > 0;
+      const dynamic = element.sliderPreview.dynamicFields?.some(field => !element.localControlState || !['maximum','value'].includes(field));
       const invalid = element.sliderPreview.invalidFields?.length > 0;
-      if (!dynamic && !invalid && Number.isFinite(Number(element.sliderPreview.initialValue))) {
-        sliderStates.set(element.id, Number(element.sliderPreview.initialValue));
+      const initial = element.localControlState?.value ?? element.sliderPreview.initialValue;
+      if (!dynamic && !invalid && Number.isFinite(Number(initial))) {
+        sliderStates.set(element.id, Number(initial));
       }
     }
     if (element.inputPreview && !inputStates.has(element.id)) {
@@ -275,21 +300,23 @@
     const offsets = model?.offsets;
     if (!offsets) {
       elements.offsetBar.classList.add('hidden');
+      elements.offsetBar.classList.remove('read-only-offsets');
       document.body.classList.remove('has-offsets');
       return;
     }
     elements.offsetBar.classList.remove('hidden');
-    document.body.classList.add('has-offsets');
     elements.offsetX.value = String(offsets.memoX || 0);
     elements.offsetY.value = String(offsets.memoY || 0);
-    const labels = { setup: '读取自 Mir200\\!Setup.txt', workspace: '当前工作区缓存', default: '尚未配置，按 0,0' };
+    const labels = { setup: '!Setup.txt', workspace: '工作区', default: '默认 0,0' };
     elements.offsetSource.textContent = labels[offsets.source] || '';
     const editable = model.engine === 'GEE';
+    elements.offsetBar.classList.toggle('read-only-offsets', !editable);
     elements.offsetX.disabled = !editable;
     elements.offsetY.disabled = !editable;
     elements.saveOffsets.classList.toggle('hidden', !editable);
     elements.offsetHelp.textContent = editable ? geeOffsetHelp : (offsets.setupPath || '');
     elements.offsetHelp.title = elements.offsetHelp.textContent;
+    syncOffsetLayout();
   }
 
   function renderAll() {
@@ -303,16 +330,35 @@
   }
 
   function syncCanvasDiagnostics() {
+    document.body.classList.toggle('show-diagnostics', showCanvasDiagnostics);
+    syncOffsetLayout();
     elements.dialogCanvas.classList.toggle('show-canvas-diagnostics', showCanvasDiagnostics);
     elements.actUiPreviewPanel.classList.toggle('show-act-ui-diagnostics', showCanvasDiagnostics);
     elements.canvasDiagnosticsToggle.setAttribute('aria-pressed', String(showCanvasDiagnostics));
-    elements.canvasDiagnosticsToggle.textContent = showCanvasDiagnostics ? '隐藏诊断' : '显示诊断';
+    elements.canvasDiagnosticsToggle.textContent = showCanvasDiagnostics ? '收起' : '详情';
+    elements.canvasDiagnosticsToggle.title = showCanvasDiagnostics ? '隐藏详细信息' : '显示详细信息';
+    if (showCanvasDiagnostics) {
+      elements.elementLocalPreviewValue.setAttribute('aria-describedby', 'elementLocalPreviewState');
+    } else {
+      elements.elementLocalPreviewValue.removeAttribute('aria-describedby');
+    }
+    const scene = currentScene();
+    const conditionText = formatPageConditions(scene);
+    elements.conditionText.textContent = conditionText;
+    elements.conditionSection.classList.toggle('hidden', !conditionText);
+    syncInspectorVisibility(selectedElement());
+  }
+
+  function syncOffsetLayout() {
+    const hasOffsets = Boolean(model?.offsets);
+    const editable = model?.engine === 'GEE';
+    document.body.classList.toggle('has-offsets', hasOffsets && (editable || showCanvasDiagnostics));
   }
 
   function renderActUiPreviews() {
     const currentLabel = String(currentScene()?.sourceLabel || model?.functionLabel || '').toUpperCase();
     const previews = (Array.isArray(model?.actUiPreviews) ? model.actUiPreviews : [])
-      .filter(preview => !preview?.sourceLabel
+      .filter(preview => preview?.activeInPreview === true || !preview?.sourceLabel
         || String(preview.sourceLabel).toUpperCase() === currentLabel);
     elements.actUiPreviewList.textContent = '';
     elements.actUiPreviewCount.textContent = String(previews.length);
@@ -467,32 +513,465 @@
 
   function renderSceneList() {
     elements.sceneList.textContent = '';
-    const scenes = model?.scenes || [];
     const pages = model?.pages || [];
-    elements.sceneCount.textContent = `${pages.length} 页`;
-    const scenesByGroup = new Map();
-    for (const scene of scenes) {
-      if (!scene.conditionGroupId) continue;
-      const grouped = scenesByGroup.get(scene.conditionGroupId) || [];
-      grouped.push(scene);
-      scenesByGroup.set(scene.conditionGroupId, grouped);
-    }
+    elements.sceneCount.textContent = String(pages.length);
+    for (const page of pages) elements.sceneList.appendChild(createPageButton(page));
+    renderPreviewInputs();
+  }
 
-    const groups = model?.conditionGroups || [];
-    for (const page of pages) {
-      elements.sceneList.appendChild(createPageButton(page));
-      for (const group of groups.filter(candidate => candidate.sourceLabel === page.sourceLabel)) {
-        const groupedScenes = scenesByGroup.get(group.id) || [];
-        if (groupedScenes.length > 0) {
-          elements.sceneList.appendChild(createSceneGroup(group, groupedScenes));
+  function renderPreviewInputs() {
+    const list = elements.previewInputList;
+    if (!list) return;
+    const items = [];
+    const uniqueNames = new Set();
+    for (const item of model?.previewInputs || []) {
+      if (uniqueNames.has(item.name)) continue;
+      uniqueNames.add(item.name);
+      items.push(item);
+    }
+    elements.previewInputSection.classList.toggle('hidden', items.length === 0);
+    elements.previewInputSearch.hidden = items.length <= 6;
+    if (elements.previewInputSearch.hidden) elements.previewInputSearch.value = '';
+    const query = elements.previewInputSearch.hidden
+      ? ''
+      : (elements.previewInputSearch.value || '').toLowerCase();
+    const rows = new Map([...list.children].map(row => [row.dataset.name, row]));
+    const names = new Set();
+    for (const item of items) {
+      // A variable is one control even when referenced by several conditions.
+      names.add(item.name);
+      let row = rows.get(item.name);
+      if (!row || row.dataset.kind !== item.kind || row.dataset.scenario !== (item.scenario || '')) {
+        if (row) row.remove();
+        row = createPreviewInputRow(item);
+        row.dataset.scenario = item.scenario || '';
+        list.appendChild(row);
+      }
+      row.hidden = !`${item.name} ${item.description || ''}`.toLowerCase().includes(query);
+      if (item.scenario === 'equipment-layout') {
+        const editor = row.querySelector('.preview-equipment-layout');
+        if (editor.dataset.previewDraft !== 'true') updatePreviewEquipmentLayout(editor, item.value);
+        row.querySelector('.preview-input-type').textContent = item.value === undefined ? '简化场景' : '按槽位';
+        row.querySelector('.preview-input-reset').classList.toggle('active', item.value === undefined);
+        if (!row.querySelector('[aria-invalid="true"]')) {
+          row.classList.remove('has-error', 'is-pending');
+          row.querySelector('.preview-input-state').textContent = '';
+        }
+        continue;
+      }
+      if (item.scenario === 'equipment') {
+        const name = item.equipmentName || item.name.slice(5, -1), actor = item.equipmentActor === 'hero' ? '英雄' : '';
+        row.querySelector('.preview-input-heading > span').textContent = actor ? `${actor} · ${name}` : name;
+        row.querySelector('input').setAttribute('aria-label', `${actor}穿戴 ${name}`);
+      }
+      row.querySelector('.preview-input-type').textContent = {
+        flag: '开关', number: '数字', text: '文字', list: '列表', dictionary: '字典',
+      }[item.kind] || '文字';
+      if (item.scenario) row.querySelector('.preview-input-type').textContent = { job: '职业', namelist: '名单', title: '称号', hero: '英雄', equipment: item.kind === 'number' ? '穿戴数量' : item.equipmentSlot?.label || '穿戴' }[item.scenario] || '开关';
+      const description = row.querySelector('.preview-input-description');
+      description.textContent = [item.description,
+        item.typeUncertain ? '引擎资料未确定类型，暂按文字输入；不会执行服务器查询。' : '',
+      ].filter(Boolean).join(' · ');
+      description.hidden = !description.textContent;
+      description.classList.toggle('uncertain', !!item.typeUncertain);
+      description.title = description.textContent;
+      const reset = row.querySelector('.preview-input-reset');
+      const automatic = item.value === undefined;
+      reset.classList.toggle('active', automatic);
+      reset.setAttribute('aria-pressed', String(automatic));
+      if (item.kind === 'list' || item.kind === 'dictionary') {
+        const editor = row.querySelector('.preview-collection');
+        if (editor.dataset.previewDraft !== 'true') updatePreviewCollection(editor, item.value);
+      } else {
+        const input = row.querySelector('input, select');
+        if (input !== document.activeElement || input.dataset.previewDraft !== 'true') {
+          input.checked = item.value === '1';
+          input.value = item.kind === 'flag' ? '1' : item.scenario === 'job' ? (item.value || '').toLowerCase() : item.value ?? '';
+          input.setCustomValidity('');
+          input.removeAttribute('aria-invalid');
         }
       }
+      if (!row.querySelector('[aria-invalid="true"]')) {
+        row.classList.remove('has-error', 'is-pending');
+        row.querySelector('.preview-input-state').textContent = item.value === undefined
+          ? '自动'
+          : item.kind === 'flag' ? (item.scenario === 'title' ? (item.value === '1' ? '拥有' : '未拥有') : (item.value === '1' ? '开' : '关')) : '已输入';
+      }
     }
-    const advancedGroups = [];
-    for (const group of groups) {
-      if (!(scenesByGroup.get(group.id) || []).length) advancedGroups.push(group);
+    for (const [name, row] of rows) if (!names.has(name)) row.remove();
+    elements.previewInputSearch.oninput = renderPreviewInputs;
+  }
+
+  function createPreviewInputRow(item) {
+    const row = document.createElement('div');
+    row.className = 'preview-input-row';
+    row.dataset.name = item.name;
+    row.dataset.kind = item.kind;
+    const label = document.createElement('label');
+    label.className = 'preview-input-heading';
+    const title = document.createElement('span');
+    title.textContent = item.scenario === 'title' ? item.name.slice(6, -1) : item.scenario === 'equipment' ? (item.equipmentName || item.name.slice(5,-1)) : item.name;
+    if (item.scenario === 'hero') title.textContent = '英雄在场';
+    if (item.scenario === 'equipment-layout') title.textContent = `${item.equipmentActor === 'hero' ? '英雄' : '玩家'}装备`;
+    const type = document.createElement('small');
+    type.className = 'preview-input-type';
+    label.append(title, type);
+    const description = document.createElement('small');
+    description.className = 'preview-input-description';
+    const state = document.createElement('small');
+    state.className = 'preview-input-state';
+    state.setAttribute('aria-live', 'polite');
+    state.title = '当前预览状态';
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'preview-input-reset';
+    reset.textContent = '自动';
+    reset.title = '恢复自动';
+    reset.setAttribute('aria-label', `${item.name} 恢复自动`);
+    const submit = value => {
+      for (const field of row.querySelectorAll('input, [data-preview-draft]')) {
+        field.dataset.previewDraft = 'false';
+        field.removeAttribute('aria-invalid');
+        if (typeof field.setCustomValidity === 'function') field.setCustomValidity('');
+      }
+      row.classList.remove('has-error');
+      row.classList.add('is-pending');
+      state.textContent = '正在更新…';
+      vscode.postMessage({ type: 'previewInput', name: item.name, value });
+    };
+    const error = (input, message) => {
+      input.setCustomValidity(message);
+      input.setAttribute('aria-invalid', 'true');
+      row.classList.remove('is-pending');
+      row.classList.add('has-error');
+      state.textContent = message;
+    };
+    reset.addEventListener('click', () => submit(null));
+    row.append(label, reset);
+    if (item.scenario === 'equipment-layout') {
+      reset.textContent = '简化';
+      reset.title = '切回简化场景';
+      row.appendChild(createPreviewEquipmentLayout(item, submit, error));
+    } else if (item.kind === 'list' || item.kind === 'dictionary') {
+      row.appendChild(createPreviewCollection(item, submit, error));
+    } else {
+      const input = document.createElement(item.scenario === 'job' ? 'select' : 'input');
+      input.dataset.previewName = item.name;
+      // Native number fields normalize/sanitize values; textual decimals retain
+      // large GOM integers exactly and have the same grammar as the provider.
+      if (item.scenario === 'job') {
+        for (const [value, text] of [['', '自动 / 未指定'], ['warrior', '战士'], ['wizard', '法师'], ['taoist', '道士']]) {
+          const option = document.createElement('option'); option.value = value; option.textContent = text; input.appendChild(option);
+        }
+      } else input.type = item.kind === 'flag' ? 'checkbox' : 'text';
+      if (item.kind === 'number') input.inputMode = 'decimal';
+      if (item.scenario === 'equipment' && item.kind === 'number') input.inputMode = 'numeric';
+      input.maxLength = 4096;
+      input.setAttribute('aria-label', item.scenario === 'title' ? `拥有称号 ${item.name.slice(6, -1)}` : item.scenario === 'equipment' ? `穿戴 ${item.equipmentName || item.name.slice(5,-1)}` : item.name);
+      if (item.scenario === 'hero') input.setAttribute('aria-label', '英雄在场');
+      input.placeholder = item.kind === 'text' ? '预览文字' : '0';
+      input.className = 'preview-input-value';
+      if (item.kind === 'flag') label.appendChild(input);
+      else row.appendChild(input);
+      input.addEventListener('input', () => {
+        input.dataset.previewDraft = 'true';
+        input.setCustomValidity('');
+        input.removeAttribute('aria-invalid');
+        row.classList.remove('has-error');
+      });
+      input.addEventListener('change', () => {
+        const value = item.kind === 'flag' ? (input.checked ? '1' : '0') : input.value;
+        if (item.scenario === 'job' && value === '') { submit(null); return; }
+        if (item.kind === 'number' && value.trim() === '') { submit(null); return; }
+        if (item.scenario === 'equipment' && item.kind === 'number' && (!/^\d+$/.test(value) || Number(value) > 2147483647)) {
+          error(input, '请输入 0 至 2147483647 的整数');
+          return;
+        }
+        if (item.kind === 'number' && (!/^[+-]?\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(Number(value)))) {
+          error(input, '请输入普通十进制数字（如 -12.5）；不支持 e 指数写法。清空可恢复自动。');
+          return;
+        }
+        if (value.length > 4096 || /[\r\n\x00]/.test(value)) {
+          error(input, '预览值最多 4096 字符，不能包含换行或空字符。');
+          return;
+        }
+        submit(value);
+      });
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          input.blur();
+        }
+      });
     }
-    renderAdvancedConditions(advancedGroups);
+    row.append(description, state);
+    return row;
+  }
+
+  function createPreviewEquipmentLayout(item, submit, error) {
+    const editor = document.createElement('div');
+    editor.className = 'preview-equipment-layout';
+    editor.dataset.equipmentName = item.name;
+    editor.dataset.previewDraft = 'false';
+    editor._equipmentLabels = item.equipmentOrdinaryLabels || [];
+    editor._equipmentListId = `preview-equipment-names-${item.equipmentActor === 'hero' ? 'hero' : 'player'}`;
+    const suggestions = document.createElement('datalist'); suggestions.id = editor._equipmentListId;
+    for (const name of item.equipmentNames || []) {
+      const option = document.createElement('option'); option.value = name; suggestions.appendChild(option);
+    }
+    const enableLabel = document.createElement('label');
+    enableLabel.className = 'preview-equipment-enable';
+    const enable = document.createElement('input'); enable.type = 'checkbox';
+    enable.setAttribute('aria-label', `${item.equipmentActor === 'hero' ? '英雄' : '玩家'}启用装备布局`);
+    enableLabel.append(enable, document.createTextNode('按容器 / 槽位设置'));
+    const body = document.createElement('div'); body.className = 'preview-equipment-body';
+    const entries = document.createElement('div'); entries.className = 'preview-equipment-entries';
+    const add = document.createElement('button'); add.type = 'button'; add.textContent = '+ 装备';
+    add.className = 'preview-equipment-add';
+    const apply = () => {
+      const items = [], occupied = new Set();
+      for (const row of entries.children) {
+        const name = row.querySelector('[data-equipment-item]');
+        const container = row.querySelector('[data-equipment-container]').value;
+        const slot = Number(row.querySelector('[data-equipment-slot]').value);
+        if (!name.value.trim() || name.value.length > 512 || /[\r\n\x00]/.test(name.value)) { error(name, '请输入装备名称（最多 512 字）'); return; }
+        const identity = `${container}:${slot}`;
+        if (occupied.has(identity)) { error(name, '该槽位已有装备'); return; }
+        occupied.add(identity); items.push({ name: name.value, container, slot });
+      }
+      submit(JSON.stringify({ version: 1, items }));
+    };
+    editor._equipmentApply = apply;
+    editor._equipmentSubmit = submit;
+    enable.addEventListener('change', () => submit(enable.checked ? JSON.stringify({ version: 1, items: [] }) : null));
+    add.addEventListener('click', () => {
+      if (entries.children.length >= 48) return;
+      const used = new Set([...entries.children].map(row => `${row.querySelector('[data-equipment-container]').value}:${row.querySelector('[data-equipment-slot]').value}`));
+      let target;
+      for (const [container, count] of [['ordinary', 30], ['jewelry', 6], ['godbless', 12]]) {
+        for (let slot = 0; slot < count; slot++) if (!used.has(`${container}:${slot}`)) { target = { container, slot, name: '' }; break; }
+        if (target) break;
+      }
+      if (!target) return;
+      editor.dataset.previewDraft = 'true';
+      const row = createPreviewEquipmentEntry(editor, target);
+      entries.appendChild(row); row.querySelector('[data-equipment-item]').focus();
+    });
+    body.append(entries, add); editor.append(enableLabel, body, suggestions);
+    return editor;
+  }
+
+  function createPreviewEquipmentEntry(editor, item) {
+    const row = document.createElement('div'); row.className = 'preview-equipment-entry';
+    const container = document.createElement('select'); container.dataset.equipmentContainer = '';
+    container.setAttribute('aria-label', '装备容器');
+    for (const [value, text] of [['ordinary', '普通'], ['jewelry', '首饰盒'], ['godbless', '神佑']]) {
+      const option = document.createElement('option'); option.value = value; option.textContent = text; container.appendChild(option);
+    }
+    container.value = item.container;
+    const slot = document.createElement('select'); slot.dataset.equipmentSlot = ''; slot.setAttribute('aria-label', '装备槽位');
+    const populateSlots = value => {
+      slot.textContent = '';
+      const count = { ordinary: 30, jewelry: 6, godbless: 12 }[container.value];
+      for (let index = 0; index < count; index++) {
+        const option = document.createElement('option'); option.value = String(index);
+        option.textContent = container.value === 'ordinary' ? `${index} ${editor._equipmentLabels[index] || '槽位'}` : `槽位 ${index}`;
+        slot.appendChild(option);
+      }
+      slot.value = String(value < count ? value : 0);
+    };
+    populateSlots(item.slot);
+    const name = document.createElement('input'); name.dataset.equipmentItem = ''; name.maxLength = 512;
+    name.setAttribute('list', editor._equipmentListId);
+    name.value = item.name; name.placeholder = '装备名称'; name.setAttribute('aria-label', '装备名称');
+    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '−'; remove.setAttribute('aria-label', '移除装备');
+    remove.addEventListener('click', () => { row.remove(); editor.dataset.previewDraft = 'true'; editor._equipmentApply(); });
+    for (const field of [container, slot, name]) {
+      field.addEventListener('input', () => { editor.dataset.previewDraft = 'true'; field.dataset.previewDraft = 'true'; field.removeAttribute('aria-invalid'); field.setCustomValidity(''); });
+      field.addEventListener('change', () => { if (field === container) populateSlots(Number(slot.value)); editor._equipmentApply(); });
+    }
+    row.append(container, slot, name, remove);
+    return row;
+  }
+
+  function updatePreviewEquipmentLayout(editor, value) {
+    let state;
+    try { state = value === undefined ? undefined : JSON.parse(value); } catch { state = undefined; }
+    const enabled = !!state?.items;
+    editor.querySelector('.preview-equipment-enable input').checked = enabled;
+    editor.querySelector('.preview-equipment-body').hidden = !enabled;
+    // Keep focused controls and their selection when an unrelated field rerenders.
+    if (editor._equipmentEncoded === value) return;
+    editor._equipmentEncoded = value;
+    const entries = editor.querySelector('.preview-equipment-entries');
+    const items = state?.items || [];
+    while (entries.children.length > items.length) entries.lastElementChild.remove();
+    items.forEach((item, index) => {
+      let row = entries.children[index];
+      if (!row || row.querySelector('[data-equipment-container]').value !== item.container) {
+        const replacement = createPreviewEquipmentEntry(editor, item);
+        if (row) row.replaceWith(replacement); else entries.appendChild(replacement);
+        row = replacement;
+      }
+      row.querySelector('[data-equipment-slot]').value = String(item.slot);
+      row.querySelector('[data-equipment-item]').value = item.name;
+    });
+    editor.querySelector('.preview-equipment-add').disabled = entries.children.length >= 48;
+  }
+
+  function createPreviewCollection(item, submit, error) {
+    const editor = document.createElement('div');
+    editor.className = 'preview-collection';
+    editor.dataset.previewName = item.name;
+    editor.dataset.kind = item.kind;
+    const help = document.createElement('small');
+    help.className = 'preview-collection-help';
+    help.textContent = item.kind === 'list'
+      ? '下标从 0 开始；空项会保留。'
+      : '键名区分大小写，不能重复。';
+    const entries = document.createElement('div');
+    entries.className = 'preview-collection-entries';
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'preview-collection-add';
+    add.textContent = item.kind === 'list' ? '+ 添加一项' : '+ 添加键值';
+    add.setAttribute('aria-label', `${item.name} ${add.textContent.slice(2)}`);
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'preview-collection-clear';
+    clear.textContent = '清空';
+    clear.title = '显式使用空集合；与恢复自动不同';
+    clear.setAttribute('aria-label', `${item.name} 使用空${item.kind === 'list' ? '列表' : '字典'}`);
+    clear.addEventListener('click', () => {
+      entries.textContent = '';
+      editor.dataset.previewDraft = 'false';
+      updatePreviewCollectionIndices(editor);
+      submit(item.kind === 'list' ? '[]' : '{}');
+    });
+    const apply = () => {
+      const values = item.kind === 'list' ? [] : Object.create(null);
+      const keys = new Set();
+      for (const entry of entries.children) {
+        const value = entry.querySelector('[data-collection-value]');
+        const key = entry.querySelector('[data-collection-key]');
+        if (key && (!key.value || key.value.length > 4096 || keys.has(key.value) || /[\r\n\x00]/.test(key.value))) {
+          error(key, !key.value ? '请填写字典键名后应用。' : keys.has(key.value) ? '字典键名重复，请修改。' : '键名最多 4096 字符，不能包含换行或空字符。');
+          return;
+        }
+        if (value.value.length > 4096 || /[\r\n\x00]/.test(value.value)) {
+          error(value, '每项最多 4096 字符，不能包含换行或空字符。');
+          return;
+        }
+        if (key) { keys.add(key.value); values[key.value] = value.value; }
+        else values.push(value.value);
+      }
+      const encoded = JSON.stringify(values);
+      if (encoded.length > 65536) {
+        const last = entries.lastElementChild?.querySelector('input');
+        if (last) error(last, '列表或字典的预览数据过长，请减少条目。');
+        return;
+      }
+      submit(encoded);
+    };
+    editor._previewApply = apply;
+    add.addEventListener('click', () => {
+      if (entries.children.length >= 512) return;
+      editor.dataset.previewDraft = 'true';
+      const entry = createPreviewCollectionEntry(editor, '', '');
+      entries.appendChild(entry);
+      updatePreviewCollectionIndices(editor);
+      entry.querySelector('input').focus();
+      if (item.kind === 'list') apply();
+    });
+    const actions = document.createElement('div');
+    actions.className = 'preview-collection-actions';
+    actions.append(add, clear);
+    editor.append(help, entries, actions);
+    return editor;
+  }
+
+  function createPreviewCollectionEntry(editor, key, value) {
+    const entry = document.createElement('div');
+    entry.className = `preview-collection-entry ${editor.dataset.kind}`;
+    if (editor.dataset.kind === 'dictionary') {
+      const field = document.createElement('input');
+      field.dataset.collectionKey = '';
+      field.placeholder = '键名';
+      field.value = key;
+      field.maxLength = 4096;
+      entry.appendChild(field);
+    } else {
+      const index = document.createElement('span');
+      index.className = 'preview-collection-index';
+      entry.appendChild(index);
+    }
+    const field = document.createElement('input');
+    field.dataset.collectionValue = '';
+    field.placeholder = '值（可为空）';
+    field.value = value;
+    field.maxLength = 4096;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'preview-collection-remove';
+    remove.textContent = '−';
+    remove.addEventListener('click', () => {
+      entry.remove();
+      editor.dataset.previewDraft = 'true';
+      updatePreviewCollectionIndices(editor);
+      editor._previewApply();
+    });
+    entry.append(field, remove);
+    for (const input of entry.querySelectorAll('input')) {
+      input.addEventListener('input', () => {
+        editor.dataset.previewDraft = 'true';
+        input.dataset.previewDraft = 'true';
+        input.setCustomValidity('');
+        input.removeAttribute('aria-invalid');
+        input.closest('.preview-input-row')?.classList.remove('has-error');
+      });
+      input.addEventListener('change', () => editor._previewApply());
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          input.blur();
+        }
+      });
+    }
+    return entry;
+  }
+
+  function updatePreviewCollectionIndices(editor) {
+    const entries = editor.querySelector('.preview-collection-entries');
+    [...entries.children].forEach((entry, index) => {
+      const position = entry.querySelector('.preview-collection-index');
+      if (position) position.textContent = `[${index}]`;
+      entry.querySelector('[data-collection-key]')?.setAttribute('aria-label', `${editor.dataset.previewName} 第 ${index + 1} 项键名`);
+      entry.querySelector('[data-collection-value]').setAttribute('aria-label', `${editor.dataset.previewName} 第 ${index + 1} 项值`);
+      entry.querySelector('button').setAttribute('aria-label', `${editor.dataset.previewName} 删除第 ${index + 1} 项`);
+    });
+    editor.querySelector('.preview-collection-add').disabled = entries.children.length >= 512;
+  }
+
+  function updatePreviewCollection(editor, encoded) {
+    let value;
+    try { value = JSON.parse(encoded || (editor.dataset.kind === 'list' ? '[]' : '{}')); }
+    catch { value = editor.dataset.kind === 'list' ? [] : {}; }
+    const pairs = editor.dataset.kind === 'list'
+      ? (Array.isArray(value) ? value.map((entry, index) => [String(index), entry]) : [])
+      : (value && typeof value === 'object' && !Array.isArray(value) ? Object.entries(value) : []);
+    const entries = editor.querySelector('.preview-collection-entries');
+    for (let index = 0; index < pairs.length; index++) {
+      let entry = entries.children[index];
+      if (!entry) {
+        entry = createPreviewCollectionEntry(editor, pairs[index][0], String(pairs[index][1]));
+        entries.appendChild(entry);
+      }
+      const key = entry.querySelector('[data-collection-key]');
+      if (key) key.value = pairs[index][0];
+      entry.querySelector('[data-collection-value]').value = String(pairs[index][1]);
+    }
+    while (entries.children.length > pairs.length) entries.lastElementChild.remove();
+    updatePreviewCollectionIndices(editor);
   }
 
   function createPageButton(page) {
@@ -504,8 +983,9 @@
     const title = document.createElement('strong');
     title.textContent = page.sourceLabel;
     const summary = document.createElement('span');
-    summary.textContent = page.conditionSummary || '默认界面';
-    button.append(title, summary);
+    summary.textContent = page.executionPreview ? '只读' : '';
+    button.appendChild(title);
+    if (summary.textContent) button.appendChild(summary);
     button.addEventListener('click', () => {
       currentPageId = page.id;
       selectedElementId = '';
@@ -514,85 +994,13 @@
     return button;
   }
 
-  function createSceneGroup(group, scenes) {
-    const container = document.createElement('section');
-    const current = pageForLabel(group.sourceLabel)?.id === currentPageId;
-    container.className = `scene-group${current ? ' current' : ''}`;
-
-    const heading = document.createElement('div');
-    heading.className = 'scene-group-heading';
-    const title = document.createElement('strong');
-    title.textContent = group.title;
-    const detail = document.createElement('span');
-    const conditionText = formatConditions(group);
-    detail.textContent = conditionText.replace(/\n/g, ' / ');
-    detail.title = conditionText;
-    heading.append(title, detail);
-
-    const segment = document.createElement('div');
-    segment.className = 'branch-segment';
-    segment.setAttribute('role', 'group');
-    segment.setAttribute('aria-label', `${group.title}预览分支`);
-    const falseScene = scenes.find(scene => scene.marker === '#ELSESAY');
-    const trueScene = scenes.find(scene => scene.marker !== '#ELSESAY');
-    segment.append(
-      createBranchButton(group, false, falseScene),
-      createBranchButton(group, true, trueScene)
-    );
-    container.append(heading, segment);
-    return container;
-  }
-
-  function createBranchButton(group, satisfied, scene) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    const active = (previewConditions.get(group.id) || false) === satisfied;
-    const current = pageForLabel(group.sourceLabel)?.id === currentPageId && active;
-    button.className = `branch-button${active ? ' active' : ''}${current ? ' current' : ''}`;
-    button.textContent = satisfied ? '满足' : '不满足';
-    button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    button.title = scene ? scene.conditionSummary : `${group.title}没有独立界面输出`;
-    button.addEventListener('click', () => selectPreviewCondition(group, satisfied));
-    return button;
-  }
-
-  function renderAdvancedConditions(groups) {
-    elements.advancedConditionList.textContent = '';
-    elements.advancedConditionCount.textContent = String(groups.length);
-    elements.advancedConditions.classList.toggle('hidden', groups.length === 0);
-    for (const group of groups) {
-      const row = document.createElement('div');
-      row.className = 'advanced-condition';
-      const title = document.createElement('strong');
-      title.textContent = group.title;
-      const detail = document.createElement('small');
-      detail.textContent = formatConditions(group);
-      const segment = document.createElement('div');
-      segment.className = 'branch-segment';
-      segment.setAttribute('role', 'group');
-      segment.setAttribute('aria-label', `${group.title}模拟状态`);
-      segment.append(
-        createBranchButton(group, false),
-        createBranchButton(group, true)
-      );
-      row.append(title, detail, segment);
-      elements.advancedConditionList.appendChild(row);
-    }
-  }
-
-  function selectPreviewCondition(group, satisfied) {
-    previewConditions.set(group.id, satisfied);
-    currentPageId = pageForLabel(group.sourceLabel)?.id || currentPageId;
-    selectedElementId = '';
-    renderAll();
-    vscode.postMessage({
-      type: 'previewCondition',
-      groupId: group.id,
-      satisfied,
-    });
-  }
 
   function resetPreviewState() {
+    for (const input of elements.previewInputList?.querySelectorAll('input, [data-preview-draft]') || []) {
+      input.dataset.previewDraft = 'false';
+      input.removeAttribute('aria-invalid');
+      if (typeof input.setCustomValidity === 'function') input.setCustomValidity('');
+    }
     previewConditions = new Map((model?.conditionGroups || []).map(group => [group.id, false]));
     selectedElementId = '';
     expandedMenuIds = new Set();
@@ -605,6 +1013,7 @@
     runtimeActionStates = new Map();
     countdownStates = new Map();
     animationStates = new Map();
+    itemLightStates = new Map();
     for (const scene of model?.scenes || []) {
       for (const element of scene.elements || []) {
         if (element.containerPreview?.variant === 'list') {
@@ -622,6 +1031,7 @@
   }
 
   function renderScene() {
+    closeLocalInputDialog();
     const scene = currentScene();
     clearAnimationTimers();
     hideDialogTooltip();
@@ -651,13 +1061,19 @@
 
     if (!scene) {
       elements.sceneTitle.textContent = '当前页面没有可显示的界面';
-      elements.conditionText.textContent = '请选择左侧界面页面';
+      elements.conditionText.textContent = '';
+      elements.conditionSection.classList.add('hidden');
       renderVariableList(null);
       renderDiagnostics(null);
       return;
     }
-    elements.sceneTitle.textContent = `${scene.title} · ${scene.conditionSummary}`;
-    elements.conditionText.textContent = formatPageConditions(scene);
+    const sourceLabel = scene.sourceLabel || scene.title || 'NPC 界面';
+    elements.sceneTitle.textContent = scene.executionPreview
+      ? `本地执行顺序 · 只读 · ${sourceLabel.replace(/^执行顺序\s*·\s*/u, '')}`
+      : sourceLabel;
+    const conditionText = formatPageConditions(scene);
+    elements.conditionText.textContent = conditionText;
+    elements.conditionSection.classList.toggle('hidden', !conditionText);
     renderBackground(scene.background);
     renderAddDlgWindow(scene.addDlgWindow);
     for (const element of scene.elements || []) renderCanvasElement(element, scene);
@@ -668,8 +1084,8 @@
   function renderVariableList(scene) {
     elements.variableList.textContent = '';
     const variables = scene?.resolvedVariables || [];
+    elements.variableSection.classList.toggle('hidden', variables.length === 0);
     if (variables.length === 0) {
-      elements.variableList.textContent = '当前场景未使用脚本变量';
       return;
     }
     for (const variable of variables) {
@@ -681,7 +1097,7 @@
       value.textContent = variable.value === '' ? '(空)' : variable.value;
       value.title = variable.value || '(空)';
       const source = document.createElement('small');
-      source.textContent = variable.status === 'resolved'
+      source.textContent = variable.localPreview ? '本地预览输入（非源码静态证明）' : variable.status === 'resolved'
         ? `${variable.sourceLabel || '脚本'}${variable.sourceLine ? ` 第 ${variable.sourceLine} 行` : ''}`
         : '无法静态确定，已使用默认值';
       row.append(name, value, source);
@@ -747,8 +1163,9 @@
     } else {
       const placeholder = document.createElement('div');
       placeholder.className = 'background-placeholder';
-      placeholder.textContent = background.asset?.message
-        || `${background.status === 'dynamic' ? '动态' : background.status === 'invalid' ? '无效' : '缺失'}背景 WIL ${background.willIndex ?? '?'} / ${background.imageIndex ?? '?'}`;
+      placeholder.textContent = background.status === 'dynamic'
+        ? '背景待输入'
+        : background.status === 'invalid' ? '背景参数无效' : '背景素材缺失';
       wrapper.appendChild(placeholder);
     }
 
@@ -763,7 +1180,7 @@
       close.style.left = `${Number(background.closeButtonX)}px`;
       close.style.top = `${Number(background.closeButtonY)}px`;
       close.textContent = '×';
-      close.title = '关闭按钮位置标记；仅本地展示，不执行或控制客户端';
+      close.title = '关闭位置';
       close.setAttribute('aria-label', close.title);
       close.addEventListener('click', event => {
         event.preventDefault();
@@ -777,12 +1194,13 @@
     boundary.textContent = [
       ...(Array.isArray(background.warnings) ? background.warnings : []),
       background.warning,
+      background.asset?.message,
       hasNineGridSource
         ? 'Partial simulation：九宫格仅按已证明的目标几何缩放展示，源图切片算法未公开'
         : undefined,
       '仅本地展示，不执行关闭、移动或客户端窗口命令',
     ].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join('；');
-    const backgroundHint = '对话框背景静态预览；详细诊断请点击“显示诊断”';
+    const backgroundHint = '对话框背景';
     wrapper.title = backgroundHint;
     wrapper.setAttribute('aria-label', backgroundHint);
     wrapper.appendChild(boundary);
@@ -1135,9 +1553,7 @@
     } else {
       const placeholder = document.createElement('div');
       placeholder.className = 'adddlg-background-placeholder';
-      placeholder.textContent = asset?.message
-        || asset?.archiveLabel
-        || `AddDlg 背景 ${preview.assetRef ? '等待素材解析' : '参数未知'}`;
+      placeholder.textContent = preview.assetRef ? 'AddDlg 背景缺失' : 'AddDlg 背景待输入';
       panel.appendChild(placeholder);
     }
 
@@ -1179,10 +1595,11 @@
     boundary.className = 'adddlg-runtime-boundary';
     boundary.textContent = [...new Set([
       '仅静态几何；未模拟真实宿主、悬停命中与渐缓曲线',
+      asset?.message,
       ...(preview.warnings || []),
     ].filter(Boolean))].join('；');
     panel.appendChild(boundary);
-    const addDlgHint = 'AddDlg 静态窗口预览；详细诊断请点击“显示诊断”';
+    const addDlgHint = 'AddDlg 窗口';
     panel.title = addDlgHint;
     panel.setAttribute('aria-label', addDlgHint);
     elements.dialogCanvas.appendChild(panel);
@@ -1317,11 +1734,10 @@
     wrapper.style.width = `${canvasBox.width}px`;
     wrapper.style.height = `${canvasBox.height}px`;
     applyPanelBackgroundPlacement(element, wrapper);
-    const interactionHint = element.editable
-      ? '可选择并拖动；方向键微调坐标；详细诊断见右侧元素属性'
-      : '只读预览；详细诊断见右侧元素属性';
-    wrapper.setAttribute('aria-label', `${element.description}；${interactionHint}`);
-    if (!element.tooltipPreview) wrapper.title = `${element.description}\n${interactionHint}`;
+    const interactionHint = element.editable ? '拖动或方向键移动' : '只读';
+    const controlLabel = element.token || '控件';
+    wrapper.setAttribute('aria-label', `${controlLabel}；${interactionHint}`);
+    if (!element.tooltipPreview) wrapper.title = `${controlLabel}；${interactionHint}`;
 
     if (element.inputPreview) {
       renderInputElement(element, wrapper);
@@ -1370,7 +1786,7 @@
     if (element.addButtonPreview) renderAddButtonPreview(element, wrapper);
     if (element.runtimeActionPreview) renderRuntimeAction(element, wrapper);
 
-    applyListViewportClip(element, wrapper, canvasBox);
+    bindListWheelInteraction(element, wrapper);
     attachDialogTooltip(wrapper, element.tooltipPreview);
 
     wrapper.addEventListener('mousedown', event => startDrag(event, element));
@@ -1380,25 +1796,45 @@
     });
     elements.dialogCanvas.appendChild(wrapper);
     expandLocalTextPreviewHitArea(wrapper);
+    // Text measurement may enlarge the hit surface. Clip its final dimensions,
+    // in the same scene coordinate space as every ancestor viewport.
+    applyListViewportClip(element, wrapper, {
+      ...canvasBox,
+      width: Number.parseFloat(wrapper.style.width) || canvasBox.width,
+      height: Number.parseFloat(wrapper.style.height) || canvasBox.height,
+    }, scene);
   }
 
   function expandLocalTextPreviewHitArea(wrapper) {
-    if (wrapper.dataset.localTextPreview !== 'true'
+    if ((wrapper.dataset.localTextPreview !== 'true' && wrapper.dataset.clientTextPreview !== 'true'
+      && wrapper.dataset.clientAtlasPreview !== 'true')
       || wrapper.classList.contains('text-scroll-preview')) return;
-    const label = wrapper.querySelector('.styled-text-preview');
+    const clientAtlas = wrapper.dataset.clientAtlasPreview === 'true';
+    const label = clientAtlas ? wrapper : wrapper.querySelector('.styled-text-preview');
     if (!label) return;
     const labelRect = label.getBoundingClientRect();
     const currentWidth = Number.parseFloat(wrapper.style.width) || 0;
     const currentHeight = Number.parseFloat(wrapper.style.height) || 0;
     const renderScale = Number(zoom) > 0 ? Number(zoom) : 1;
+    // Atlas diagnostics are opt-in overlays, not part of the display hit box.
+    // Measuring wrapper.scrollWidth would include their long off-box captions.
+    const paintRects = clientAtlas ? [...wrapper.querySelectorAll(
+      '.image-text-atlas-cell, .image-text-glyph-placeholder, .image-text-value-fallback'
+    )].map(node => node.getBoundingClientRect()) : [];
+    const paintWidth = clientAtlas
+      ? Math.max(0, ...paintRects.map(rect => (rect.right - labelRect.left) / renderScale))
+      : label.scrollWidth;
+    const paintHeight = clientAtlas
+      ? Math.max(0, ...paintRects.map(rect => (rect.bottom - labelRect.top) / renderScale))
+      : label.scrollHeight;
     const width = Math.ceil(Math.max(
       currentWidth,
-      label.scrollWidth,
+      paintWidth,
       labelRect.width / renderScale
     ));
     const height = Math.ceil(Math.max(
       currentHeight,
-      label.scrollHeight,
+      paintHeight,
       labelRect.height / renderScale
     ));
     if (width > currentWidth) wrapper.style.width = `${width}px`;
@@ -1472,7 +1908,8 @@
     const multiline = preview.mode === 'memo';
     const dynamic = Boolean(preview.dynamicFields?.length);
     const invalid = Boolean(preview.invalidFields?.length);
-    const blocked = dynamic || invalid;
+    const validationFields = new Set(['mode', 'input-id', 'min-length', 'max-length', 'min-value', 'max-value', 'only-chinese', 'error-tips']);
+    const blocked = [...(preview.dynamicFields || []), ...(preview.invalidFields || [])].some(field => validationFields.has(field));
     const state = inputStates.get(element.id) || { value: '', touched: false, error: '' };
     inputStates.set(element.id, state);
     const control = document.createElement(multiline ? 'textarea' : 'input');
@@ -1542,10 +1979,12 @@
 
     const boundary = document.createElement('div');
     boundary.className = 'dialog-input-local-boundary';
-    if (dynamic) {
+    if (dynamic && blocked) {
       boundary.textContent = '运行时参数未知，已禁用本地输入；仅作占位，不提交服务器';
-    } else if (invalid) {
+    } else if (invalid && blocked) {
       boundary.textContent = '输入参数无效，已禁用本地输入；不截断或猜测，不提交服务器';
+    } else if (dynamic || invalid) {
+      boundary.textContent = '外观使用预览样式；可本地填写，不提交服务器';
     } else {
       boundary.textContent = '仅本地预览，不提交服务器';
     }
@@ -1707,7 +2146,7 @@
     hit.addEventListener('mousedown', stop);
     hit.addEventListener('click', event => {
       stop(event);
-      simulateRuntimeAction(element, wrapper, 'click');
+      simulateRuntimeAction(element, wrapper, element.localDoubleClickTarget && (event.shiftKey || !element.localParameterTarget) ? 'double-click' : 'click');
     });
     hit.addEventListener('dblclick', event => {
       stop(event);
@@ -1717,6 +2156,28 @@
   }
 
   function bindRuntimeActionToWrapper(element, wrapper, actionTrigger) {
+    if (element.localDoubleClickTarget) {
+      let pendingClick;
+      // 350ms is a local-preview gesture convention, not a client timing claim.
+      wrapper.addEventListener('click', event => {
+        event.preventDefault();
+        if (consumeSuppressedRuntimeActionClick(element.id)) return;
+        clearTimeout(pendingClick);
+        if (element.localParameterTarget) pendingClick = setTimeout(() => {
+          if (wrapper.isConnected) simulateRuntimeAction(element, wrapper, 'click');
+        }, 350);
+      });
+      wrapper.addEventListener('dblclick', event => {
+        event.preventDefault(); clearTimeout(pendingClick);
+        if (!consumeSuppressedRuntimeActionClick(element.id)) simulateRuntimeAction(element, wrapper, 'double-click');
+      });
+      wrapper.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault(); clearTimeout(pendingClick);
+        simulateRuntimeAction(element, wrapper, event.shiftKey || !element.localParameterTarget ? 'double-click' : 'click');
+      });
+      return;
+    }
     const invoke = (event, trigger) => {
       if (consumeSuppressedRuntimeActionClick(element.id)) {
         event.preventDefault();
@@ -1743,8 +2204,81 @@
     return suppressed.id === elementId && performance.now() <= suppressed.until;
   }
 
+  function closeLocalInputDialog() {
+    const dialog = document.querySelector('.local-input-dialog');
+    if (dialog) { dialog.close(); dialog.remove(); }
+  }
+
+  function openLocalInputDialog(element, wrapper) {
+    closeLocalInputDialog();
+    const popup = element.localPopupInput, revision = lastPreviewRevision;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'local-input-dialog';
+    dialog.setAttribute('aria-label', popup.title);
+    const form = document.createElement('form');form.noValidate = true;
+    const heading = document.createElement('h3');heading.textContent = popup.title;
+    const label = document.createElement('label');label.textContent = popup.kind === 'integer' ? '整数' : '文字';
+    const input = document.createElement('input');input.type = 'text';input.maxLength = 4096;input.autofocus = true;
+    input.setAttribute('aria-label',label.textContent);if (popup.kind === 'integer') input.inputMode = 'numeric';
+    label.appendChild(input);
+    const help = document.createElement('p');help.textContent = '仅本地预览：确认后显示回调页面，不提交游戏服务器。';
+    const error = document.createElement('p');error.className = 'local-input-error';error.setAttribute('role','alert');
+    const actions = document.createElement('div');actions.className = 'local-input-actions';
+    const cancel = document.createElement('button');cancel.type = 'button';cancel.textContent = '取消';cancel.dataset.popupCancel = '';
+    const submit = document.createElement('button');submit.type = 'submit';submit.textContent = '确定';
+    const dismiss = () => { closeLocalInputDialog(); if (wrapper.isConnected) wrapper.querySelector('.runtime-action-hitarea')?.focus(); };
+    cancel.addEventListener('click',dismiss);
+    dialog.addEventListener('cancel',event=>{event.preventDefault();dismiss();});
+    input.addEventListener('input',()=>{input.removeAttribute('aria-invalid');error.textContent='';});
+    form.addEventListener('submit',event=>{
+      event.preventDefault();
+      if (lastPreviewRevision !== revision || !wrapper.isConnected || !dialog.open) {dismiss();return;}
+      if (input.value.length > 4096 || /[\r\n\x00]/.test(input.value) || popup.kind === 'integer' && !/^\d+$/.test(input.value)) {
+        error.textContent = popup.kind === 'integer' ? '请输入仅含 0–9 的整数；不接受小数、符号或指数。' : '最多 4096 字符，不能包含换行或空字符。';
+        input.setAttribute('aria-invalid','true');input.focus();return;
+      }
+      const value = input.value;dismiss();
+      vscode.postMessage({type:'previewNavigate',elementId:element.id,trigger:'popup-submit',previewRevision:revision,popupValue:value});
+    });
+    actions.append(cancel,submit);form.append(heading,label,error,help,actions);dialog.append(form);document.body.append(dialog);dialog.showModal();input.focus();
+  }
+
   function simulateRuntimeAction(element, wrapper, trigger) {
+    if (element.executionPreview) return;
     captureVisibleInputValues();
+    if (element.localPopupInput && trigger === 'click') {
+      openLocalInputDialog(element,wrapper);
+      return;
+    }
+    if (element.localCompletionTarget && trigger === 'completion') {
+      runtimeActionStates.set(element.id, {status:'simulated',summary:'本地完成事件；不执行服务器脚本'});
+      vscode.postMessage({type:'previewNavigate',elementId:element.id,trigger,previewRevision:lastPreviewRevision});
+      return;
+    }
+    if (element.localControlTarget && trigger === 'change') {
+      const value = element.menuPreview ? menuSelections.get(element.id)
+        : element.togglePreview ? (toggleStates.get(element.id) === true ? '1' : '0') : String(sliderStates.get(element.id));
+      vscode.postMessage({type:'previewNavigate',elementId:element.id,trigger,previewRevision:lastPreviewRevision,controlValue:value});
+      return;
+    }
+    if ((element.localParameterTarget && trigger === 'click') || (element.localDoubleClickTarget && trigger === 'double-click')) {
+      const submittedInputs = {};
+      const submitAll = (model.engine === 'GOM' && (element.statementId === 'text-link' || element.statementId === 'text-link-params'))
+        || (model.engine === 'GEE' && element.runtimeActionPreview?.submitAllInputs === true);
+      const currentInputs = [...document.getElementById('dialogCanvas').querySelectorAll('[data-element-id]')]
+        .map(node => ({node, element: model?.pages?.find(page => page.id === currentPageId)?.elements?.find(item => item.id === node.dataset.elementId)}));
+      for (const entry of currentInputs) {
+        const input = entry.element?.inputPreview;
+        const control = entry.node.querySelector('input,textarea');
+        if (!input || input.inputId === undefined || !control || (!submitAll && !element.runtimeActionPreview?.submitInputIds?.includes(input.inputId))) continue;
+        const error = inputValidationError(input, control.value);
+        updateInputValidation(entry.node, control, error);
+        if (error) { control.focus(); return; }
+        submittedInputs[String(input.inputId)] = control.value;
+      }
+      vscode.postMessage({ type: 'previewNavigate', elementId: element.id, trigger, previewRevision: lastPreviewRevision, submittedInputs });
+      return;
+    }
     const preview = element.runtimeActionPreview || {};
     const values = [];
     for (const id of preview.submitInputIds || []) {
@@ -1771,9 +2305,21 @@
       summary.textContent = state.summary;
       summary.hidden = false;
     }
+    // A local scene change is not a server invocation. Parameterised calls need
+    // a dedicated call-site state frame and remain summary-only until then.
+    if ((trigger === 'click' || trigger === 'double-click') && preview.trigger === trigger && typeof link === 'string'
+      && /^@[^()\s<>]+$/u.test(link) && !preview.parameters?.length && !preview.submitInputIds?.length) {
+      const targets = (model?.pages || []).filter(page => page.sourceLabel.toLowerCase() === link.toLowerCase());
+      if (targets.length === 1) {
+        currentPageId = targets[0].id;
+        selectedElementId = '';
+        renderAll();
+      }
+    }
   }
 
   function simulateTypedRuntimeAction(element, wrapper, trigger) {
+    if (element.executionPreview) return;
     const preview = element.runtimeActionPreview;
     if (!preview || preview.trigger !== trigger) return;
     if (preview.dynamicFields?.length || preview.invalidFields?.length) return;
@@ -1920,10 +2466,10 @@
       return;
     }
 
-    const missingText = [element.asset?.archiveLabel, element.asset?.message]
-      .filter(Boolean)
-      .join(' · ') || preview.message;
-    wrapper.appendChild(createElementPlaceholder(missingText));
+    const monsterPlaceholder = /SmartMonster/i.test(String(preview.message || ''))
+      ? 'SmartMonster 怪物名未确定'
+      : '怪物素材缺失';
+    wrapper.appendChild(createElementPlaceholder(monsterPlaceholder));
   }
 
   function renderDialogImageElement(element, wrapper) {
@@ -2006,16 +2552,16 @@
     } else if (preview.directPathPreview) {
       wrapper.appendChild(createElementPlaceholder(
         preview.directPathPreview.status === 'evidence-blocked'
-          ? `Evidence-blocked：直接路径 ${preview.directPathPreview.normalized || preview.directPathPreview.raw} 的素材根目录未确认`
-          : `Direct-path blocked：拒绝加载 ${preview.directPathPreview.raw}`
+          ? '图片路径待配置'
+          : '图片路径不可用'
       ));
     } else {
       const sourceBlocked = preview.dynamicFields?.length || preview.invalidFields?.length;
       wrapper.appendChild(createElementPlaceholder(
         sourceBlocked
-          ? '动态图片素材未确定'
-          : element.asset?.archiveLabel || element.asset?.message || '图片素材未解析',
-        '动态图片素材未确定'
+          ? '图片待输入'
+          : '图片素材缺失',
+        '图片素材缺失'
       ));
     }
 
@@ -2135,9 +2681,56 @@
   function renderImageTextElement(element, wrapper) {
     const preview = element.imageTextPreview;
     wrapper.classList.add('image-text-preview', `image-text-${preview.mode}`);
+    if (constantImageTextFallback(element)) {
+      const fallback = document.createElement('span');
+      fallback.className = 'image-text-value-fallback';
+      fallback.dataset.previewValue = String(preview.value);
+      fallback.textContent = String(preview.value);
+      wrapper.dataset.imageTextFallback = 'constant-plain-text';
+      wrapper.appendChild(fallback);
+      wrapper.setAttribute('aria-label', `${element.description}；${preview.value}`);
+      if (preview.textAtlasVariant) renderTextAtlasBoundary(preview, wrapper);
+      // A visible numeric placeholder is neither a glyph nor a timer value.
+      return;
+    }
     renderImageTextGlyphs(preview, wrapper);
     if (preview.textAtlasVariant) renderTextAtlasBoundary(preview, wrapper);
     wrapper.setAttribute('aria-label', `${element.description}；${preview.value}`);
+    if (preview.clientText && model?.engine === '996PC' && preview.textAtlasVariant === 'newui-atlas') {
+      wrapper.dataset.clientAtlasPreview = 'true';
+      const runNodes = preview.clientText.map(run => {
+        const node = document.createElement('span');
+        node.style.display = 'none';
+        node.setAttribute('aria-hidden', 'true');
+        node.textContent = run.text;
+        bindClientTextRun(node, run);
+        wrapper.appendChild(node);
+        return node;
+      });
+      const refresh = () => {
+        const value = runNodes.map(node => node.textContent).join('');
+        const resourceFields = new Set(['archive', 'image', 'glyph-width', 'glyph-height']);
+        const sheet = preview.assetContract === 'matched'
+          && !(preview.dynamicFields || []).some(field => resourceFields.has(field))
+          && !(preview.invalidFields || []).some(field => resourceFields.has(field)) ? element.asset : undefined;
+        const runtime = { ...preview, value, glyphs: /^\d+$/u.test(value) ? [...value].map(character => ({
+          character,
+          ...(Number.isSafeInteger(preview.glyphWidth) && preview.glyphWidth > 0
+            ? { sourceX: Number(character) * preview.glyphWidth } : {}),
+          ...(sheet ? { asset: sheet } : {}),
+        })) : [] };
+        for (const node of wrapper.querySelectorAll('.image-text-atlas-cell, .image-text-glyph-placeholder, .image-text-value-fallback')) node.remove();
+        delete wrapper.dataset.imageTextFallback;
+        renderImageTextGlyphs(runtime, wrapper);
+        const size = imageTextVisualSize(runtime);
+        if (size) for (const axis of ['width', 'height']) {
+          if (['default', 'intrinsic'].includes(element.sizePreview?.[axis]?.mode)) wrapper.style[axis] = `${Math.max(1, size[axis])}px`;
+        }
+        wrapper.setAttribute('aria-label', `${element.description}；${value}`);
+      };
+      clientAtlasRefreshers.set(wrapper, refresh);
+      refresh();
+    }
     if (element.countdownPreview) {
       bindCountdownRuntime(element, wrapper, value => {
         const runtimePreview = imageTextPreviewForValue(preview, value);
@@ -2176,7 +2769,15 @@
 
     const boundary = document.createElement('div');
     boundary.className = 'image-text-field-boundary image-text-runtime-boundary';
-    if (state === 'dynamic') {
+    if (preview.clientText) {
+      const resourceDynamic = dynamicFields.filter(field => field !== 'text');
+      const resourceInvalid = invalidFields.filter(field => field !== 'text');
+      const reasons = ['TextAtlas 客户端显示值：数字按已验证字形绘制，非 0-9 内容按普通文字预览；不改变服务器变量、坐标或素材序号'];
+      if (resourceDynamic.length) reasons.push(`素材字段 ${resourceDynamic.join('、')} 无法确定，不请求猜测素材`);
+      if (resourceInvalid.length) reasons.push(`素材字段 ${resourceInvalid.join('、')} 无效，不请求猜测素材`);
+      if (preview.assetContractMessage) reasons.push(preview.assetContractMessage);
+      boundary.textContent = reasons.join('；');
+    } else if (state === 'dynamic') {
       boundary.textContent = `TextAtlas 动态字段 ${dynamicFields.join('、')}：不借用 MOV 当前值，不按表达式长度伪造几何`;
     } else if (state === 'invalid') {
       boundary.textContent = `TextAtlas 无效字段 ${invalidFields.join('、')}：不猜素材，不使用 12/16 像素默认值`;
@@ -2207,6 +2808,15 @@
   }
 
   function renderImageTextGlyphs(preview, wrapper) {
+    if (preview.clientText && !/^\d+$/u.test(String(preview.value))) {
+      const fallback = document.createElement('span');
+      fallback.className = 'image-text-value-fallback';
+      fallback.dataset.previewValue = String(preview.value);
+      fallback.textContent = String(preview.value);
+      wrapper.dataset.imageTextFallback = 'plain-text';
+      wrapper.appendChild(fallback);
+      return;
+    }
     let cursor = 0;
     const firstReadyWidth = (preview.glyphs || []).find(glyph => (
       glyph.asset?.status === 'ready' && Number(glyph.asset.width) > 0
@@ -2327,7 +2937,7 @@
     const templateRun = sourceLines.flat().find(run => run && typeof run === 'object') || {};
     const displayLines = localPreviewValue === null
       ? sourceLines
-      : String(localPreviewValue).split(/\r?\n/).map(text => [{ ...templateRun, text }]);
+      : String(localPreviewValue).split(/\r?\n/).map(text => [{ ...templateRun, text, clientValue: undefined }]);
     if (localPreviewValue !== null) {
       wrapper.dataset.localTextPreview = 'true';
     }
@@ -2337,6 +2947,7 @@
       for (const run of line || []) {
         const runNode = document.createElement('span');
         runNode.textContent = run.text || '';
+        bindClientTextRun(runNode, run, element, wrapper);
         if (run.color) runNode.style.color = run.color;
         const runColorFrames = Array.isArray(run.colorFrames)
           ? run.colorFrames.filter(color => typeof color === 'string' && color) : [];
@@ -2431,6 +3042,54 @@
     renderTextFieldBoundary(preview, wrapper);
   }
 
+  function bindClientTextRun(node, run, element, wrapper) {
+    if (!run.clientValue || model?.engine !== '996PC') return;
+    const slot = run.clientValue;
+    node.dataset.clientInput = slot.inputName;
+    if (slot.simplifyNumber) node.dataset.clientSimplify = 'true';
+    const clientFlow = element?.coordinateMode === 'flow'
+      && (element.statementId === 'flow-text' || /^text-/.test(element.statementId || ''));
+    if (element?.kind === 'text' && (clientFlow || (element.sizePreview?.width?.mode === 'default'
+      && element.sizePreview?.height?.mode === 'default'))) wrapper.dataset.clientTextPreview = 'true';
+    if (slot.sliderElementId && slot.origin === 'local-slider') {
+      node.dataset.clientSliderId = slot.sliderElementId;
+      const value = sliderStates.get(slot.sliderElementId);
+      if (Number.isFinite(value)) node.textContent = clientTextNumber(value, slot.simplifyNumber);
+    }
+  }
+
+  function refreshClientSliderText(id, value) {
+    const wrappers = new Set();
+    for (const node of [...elements.dialogCanvas.querySelectorAll('[data-client-slider-id]'),
+      ...(dialogTooltip?.querySelectorAll('[data-client-slider-id]') || [])]) {
+      if (node.dataset.clientSliderId !== id) continue;
+      node.textContent = clientTextNumber(value, node.dataset.clientSimplify === 'true');
+      const wrapper = node.closest('[data-element-id]');
+      if (wrapper) wrappers.add(wrapper);
+    }
+    for (const wrapper of wrappers) {
+      clientAtlasRefreshers.get(wrapper)?.();
+      expandLocalTextPreviewHitArea(wrapper);
+      const element = findElement(wrapper.dataset.elementId);
+      if (element) applyListViewportClip(element, wrapper, {
+        x: Number.parseFloat(wrapper.style.left) || 0,
+        y: Number.parseFloat(wrapper.style.top) || 0,
+        width: Number.parseFloat(wrapper.style.width) || 0,
+        height: Number.parseFloat(wrapper.style.height) || 0,
+      }, currentScene());
+    }
+  }
+
+  // Same documented units and approximate fractional convention as static Text.
+  function clientTextNumber(value, simplify) {
+    if (!simplify) return String(value);
+    const number = Number(value), absolute = Math.abs(number);
+    const divisor = absolute >= 100000000 ? 100000000 : absolute >= 10000 ? 10000 : 0;
+    if (!divisor || !Number.isFinite(number)) return String(value);
+    const scaled = number / divisor;
+    return (Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(2).replace(/\.0+$|(?<=\.[0-9])0+$/g, '')) + (divisor === 100000000 ? '亿' : '万');
+  }
+
   function renderTextFieldBoundary(preview, wrapper) {
     const dynamicFields = Array.isArray(preview.dynamicFields) ? preview.dynamicFields : [];
     const invalidFields = Array.isArray(preview.invalidFields) ? preview.invalidFields : [];
@@ -2490,7 +3149,9 @@
     wrapper.setAttribute('aria-live', 'polite');
     const boundary = document.createElement('span');
     boundary.className = 'countdown-runtime-boundary';
-    boundary.textContent = preview.link
+    boundary.textContent = element.localCompletionTarget
+      ? '计时结束后预览本地目标页；不执行服务器脚本'
+      : preview.link
       ? `结束标签 ${preview.link} 仅由游戏客户端/服务器触发，Ctrl+F12 不执行`
       : '倒计时仅作本地时间预览，不执行客户端或服务器动作';
     wrapper.appendChild(boundary);
@@ -2614,7 +3275,7 @@
 
   function renderToggleElement(element, wrapper) {
     const preview = element.togglePreview;
-    const stateDynamic = preview.dynamicFields?.includes('checked');
+    const stateDynamic = !element.localControlState && preview.dynamicFields?.includes('checked');
     const stateInvalid = preview.invalidFields?.includes('checked');
     const stateKnown = !stateDynamic && !stateInvalid && toggleStates.has(element.id);
     const selected = layerFor(element, 'selected')?.asset;
@@ -2654,7 +3315,7 @@
         visual = createElementPlaceholder(
           checked === undefined
             ? '复选框默认状态未知'
-            : asset?.message || (checked ? '复选框已选中' : '复选框未选中')
+            : asset ? '复选框素材缺失' : (checked ? '复选框已选中' : '复选框未选中')
         );
         visual.classList.add('toggle-state-placeholder');
       }
@@ -2674,6 +3335,7 @@
       if (!stateKnown) return;
       toggleStates.set(element.id, !(toggleStates.get(element.id) === true));
       paint();
+      if (element.localControlTarget) simulateRuntimeAction(element, wrapper, 'change');
     });
     const dragHandle = element.editable ? document.createElement('span') : undefined;
     if (dragHandle) {
@@ -2690,6 +3352,18 @@
 
   function renderMenuElement(element, wrapper) {
     const preview = element.menuPreview;
+    const renderMenuLabel = (node, sourceValue) => {
+      const index = preview.items.indexOf(sourceValue);
+      const runs = index >= 0 ? preview.clientDisplay?.items[index]
+        : sourceValue === preview.selected ? preview.clientDisplay?.selected : undefined;
+      if (!runs || model?.engine !== '996PC') { node.textContent = sourceValue; return; }
+      for (const run of runs) {
+        const span = document.createElement('span');
+        span.textContent = run.text;
+        bindClientTextRun(span, run);
+        node.appendChild(span);
+      }
+    };
     const background = element.asset;
     const selected = layerFor(element, 'selected')?.asset;
     const arrow = layerFor(element, 'arrow')?.asset;
@@ -2785,7 +3459,7 @@
     shell.title = `菜单共 ${(preview.items || []).length} 项`;
     const value = document.createElement('span');
     value.className = 'menu-selected-value';
-    value.textContent = runtimeSelected;
+    renderMenuLabel(value, runtimeSelected);
     if (preview.selectedColor || preview.fontColor) {
       value.style.color = preview.selectedColor || preview.fontColor;
     }
@@ -2875,7 +3549,7 @@
         }
         const label = document.createElement('span');
         label.className = 'menu-option-label';
-        label.textContent = item;
+        renderMenuLabel(label, item);
         option.appendChild(label);
         option.addEventListener('mousedown', event => {
           event.preventDefault();
@@ -2887,6 +3561,7 @@
           menuSelections.set(element.id, item);
           expandedMenuIds.delete(element.id);
           selectedElementId = element.id;
+          if (element.localControlTarget) simulateRuntimeAction(element, wrapper, 'change');
           renderScene();
           renderInspector();
         });
@@ -3113,9 +3788,7 @@
     const image = createAssetImage(fallback, element.token, 'asset-image interactive-asset-image');
     wrapper.dataset.interactiveFallbackState = fallbackState;
     wrapper.dataset.interactiveNormalReady = String(Boolean(normal));
-    const normalPlaceholder = normal ? undefined : createElementPlaceholder(
-      rawNormal?.message || '正常态素材缺失'
-    );
+    const normalPlaceholder = normal ? undefined : createElementPlaceholder('正常态素材缺失');
     if (normalPlaceholder) normalPlaceholder.classList.add('interactive-normal-placeholder');
     const show = (asset, state) => {
       const current = readyDialogAsset(asset) ? asset : undefined;
@@ -3340,7 +4013,7 @@
     if (hasReadyInteractiveAsset(element)) {
       renderInteractiveAsset(element, wrapper);
     } else {
-      wrapper.appendChild(createElementPlaceholder(element.asset?.message || '按钮底图'));
+      wrapper.appendChild(createElementPlaceholder('按钮素材缺失'));
     }
 
     const caption = document.createElement('span');
@@ -3360,6 +4033,7 @@
       for (const run of line || []) {
         const runNode = document.createElement('span');
         runNode.textContent = run.text || '';
+        bindClientTextRun(runNode, run, element, wrapper);
         if (run.color) runNode.style.color = run.color;
         lineNode.appendChild(runNode);
       }
@@ -3418,6 +4092,7 @@
         const span = document.createElement('span');
         span.textContent = run.text || '';
         if (run.color) span.style.color = run.color;
+        bindClientTextRun(span, run);
         row.appendChild(span);
       }
       tooltip.appendChild(row);
@@ -3449,6 +4124,15 @@
 
   function elementVisualSize(element) {
     if (element.itemPreview && !element.costItemPreview) {
+      if (element.itemPreview.paintProfile === 'gee-itemshow') {
+        const frame = geeItemShowFrame(element);
+        const item = layerFor(element, 'item')?.asset;
+        const surface = frame || (item?.status === 'ready' ? item : undefined);
+        return {
+          width: Number(surface?.width) || Number(element.width) || 40,
+          height: Number(surface?.height) || Number(element.height) || 40,
+        };
+      }
       const scale = Number(element.itemPreview.scale) > 0
         ? Number(element.itemPreview.scale) : 1;
       const frameAsset = layerFor(element, 'background')?.asset;
@@ -3509,7 +4193,9 @@
       width = Math.max(width, (Number(itemAsset?.width) || 0) * itemScale);
       height = Math.max(height, (Number(itemAsset?.height) || 0) * itemScale);
     }
-    const imageTextSize = imageTextVisualSize(element.imageTextPreview);
+    const imageTextSize = constantImageTextFallback(element)
+      ? { width: Math.max(12, dialogTextPixelWidth(element.imageTextPreview.value, 14)), height: 20 }
+      : imageTextVisualSize(element.imageTextPreview);
     if (imageTextSize) {
       width = Math.max(width, imageTextSize.width);
       height = Math.max(height, imageTextSize.height);
@@ -3602,25 +4288,29 @@
     };
   }
 
-  function applyListViewportClip(element, wrapper, canvasBox) {
-    const list = nearestListViewAncestor(element);
-    if (!list) return;
-    const viewportPosition = positionFor(list.id, list);
-    const viewport = {
-      x: viewportPosition.x,
-      y: viewportPosition.y,
-      width: Math.max(1, Number(list.width) || 1),
-      height: Math.max(1, Number(list.height) || 1),
-    };
-    const top = Math.max(0, viewport.y - canvasBox.y);
-    const left = Math.max(0, viewport.x - canvasBox.x);
-    const right = Math.max(0, canvasBox.x + canvasBox.width - (viewport.x + viewport.width));
-    const bottom = Math.max(0, canvasBox.y + canvasBox.height - (viewport.y + viewport.height));
+  function applyListViewportClip(element, wrapper, canvasBox, scene) {
+    const lists = listViewAncestors(element);
+    if (!lists.length) return;
+    // Canvas elements are DOM siblings, so CSS does not inherit their logical
+    // parents' clipping. Intersect every list, including scrolled outer lists.
+    let viewportLeft = -Infinity, viewportTop = -Infinity;
+    let viewportRight = Infinity, viewportBottom = Infinity;
+    for (const list of lists) {
+      const position = sceneElementVisualPosition(list, scene);
+      viewportLeft = Math.max(viewportLeft, position.x);
+      viewportTop = Math.max(viewportTop, position.y);
+      viewportRight = Math.min(viewportRight, position.x + Math.max(1, Number(list.width) || 1));
+      viewportBottom = Math.min(viewportBottom, position.y + Math.max(1, Number(list.height) || 1));
+    }
+    const top = Math.max(0, viewportTop - canvasBox.y);
+    const left = Math.max(0, viewportLeft - canvasBox.x);
+    const right = Math.max(0, canvasBox.x + canvasBox.width - viewportRight);
+    const bottom = Math.max(0, canvasBox.y + canvasBox.height - viewportBottom);
     const visibleWidth = canvasBox.width - left - right;
     const visibleHeight = canvasBox.height - top - bottom;
     const outside = visibleWidth <= 0 || visibleHeight <= 0;
     const partial = !outside && (top > 0 || right > 0 || bottom > 0 || left > 0);
-    wrapper.dataset.listViewportId = list.id;
+    wrapper.dataset.listViewportId = lists[0].id;
     wrapper.dataset.listClip = outside ? 'outside' : partial ? 'partial' : 'inside';
     wrapper.dataset.listClipTop = String(roundListClip(top));
     wrapper.dataset.listClipRight = String(roundListClip(right));
@@ -3633,21 +4323,27 @@
     }
   }
 
-  function nearestListViewAncestor(element) {
+  function listViewAncestors(element) {
+    const lists = [];
     const visited = new Set();
     let parentId = element.parentElementId;
     while (parentId && !visited.has(parentId)) {
       visited.add(parentId);
       const parent = findElement(parentId);
-      if (!parent) return null;
-      if (parent.containerPreview?.variant === 'list') return parent;
+      if (!parent) break;
+      if (parent.containerPreview?.variant === 'list') lists.push(parent);
       parentId = parent.parentElementId;
     }
-    return null;
+    return lists;
   }
 
   function roundListClip(value) {
     return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  function constantImageTextFallback(element) {
+    return Boolean(element.imageTextPreview && element.displayValueSources?.some(source =>
+      source.field === 'constant.imageText.value' && source.status === 'runtime-placeholder'));
   }
 
   function imageTextVisualSize(preview) {
@@ -3699,24 +4395,22 @@
   }
 
   function genericElementPlaceholderText(element) {
-    if (element?.imagePreview) return '图片素材未确定';
+    if (element?.imagePreview) return '图片素材缺失';
     if (element?.kind === 'image'
       || /(?:^|[-_])(?:img|image|picture)(?:$|[-_])/i.test(String(element?.statementId || ''))
       || /IMG|IMAGE|PICTURE/i.test(String(element?.token || ''))) {
       return /<\$|\$STR\s*\(/i.test(String(element?.raw || ''))
-        ? '动态图片素材未确定'
-        : '图片素材未确定';
+        ? '图片未确定'
+        : '图片素材缺失';
     }
-    if (element?.modelPreview) return '模型素材未静态确定';
-    if (element?.monsterPreview) return '怪物素材未静态确定';
-    if (element?.itemPreview) return '物品素材未静态确定';
-    if (element?.animationPreview) return '动画素材未静态确定';
-    if (element?.progressPreview) return '进度控件预览';
-    if (element?.kind === 'button') return '按钮素材未静态确定';
-    const description = String(element?.description || '').trim();
-    return description && !/<\$|\$STR\s*\(/i.test(description)
-      ? description
-      : '控件预览';
+    if (element?.modelPreview) return '模型';
+    if (element?.monsterPreview) return '怪物';
+    if (element?.itemPreview) return '物品';
+    if (element?.animationPreview) return '动画';
+    if (element?.progressPreview) return '进度条';
+    if (element?.kind === 'button') return '按钮';
+    const token = String(element?.token || '').trim();
+    return token && !/<\$|\$STR\s*\(/i.test(token) ? token : '控件';
   }
 
   function createElementPlaceholder(text, fallback = '控件预览') {
@@ -3777,7 +4471,7 @@
       const placeholder = document.createElement('span');
       placeholder.className = 'cost-item-icon-placeholder';
       placeholder.textContent = '物品';
-      placeholder.title = element.itemPreview?.message || '等待物品素材解析';
+      placeholder.title = '物品素材缺失';
       icon.appendChild(placeholder);
     }
     shell.appendChild(icon);
@@ -3791,11 +4485,25 @@
     wrapper.appendChild(shell);
   }
 
+  function geeItemShowFrame(element) {
+    const frame = layerFor(element, 'background')?.asset;
+    return frame?.status === 'ready' && Number(frame.width) > 4 && Number(frame.height) > 4
+      ? frame : undefined;
+  }
+
   function renderItemElement(element, wrapper, size) {
     wrapper.classList.add('layered-item');
-    const frame = layerFor(element, 'background');
+    const geeItemShow = element.itemPreview.paintProfile === 'gee-itemshow';
+    const frame = geeItemShow
+      ? (geeItemShowFrame(element) ? layerFor(element, 'background') : undefined)
+      : layerFor(element, 'background');
     const item = layerFor(element, 'item');
     const preview = element.itemPreview;
+    // GXX draws framed ITEMSHOW layers through the button's visible rect;
+    // oversized sprites are clipped by that rect while unframed previews keep
+    // their intrinsic surface.  Keep this local CSS contract separate from
+    // the selection wrapper so missing/tiny frames still degrade safely.
+    if (geeItemShow && frame) wrapper.classList.add('item-clip-frame');
     const scale = Number(preview.scale) > 0 ? Number(preview.scale) : 1;
     const frameWidth = (Number(frame?.asset?.width)
       || Number(item?.asset?.width)
@@ -3822,8 +4530,8 @@
       const frameImage = createAssetImage(frame.asset, '物品框', 'asset-image item-frame-image');
       frameImage.style.width = `${frameWidth}px`;
       frameImage.style.height = `${frameHeight}px`;
-      frameImage.style.left = `${contentLeft + (Number(frame.asset.offsetX) || 0) * scale}px`;
-      frameImage.style.top = `${(Number(frame.asset.offsetY) || 0) * scale}px`;
+      frameImage.style.left = `${contentLeft + (geeItemShow ? 0 : Number(frame.asset.offsetX) || 0) * scale}px`;
+      frameImage.style.top = `${(geeItemShow ? 0 : Number(frame.asset.offsetY) || 0) * scale}px`;
       wrapper.appendChild(frameImage);
       rendered = true;
     }
@@ -3838,13 +4546,22 @@
       const itemHeight = (Number(item.asset.height) || 0) * scale;
       image.style.width = `${itemWidth}px`;
       image.style.height = `${itemHeight}px`;
-      image.style.left = `${contentLeft + Math.round((frameWidth - itemWidth) / 2)
-        + (Number(item.asset.offsetX) || 0) * scale}px`;
-      image.style.top = `${Math.round((frameHeight - itemHeight) / 2)
-        + (Number(item.asset.offsetY) || 0) * scale}px`;
+      // GXX uses integer div (towards zero) and texture pixels, not archive
+      // sprite offsets. Other engines retain their existing placement policy.
+      const center = geeItemShow ? Math.trunc : Math.round;
+      image.style.left = `${contentLeft + center((frameWidth - itemWidth) / 2)
+        + (geeItemShow ? 0 : Number(item.asset.offsetX) || 0) * scale}px`;
+      image.style.top = `${center((frameHeight - itemHeight) / 2)
+        + (geeItemShow ? 0 : Number(item.asset.offsetY) || 0) * scale}px`;
       wrapper.appendChild(image);
       rendered = true;
     }
+    renderItemLightEffect(element, wrapper, {
+      frameWidth,
+      frameHeight,
+      contentLeft,
+      scale,
+    });
     if (!rendered) wrapper.appendChild(createElementPlaceholder(element.itemPreview.label));
     if (!item?.asset?.url && element.itemPreview.message) {
       const runtime = document.createElement('span');
@@ -3852,18 +4569,25 @@
       runtime.textContent = element.itemPreview.label;
       wrapper.appendChild(runtime);
     }
-    if (preview.quantity !== undefined && Number.isFinite(Number(preview.quantity))) {
+    if (preview.quantity !== undefined && Number.isFinite(Number(preview.quantity))
+      && !(Number(preview.quantity) === 0 && (geeItemShow || ['item-show', 'newui-itemshow-996pc'].includes(element.statementId)))) {
       const quantity = document.createElement('span');
       quantity.className = 'item-quantity';
       quantity.textContent = itemQuantityText(preview.quantity, preview.compactQuantity);
       if (preview.quantityColor) quantity.style.color = preview.quantityColor;
+      if (geeItemShow) {
+        quantity.style.right = frame ? '4px' : '2px';
+        quantity.style.bottom = frame ? '2px' : '0px';
+        // Delphi clSkyBlue = $00F0CAA6 (BGR), not CSS's named skyblue.
+        quantity.style.color = '#a6caf0';
+      }
       wrapper.appendChild(quantity);
     }
     if (preview.showStar) {
       const star = document.createElement('span');
       star.className = 'item-runtime-star';
       star.textContent = '☆?';
-      star.title = '星级取决于运行时唯一物品数据';
+      star.title = '星级未知';
       wrapper.appendChild(star);
     }
     if (preview.locked) {
@@ -3878,6 +4602,85 @@
       || preview.invalidFields?.includes('interior');
     if (hasInteriorContract) renderCustomItemRuntimeBoundary(preview, wrapper);
     if (preview.mode === 'empty-box') renderItemBoxConstraints(element, wrapper, size);
+  }
+
+  function renderItemLightEffect(element, wrapper, geometry) {
+    const preview = element.itemPreview?.lightPreview;
+    if (!preview) return;
+    const frames = Array.isArray(preview.frames) ? preview.frames : [];
+    const readyFrames = frames.filter(readyDialogAsset);
+    wrapper.dataset.itemLightArchive = String(preview.archiveName || '');
+    wrapper.dataset.itemLightStartIndex = String(Number(preview.startIndex) || 0);
+    wrapper.dataset.itemLightFrameCount = String(Number(preview.frameCount) || frames.length);
+    wrapper.dataset.itemLightReadyCount = String(readyFrames.length);
+    wrapper.dataset.itemLightIntervalMs = String(Number(preview.intervalMs) || 200);
+    wrapper.dataset.itemLightBlend = String(preview.blendMode || 'unknown');
+    wrapper.dataset.itemLightOffsetX = String(Number(preview.offsetX) || 0);
+    wrapper.dataset.itemLightOffsetY = String(Number(preview.offsetY) || 0);
+    if (frames.length === 0 || readyFrames.length === 0) {
+      wrapper.dataset.itemLightStatus = frames.length === 0 ? 'missing' : 'missing-all';
+      return;
+    }
+
+    let image = document.createElement('img');
+    image.className = 'asset-image item-light-image';
+    image.draggable = false;
+    image.alt = `${element.itemPreview.label || '物品'} 发光`;
+    wrapper.appendChild(image);
+    const signature = [
+      preview.archiveName, preview.startIndex, preview.frameCount,
+      preview.intervalMs, preview.offsetX, preview.offsetY,
+    ].join('|');
+    const state = itemLightStates.get(element.id) || {
+      signature,
+      startedAt: Date.now(),
+      frameIndex: 0,
+    };
+    if (state.signature !== signature) {
+      state.signature = signature;
+      state.startedAt = Date.now();
+      state.frameIndex = 0;
+    }
+    itemLightStates.set(element.id, state);
+    const scale = Number(geometry.scale) > 0 ? Number(geometry.scale) : 1;
+    const applyFrame = index => {
+      const frameIndex = Math.max(0, Math.min(frames.length - 1, Number(index) || 0));
+      const frame = frames[frameIndex];
+      state.frameIndex = frameIndex;
+      wrapper.dataset.itemLightFrameIndex = String(frameIndex);
+      if (!readyDialogAsset(frame)) {
+        image.hidden = true;
+        wrapper.dataset.itemLightStatus = frame?.status || 'missing';
+        return;
+      }
+      image.hidden = false;
+      image.src = frame.url;
+      image.alt = frame.archiveLabel || `${element.itemPreview.label || '物品'} 发光`;
+      const frameWidth = Number(frame.width) || 0;
+      const frameHeight = Number(frame.height) || 0;
+      const left = (Number(geometry.contentLeft) || 0)
+        + Math.trunc((Number(geometry.frameWidth) - frameWidth * scale) / 2)
+        + ((Number(frame.offsetX) || 0) + (Number(preview.offsetX) || 0) - 1) * scale;
+      const top = Math.trunc((Number(geometry.frameHeight) - frameHeight * scale) / 2)
+        + ((Number(frame.offsetY) || 0) + (Number(preview.offsetY) || 0) + 1) * scale;
+      image.style.left = `${left}px`;
+      image.style.top = `${top}px`;
+      if (frameWidth > 0) image.style.width = `${frameWidth * scale}px`;
+      if (frameHeight > 0) image.style.height = `${frameHeight * scale}px`;
+      image.style.mixBlendMode = preview.blendMode === 'src-alpha-color'
+        ? 'plus-lighter' : 'normal';
+      wrapper.dataset.itemLightStatus = 'ready';
+    };
+    const update = () => {
+      const interval = Math.max(16, Number(preview.intervalMs) || 200);
+      const elapsed = Math.max(0, Date.now() - state.startedAt);
+      applyFrame(Math.floor(elapsed / interval) % frames.length);
+    };
+    update();
+    if (frames.length > 1) {
+      const timer = window.setInterval(update, Math.max(16, Number(preview.intervalMs) || 200));
+      animationTimers.push(timer);
+    }
   }
 
   function renderCustomItemRuntimeBoundary(preview, wrapper) {
@@ -3966,11 +4769,11 @@
     const sourceProgress = element.progressPreview;
     const slider = element.sliderPreview;
     const dynamicFields = Array.isArray(sourceProgress.dynamicFields)
-      ? sourceProgress.dynamicFields : [];
+      ? sourceProgress.dynamicFields.filter(field => !element.localControlState || !['maximum','value'].includes(field)) : [];
     const invalidFields = Array.isArray(sourceProgress.invalidFields)
       ? sourceProgress.invalidFields : [];
     const sliderDynamicFields = Array.isArray(slider?.dynamicFields)
-      ? slider.dynamicFields : [];
+      ? slider.dynamicFields.filter(field => !element.localControlState || !['maximum','value'].includes(field)) : [];
     const sliderInvalidFields = Array.isArray(slider?.invalidFields)
       ? slider.invalidFields : [];
     const progressBlocked = dynamicFields.length > 0 || sliderDynamicFields.length > 0
@@ -3979,7 +4782,7 @@
         ? 'invalid'
         : 'none';
     const sliderBlocked = slider && progressBlocked !== 'none' ? progressBlocked : '';
-    const sliderMaximum = Number(slider?.maximum);
+    const sliderMaximum = Number(element.localControlState?.maximum ?? slider?.maximum);
     const sliderMinimum = Number(slider?.minimum) || 0;
     const runtimeSliderValue = slider && sliderStates.has(element.id)
       ? Number(sliderStates.get(element.id)) : Number(slider?.initialValue);
@@ -4000,7 +4803,9 @@
         value: runtimeSliderValue,
         ratio: sliderRatio,
       }
-      : sourceProgress;
+      : sourceProgress.localDisplayRange
+        ? { ...sourceProgress, ...sourceProgress.localDisplayRange }
+        : sourceProgress;
     const background = layerFor(element, 'background');
     const fill = layerFor(element, 'progress');
     const thumb = layerFor(element, 'thumb');
@@ -4021,6 +4826,13 @@
       wrapper.dataset.progressInvalidFields = invalidFields.join(',');
     }
     wrapper.dataset.progressBlocked = progressBlocked;
+    const localRange = !slider && sourceProgress.localDisplayRange;
+    const localRangeDrawable = localRange && !dynamicFields.includes('direction')
+      && !invalidFields.includes('direction') && Number.isFinite(progress.direction);
+    if (localRangeDrawable) {
+      wrapper.dataset.progressDisplayRatio = String(localRange.ratio);
+      wrapper.dataset.progressDisplayOrigin = localRange.valueOrigin;
+    }
     if (progressBlocked === 'none' && Number.isFinite(Number(progress.direction))) {
       wrapper.dataset.progressDirection = String(Number(progress.direction));
     }
@@ -4047,7 +4859,7 @@
       };
       showFrame(initialFill, 0);
       fillImage.style.clipPath = progressClipPath(
-        progress.ratio,
+        localRange && !localRangeDrawable ? undefined : progress.ratio,
         progress.direction
       );
       wrapper.appendChild(fillImage);
@@ -4099,11 +4911,11 @@
       && Boolean(displayTextSource)
       && typeof progress.text === 'string'
       && progress.text.length > 0;
-    if ((progressBlocked === 'none' || canShowBlockedSnapshot || canShowBlockedTextSnapshot)
+    if ((progressBlocked === 'none' || canShowBlockedSnapshot || canShowBlockedTextSnapshot || localRangeDrawable)
       && progress.showCaption !== false) {
       caption = document.createElement('span');
       caption.className = 'progress-caption';
-      caption.textContent = progressCaption(progress, canShowBlockedSnapshot);
+      caption.textContent = progressCaption(progress, canShowBlockedSnapshot || Boolean(localRangeDrawable));
       if (canShowBlockedSnapshot || canShowBlockedTextSnapshot) {
         const typedSource = canShowBlockedTextSnapshot ? displayTextSource : displayValueSource;
         caption.dataset.progressDisplayStatus = typedSource.status || 'typed-display';
@@ -4141,14 +4953,16 @@
       control.dataset.sliderQuantization = 'nearest-integer-preview-convention';
       const runtimeLabel = document.createElement('span');
       runtimeLabel.className = 'slider-runtime-value';
+      let pointerSubmittedAt = -Infinity;
       const updateSlider = clientX => {
         if (sliderBlocked) return;
         const rect = wrapper.getBoundingClientRect();
         const ratio = rect.width > 0
           ? Math.max(0, Math.min(1, (Number(clientX) - rect.left) / rect.width)) : 0;
-        const value = Math.round(sliderMinimum + ratio * (sliderMaximum - sliderMinimum));
+        const value = Math.max(sliderMinimum, Math.min(sliderMaximum, Math.round(sliderMinimum + ratio * (sliderMaximum - sliderMinimum))));
         const normalizedRatio = (value - sliderMinimum) / (sliderMaximum - sliderMinimum);
         sliderStates.set(element.id, value);
+        refreshClientSliderText(element.id, value);
         control.dataset.sliderValue = String(value);
         control.setAttribute('aria-valuenow', String(value));
         wrapper.dataset.sliderValue = String(value);
@@ -4170,7 +4984,7 @@
         runtimeLabel.textContent = slider.variableName
           ? `${slider.variableName}=${value}（仅本地预览，不提交服务器）`
           : `${value}（仅本地预览，不提交服务器变量）`;
-        simulateTypedRuntimeAction(element, wrapper, 'change');
+        if (!element.localControlTarget) simulateTypedRuntimeAction(element, wrapper, 'change');
       };
       if (!sliderBlocked && Number.isFinite(runtimeSliderValue)) {
         control.dataset.sliderValue = String(runtimeSliderValue);
@@ -4187,8 +5001,22 @@
       control.addEventListener('click', event => {
         event.preventDefault();
         event.stopPropagation();
-        updateSlider(event.clientX);
+        if (element.localControlTarget && performance.now() - pointerSubmittedAt < 350) return;
+        if (event.detail !== 0 || event.clientX !== 0) updateSlider(event.clientX);
         selectElement(element.id);
+        if (element.localControlTarget) simulateRuntimeAction(element, wrapper, 'change');
+      });
+      control.addEventListener('keydown', event => {
+        if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+        event.preventDefault(); event.stopPropagation();
+        if (sliderBlocked) return;
+        const current = Number(sliderStates.get(element.id));
+        const next = event.key === 'Home' ? sliderMinimum : event.key === 'End' ? sliderMaximum
+          : current + (['ArrowRight','ArrowUp'].includes(event.key) ? 1 : -1);
+        const rect = wrapper.getBoundingClientRect();
+        updateSlider(rect.left + rect.width * (Math.max(sliderMinimum,Math.min(sliderMaximum,next))-sliderMinimum)/(sliderMaximum-sliderMinimum));
+        selectElement(element.id);
+        if (element.localControlTarget) simulateRuntimeAction(element, wrapper, 'change');
       });
       control.addEventListener('mousedown', event => {
         event.preventDefault();
@@ -4206,6 +5034,10 @@
           updateSlider(upEvent.clientX);
           window.removeEventListener('mousemove', move);
           window.removeEventListener('mouseup', up);
+          if (wrapper.isConnected && element.localControlTarget) {
+            pointerSubmittedAt = performance.now();
+            simulateRuntimeAction(element, wrapper, 'change');
+          }
         };
         window.addEventListener('mousemove', move);
         window.addEventListener('mouseup', up);
@@ -4285,8 +5117,11 @@
       const boundary = document.createElement('div');
       boundary.className = 'progress-runtime-boundary';
       const details = [];
+      if (localRangeDrawable) details.push(`当前范围和比例按${localRange.valueOrigin === 'preview-input' ? '本地输入值' : '源码确定值'}显示；不启动动态计时或完成事件`);
       if (dynamicFields.length || sliderDynamicFields.length) {
-        details.push(`动态字段 ${[...new Set([...dynamicFields, ...sliderDynamicFields])].join('、')} 不借用 MOV 当前值`);
+        const unresolved = [...new Set([...dynamicFields, ...sliderDynamicFields])]
+          .filter(field => !localRangeDrawable || !['minimum', 'maximum', 'value'].includes(field));
+        if (unresolved.length) details.push(`动态字段 ${unresolved.join('、')} 不借用 MOV 当前值`);
       }
       if (invalidFields.length || sliderInvalidFields.length) {
         details.push(`无效字段 ${[...new Set([...invalidFields, ...sliderInvalidFields])].join('、')}，不能确定性绘制`);
@@ -4424,7 +5259,7 @@
         cell.style.height = `${cellHeight}px`;
         cell.dataset.gridCellIndex = String(index);
         cell.dataset.runtimeSource = preview.gridSource || 'unknown';
-        cell.setAttribute('aria-label', `第 ${index + 1} 格：运行时物品内容无法离线还原`);
+        cell.setAttribute('aria-label', `第 ${index + 1} 格`);
         const empty = document.createElement('span');
         empty.className = 'item-grid-runtime-empty';
         empty.textContent = '运行时';
@@ -4433,7 +5268,7 @@
           const star = document.createElement('span');
           star.className = 'item-grid-runtime-star';
           star.textContent = '☆?';
-          star.title = '星级取决于运行时唯一物品数据';
+          star.title = '星级未知';
           cell.appendChild(star);
         }
         if (preview.showTips) {
@@ -4641,19 +5476,35 @@
     return Math.max(1, extent + (Number(preview.gap) || 0));
   }
 
+  function bindListWheelInteraction(element, wrapper) {
+    // Logical children are flattened DOM siblings. Route wheel input from the
+    // actual hit element through its list ancestors, just as nested DOM would.
+    const lists = [
+      ...(element.containerPreview?.variant === 'list' ? [element] : []),
+      ...listViewAncestors(element),
+    ].filter(list => !listInteractionDisabled(list));
+    if (!lists.length) return;
+    wrapper.addEventListener('wheel', event => {
+      if (event.defaultPrevented || event.ctrlKey) return;
+      for (const list of lists) {
+        const horizontal = list.containerPreview.direction === 'horizontal';
+        const primary = horizontal
+          ? (Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY)
+          : event.deltaY;
+        if (!primary) continue;
+        const unit = event.deltaMode === 1 ? 16
+          : event.deltaMode === 2 ? Number(horizontal ? list.width : list.height) || 1
+          : 1 / Math.max(.1, zoom);
+        if (!setListScrollOffset(list, listScrollOffset(list) + primary * unit)) continue;
+        event.preventDefault();
+        event.stopPropagation();
+        break;
+      }
+    }, { passive: false });
+  }
+
   function bindListViewportInteraction(element, wrapper) {
     if (listInteractionDisabled(element)) return;
-    wrapper.addEventListener('wheel', event => {
-      const horizontal = element.containerPreview.direction === 'horizontal';
-      const primary = horizontal
-        ? (Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY)
-        : event.deltaY;
-      if (!primary) return;
-      event.preventDefault();
-      event.stopPropagation();
-      setListScrollOffset(element, listScrollOffset(element) + primary / Math.max(.1, zoom));
-    }, { passive: false });
-
     let touchStart = null;
     wrapper.addEventListener('touchstart', event => {
       const touch = event.touches?.[0];
@@ -4813,7 +5664,7 @@
     }
     drag.last = { x, y };
     drag.lastLocal = local;
-    drafts.set(drag.id, local);
+    drafts.set(draftKeyFor(drag.id), local);
     moveElementTree(drag.id);
     renderInspector();
     renderChangeList();
@@ -4854,7 +5705,7 @@
     else if (event.key === 'ArrowDown') after.y += 1;
     const beforeLocal = localPositionFor(element.id, element);
     const afterLocal = localPositionFromGlobal(element, after.x, after.y);
-    drafts.set(element.id, afterLocal);
+    drafts.set(draftKeyFor(element.id), afterLocal);
     pushHistory(element.id, beforeLocal, afterLocal);
     moveElementTree(element.id);
     renderInspector();
@@ -4871,7 +5722,7 @@
     const beforeLocal = localPositionFor(element.id, element);
     const after = { x: Math.round(x), y: Math.round(y) };
     const afterLocal = localPositionFromGlobal(element, after.x, after.y);
-    drafts.set(element.id, afterLocal);
+    drafts.set(draftKeyFor(element.id), afterLocal);
     pushHistory(element.id, beforeLocal, afterLocal);
     moveElementTree(element.id);
     renderInspector();
@@ -4891,9 +5742,11 @@
 
   function renderInspector() {
     const element = selectedElement();
+    syncInspectorVisibility(element);
     elements.emptyInspector.classList.toggle('hidden', Boolean(element));
     elements.elementInspector.classList.toggle('hidden', !element);
     elements.selectionState.textContent = element ? `第 ${element.lineNumber} 行` : '未选择';
+    elements.elementSourcePath.textContent = element ? element.sourceFilePath || model.filePath : '';
     if (!element) return;
     const position = positionFor(element.id, element);
     elements.elementToken.textContent = element.token;
@@ -4927,7 +5780,11 @@
     elements.elementWarning.textContent = element.warning || '';
     elements.elementWarning.classList.toggle('hidden', !element.warning);
     elements.patchButton.classList.toggle('hidden', !elementHasMissingAsset(element));
-    elements.rawStatement.textContent = element.raw;
+    elements.rawStatement.textContent = element.sourceRange?.original || element.raw;
+  }
+
+  function syncInspectorVisibility(element) {
+    document.body.classList.toggle('inspector-collapsed', !element && !showCanvasDiagnostics);
   }
 
   function renderElementParameters(element) {
@@ -4962,19 +5819,20 @@
   }
 
   function renderDiagnostics(scene) {
-    renderDiagnosticList(elements.sceneWarnings, [
+    const warnings = [
       ...(model?.warnings || []),
       ...(scene?.warnings || []),
-    ], true);
-    renderDiagnosticList(elements.unsupportedList, scene?.unsupportedStatements || [], false);
+    ];
+    const unsupported = scene?.unsupportedStatements || [];
+    elements.sceneWarningsSection.classList.toggle('hidden', warnings.length === 0);
+    elements.unsupportedSection.classList.toggle('hidden', unsupported.length === 0);
+    renderDiagnosticList(elements.sceneWarnings, warnings, true);
+    renderDiagnosticList(elements.unsupportedList, unsupported, false);
   }
 
   function renderDiagnosticList(container, values, warning) {
     container.textContent = '';
-    if (!values.length) {
-      container.textContent = '无';
-      return;
-    }
+    if (!values.length) return;
     for (const value of values) {
       const row = document.createElement('div');
       row.className = `diagnostic-item${warning ? ' warning' : ''}`;
@@ -4991,8 +5849,8 @@
   function renderChangeList() {
     const changes = collectChanges();
     elements.changeList.textContent = '';
+    elements.changeSection.classList.toggle('hidden', changes.length === 0);
     if (!changes.length) {
-      elements.changeList.textContent = '暂无改动';
       return;
     }
     for (const change of changes) {
@@ -5000,7 +5858,10 @@
       const row = document.createElement('div');
       row.className = 'change-row';
       const label = document.createElement('div');
-      label.textContent = `${element?.token || change.elementId} · 第 ${element?.lineNumber || '?'} 行`;
+      const sourcePath = element?.sourceFilePath || model.filePath;
+      const sourceName = sourcePath ? sourcePath.split(/[\\/]/).pop() : model.fileName;
+      label.textContent = `${sourceName} · ${element?.token || change.elementId} · 第 ${element?.lineNumber || '?'} 行`;
+      label.title = sourcePath || '';
       const value = document.createElement('b');
       value.textContent = `${element?.layoutX ?? '?'} , ${element?.layoutY ?? '?'} → ${change.x} , ${change.y}`;
       row.append(label, value);
@@ -5010,14 +5871,15 @@
 
   function submit(type) {
     if (!model || conflict) return;
-    vscode.postMessage({ type, changes: collectChanges() });
+    vscode.postMessage({ type, changes: collectChanges(), previewRevision: lastPreviewRevision });
   }
 
   function collectChanges() {
     const result = [];
-    for (const [elementId] of drafts.entries()) {
-      const element = findElement(elementId);
+    for (const [key] of drafts.entries()) {
+      const element = draftElementFor(key);
       if (!element?.editable || !element.x || !element.y) continue;
+      const elementId = element.id;
       const position = positionFor(elementId, element);
       if (position.x === element.layoutX && position.y === element.layoutY) continue;
       result.push({ elementId, x: Math.round(position.x), y: Math.round(position.y) });
@@ -5028,7 +5890,7 @@
   function pushHistory(id, before, after) {
     if (before.x === after.x && before.y === after.y) return;
     history = history.slice(0, historyIndex);
-    history.push({ id, before: { ...before }, after: { ...after } });
+    history.push({ id: draftKeyFor(id), before: { ...before }, after: { ...after } });
     historyIndex = history.length;
     updateButtons();
   }
@@ -5046,7 +5908,7 @@
   }
 
   function setDraftFromHistory(id, position) {
-    const element = findElement(id);
+    const element = draftElementFor(id);
     if (!element) return;
     if (position.x === element.localLayoutX && position.y === element.localLayoutY) drafts.delete(id);
     else drafts.set(id, { ...position });
@@ -5071,8 +5933,8 @@
     elements.redoButton.disabled = conflict || historyIndex >= history.length;
     elements.applyButton.disabled = conflict || !model;
     elements.saveButton.disabled = conflict || !model;
-    elements.applyButton.textContent = changeCount ? `应用到代码 (${changeCount})` : '应用到代码';
-    elements.saveButton.textContent = changeCount ? `保存文件 (${changeCount})` : '保存文件';
+    elements.applyButton.textContent = changeCount ? `应用 (${changeCount})` : '应用';
+    elements.saveButton.textContent = changeCount ? `保存 (${changeCount})` : '保存';
   }
 
   function setZoom(value) {
@@ -5134,22 +5996,129 @@
   }
 
   function formatPageConditions(page) {
-    const groups = (page.conditionGroupIds || [])
+    const groups = (page?.conditionGroupIds || [])
       .map(id => (model?.conditionGroups || []).find(group => group.id === id))
       .filter(Boolean);
-    if (groups.length === 0) return '无条件或默认显示';
-    return groups.map(group => {
-      const state = previewConditions.get(group.id) ? '满足' : '不满足';
-      return `${state} · ${formatConditions(group).replace(/\n/g, ' / ')}`;
-    }).join('\n');
+    if (groups.length === 0) return '';
+    if (showCanvasDiagnostics) {
+      return groups.map(group => {
+        const state = previewConditions.get(group.id) ? '满足' : '不满足';
+        return `${state} · ${formatConditionsDetailed(group).replace(/\n/g, ' / ')}`;
+      }).join('\n');
+    }
+    return groups.map(group => formatConditions(group).replace(/\n/g, ' / ')).join('\n');
   }
 
-  function formatConditions(scene) {
+  function formatConditionsDetailed(scene) {
+    if (scene.requiredCount !== undefined) return `${scene.requiredCount === 1 ? '满足任意一项' : `至少满足 ${scene.requiredCount} 项`}：\n${(scene.conditions || []).join('\n')}`;
     return (scene.conditions || []).map((condition, index) => {
       if (index === 0) return condition;
       const operators = scene.conditionOperators || scene.operators || [];
       return `${operators[index] === 'OR' ? '或' : '且'} ${condition}`;
     }).join('\n');
+  }
+
+  function formatConditions(scene) {
+    if (scene.requiredCount !== undefined) return `${scene.requiredCount === 1 ? '满足任意一项' : `至少满足 ${scene.requiredCount} 项`}：\n${(scene.conditions || []).map(formatConditionCompact).join('\n')}`;
+    return (scene.conditions || []).map((condition, index) => {
+      const compact = formatConditionCompact(condition);
+      if (index === 0) return compact;
+      const operators = scene.conditionOperators || scene.operators || [];
+      return `${operators[index] === 'OR' ? '或' : '且'} ${compact}`;
+    }).join('\n');
+  }
+
+  function formatConditionCompact(condition) {
+    let source = String(condition || '').trim().replace(/\s+/g, ' ');
+    let negated = false;
+    while (/^NOT\s+/i.test(source)) {
+      negated = !negated;
+      source = source.replace(/^NOT\s+/i, '');
+    }
+    const flag = source.match(/^CHECK\s+(\[\d+\])\s+([01])$/i);
+    if (flag) {
+      const enabled = (flag[2] === '1') !== negated;
+      return `${flag[1]} = ${enabled ? '开' : '关'}`;
+    }
+    const comparison = source.match(/^(EQUAL|LARGE|SMALL)\s+(\S+)\s+(.+)$/i);
+    if (comparison) {
+      const operator = comparison[1].toUpperCase();
+      const symbols = negated
+        ? { EQUAL: '≠', LARGE: '≤', SMALL: '≥' }
+        : { EQUAL: '=', LARGE: '>', SMALL: '<' };
+      return `${comparison[2]} ${symbols[operator]} ${comparison[3]}`;
+    }
+    const textComparison = source.match(/^(COMPARETEXT|CHECKCONTAINSTEXT)\s+(\S+)\s+(.+)$/i);
+    if (textComparison) {
+      const contains = textComparison[1].toUpperCase() === 'CHECKCONTAINSTEXT';
+      const operator = contains
+        ? (negated ? '不含' : '包含')
+        : (negated ? '≠' : '=');
+      return `${textComparison[2]} ${operator} ${textComparison[3]}`;
+    }
+    const checkVar = source.match(/^CHECKVAR\s+(\S+)\s+(\S+)\s+(=|==|!=|<>|>=|<=|>|<|\?)\s+(.+)$/i);
+    if (checkVar) {
+      const expression = `${checkVar[1]}(${checkVar[2]}) ${checkVar[3]} ${checkVar[4]}`;
+      return negated ? `非 (${expression})` : expression;
+    }
+    const job = source.match(/^CHECKJOB\s+(warrior|wizard|taoist)$/i);
+    if (job) {
+      const labels = { warrior: '战士', wizard: '法师', taoist: '道士' };
+      return `职业 ${negated ? '≠' : '='} ${labels[job[1].toLowerCase()]}`;
+    }
+    const nameList = source.match(/^CHECKNAMELIST\s+(.+)$/i);
+    if (nameList) {
+      const normalized = nameList[1].replace(/^"|"$/g, '').replace(/\\/g, '/');
+      const file = normalized.split('/').pop() || '名单';
+      return `${compactPreviewText(file, 18)} = ${negated ? '不在' : '在内'}`;
+    }
+    const title = source.match(/^CHECKTITLE\s+(.+)$/i);
+    if (title) return `${title[1].replace(/^"|"$/g, '')} = ${negated ? '未拥有' : '拥有'}`;
+    const worn = source.match(/^CHECKITEMW\s+(.+?)(?:\s+1)?$/i);
+    if (worn) return `${worn[1].replace(/^"|"$/g, '')} = ${negated ? '未穿戴' : '穿戴'}`;
+    const alias = source.match(/^(CHECKLEVEL|CHECKGOLD|CHECKPKPOINT)\s+(.+)$/i);
+    if (alias) {
+      const names = { CHECKLEVEL: '等级', CHECKGOLD: '金币', CHECKPKPOINT: 'PK值' };
+      return `${names[alias[1].toUpperCase()]} ${negated ? '<' : '≥'} ${alias[2]}`;
+    }
+    const extendedAlias = source.match(/^(CHECKLEVELEX|CHECKGAMEGOLD|CHECKGAMEPOINT|CHECKGAMEDIAMOND|CHECKGAMEGIRD|CHECKCREDITPOINT)\s+(=|==|!=|<>|>=|<=|>|<|\?)\s+(.+)$/i);
+    if (extendedAlias) {
+      const names = {
+        CHECKLEVELEX: '等级', CHECKGAMEGOLD: '元宝', CHECKGAMEPOINT: '积分',
+        CHECKGAMEDIAMOND: '金刚石', CHECKGAMEGIRD: '灵符', CHECKCREDITPOINT: '声望',
+      };
+      const expression = `${names[extendedAlias[1].toUpperCase()]} ${extendedAlias[2]} ${extendedAlias[3]}`;
+      return negated ? `非 (${expression})` : expression;
+    }
+    const rangeAlias = source.match(/^(CHECKHP|CHECKMP)\s+(=|==|!=|<>|>=|<=|>|<|\?)\s+(\S+)\s+(=|==|!=|<>|>=|<=|>|<|\?)\s+(.+)$/i);
+    if (rangeAlias) {
+      const name = rangeAlias[1].toUpperCase() === 'CHECKHP' ? 'HP' : 'MP';
+      const expression = `${name} ${rangeAlias[2]} ${rangeAlias[3]} 且 ${rangeAlias[4]} ${rangeAlias[5]}`;
+      return negated ? `非 (${expression})` : expression;
+    }
+    const collection = source.match(/^(CHECKVARINLIST|CHECKINDICT|CHECKLISTALLDIGIT|CHECKDICTALLDIGIT)\s+(\S+)(?:\s+(.+))?$/i);
+    if (collection) {
+      const command = collection[1].toUpperCase();
+      const tail = collection[3] || '';
+      let expression;
+      if (command === 'CHECKVARINLIST') expression = `${collection[2]} 含 ${tail}`;
+      else if (command === 'CHECKINDICT') {
+        const parts = tail.split(/\s+/);
+        const mode = parts.at(-1);
+        const operand = (mode === '0' || mode === '1' ? parts.slice(0, -1) : parts).join(' ');
+        expression = `${collection[2]} ${mode === '1' ? '含值' : '有键'} ${operand}`;
+      } else expression = `${collection[2]} 全数字`;
+      return negated ? `非 (${expression})` : expression;
+    }
+    if (/<\$|\$STR\s*\(/i.test(source)) {
+      return `${source.split(' ')[0] || '条件'} …`;
+    }
+    return compactPreviewText(negated ? `非 ${source}` : source, 38);
+  }
+
+  function compactPreviewText(value, maximum) {
+    const text = String(value || '');
+    return text.length > maximum ? `${text.slice(0, Math.max(1, maximum - 1))}…` : text;
   }
 
   function selectedElement() {
@@ -5188,10 +6157,47 @@
   }
 
   function localPositionFor(id, element) {
-    return drafts.get(id) || {
+    const key = draftKeyFor(id);
+    const draft = drafts.get(key);
+    const base = {
       x: Number.isFinite(element.localLayoutX) ? element.localLayoutX : element.layoutX,
       y: Number.isFinite(element.localLayoutY) ? element.localLayoutY : element.layoutY,
     };
+    const owner = templateDraftOwners.get(key);
+    if (draft && owner) return {
+      x: base.x + draft.x - owner.localLayoutX,
+      y: base.y + draft.y - owner.localLayoutY,
+    };
+    return draft || base;
+  }
+
+  function rebuildTemplateDraftGroups() {
+    templateDraftKeys = new Map();
+    templateDraftOwners = new Map();
+    const groups = new Map();
+    for (const element of (model?.scenes || []).flatMap(scene => scene.elements || [])) {
+      if (!element.sourceTemplateId || !element.x || !element.y
+        || (element.sourceUri && element.sourceUri !== model.uri)
+        || (element.sourceFilePath && element.sourceFilePath !== model.filePath)) continue;
+      const key = JSON.stringify(['say-template', model.uri, model.engine, model.functionLabel,
+        model.documentVersion, element.sourceTemplateId]);
+      if (!groups.has(key)) groups.set(key, new Map());
+      groups.get(key).set(element.id, element);
+    }
+    for (const [key, members] of groups) {
+      const owners = [...members.values()].filter(element => element.editable);
+      if (owners.length !== 1) continue;
+      templateDraftOwners.set(key, owners[0]);
+      for (const id of members.keys()) templateDraftKeys.set(id, key);
+    }
+  }
+
+  function draftKeyFor(id) {
+    return templateDraftKeys.get(id) || id;
+  }
+
+  function draftElementFor(key) {
+    return templateDraftOwners.get(key) || findElement(key);
   }
 
   function localPositionFromGlobal(element, x, y) {
@@ -5399,17 +6405,19 @@
       syncCoordinateBindingGeometry(scene);
       return;
     }
+    const roots = new Set([rootId, ...(scene?.elements || [])
+      .filter(element => draftKeyFor(element.id) === draftKeyFor(rootId)).map(element => element.id)]);
     for (const element of scene?.elements || []) {
-      if (element.id !== rootId && !isDescendantOf(element, rootId)) continue;
+      if (!roots.has(element.id) && !isDescendantOf(element, roots)) continue;
       moveCanvasNode(element, scene);
     }
   }
 
-  function isDescendantOf(element, ancestorId) {
+  function isDescendantOf(element, ancestorIds) {
     const visited = new Set();
     let current = element;
     while (current?.parentElementId && !visited.has(current.parentElementId)) {
-      if (current.parentElementId === ancestorId) return true;
+      if (ancestorIds.has(current.parentElementId)) return true;
       visited.add(current.parentElementId);
       current = findElement(current.parentElementId);
     }

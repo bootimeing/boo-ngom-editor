@@ -18,6 +18,23 @@ const REQUIRED_NPC_DIALOG_RUNTIME_FILES = Object.freeze([
   'out/ui-dialog/item-tooltip.js',
   'out/ui-dialog/model.js',
   'out/ui-dialog/offsets.js',
+  'out/ui-dialog/preview-inputs.js',
+  'out/ui-dialog/preview-equipment-state.js',
+  'out/ui-dialog/preview-variable-contracts.js',
+  'out/ui-dialog/preview-control-submit.js',
+  'out/ui-dialog/client-text-preview.js',
+  'out/ui-dialog/preview-popup-input.js',
+  'out/ui-dialog/preview-collections.js',
+  'out/ui-dialog/preview-scoped-variables.js',
+  'out/ui-dialog/preview-command-outputs.js',
+  'out/ui-dialog/preview-excel.js',
+  'out/ui-dialog/preview-script-source.js',
+  'out/ui-dialog/preview-script-program.js',
+  'out/ui-dialog/preview-script-model.js',
+  'out/ui-dialog/preview-script-edits.js',
+  'out/ui-dialog/preview-script-constants.js',
+  'out/ui-dialog/preview-constant-display.js',
+  'data/variables.json',
   'out/ui-dialog/progress-preview.js',
   'out/ui-dialog/source-parser.js',
   'out/ui-dialog/source-patcher.js',
@@ -219,6 +236,7 @@ async function main() {
     'Ctrl+F12'
   );
   const packageCount = verifyDependencyClosure(sourceManifest, packagedManifest);
+  verifyLocalModuleClosure(packagedRoot, ['out/commands/drop-rate-analysis.js'], [], 'Drop analysis');
 
   const packagedRequire = createRequire(packagedManifest);
   for (const name of Object.keys(sourcePackage.dependencies || {})) {
