@@ -72,7 +72,7 @@ function renderForEngine(functionSource, engine) {
 
 function main() {
   const editor = fs.readFileSync(
-    path.join(__dirname, '..', 'media', 'editor.html'),
+    path.join(process.env.BOO_PAK_RUNTIME_ROOT || path.join(__dirname, '..'), 'media', 'editor.html'),
     'utf8'
   );
   const pad3 = editor.match(/function pad3\(n\)\{[^\r\n]+\}/)?.[0];
@@ -82,7 +82,8 @@ function main() {
     'generateCodeSilent',
     '// 代码 → 画布同步'
   );
-  const functionSource = `${pad3}\n${generate}`;
+  const backgroundIdentity = extractFunction(editor, 'isPlainCanvasImage', '// 属性面板');
+  const functionSource = `${pad3}\n${backgroundIdentity}\n${generate}`;
   const gom = renderForEngine(functionSource, 'gom');
   const pc996 = renderForEngine(functionSource, '996pc');
   const gee = renderForEngine(functionSource, 'lingfeng');

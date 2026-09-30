@@ -114,18 +114,35 @@ window.addEventListener('load',async()=>{try{
 document.body.dataset.results=JSON.stringify(results);});
 </script></body>`);
 const file = path.join(out, 'fixture.html'); fs.writeFileSync(file, html);
-const candidates = [...new Set([process.env.BOO_BROWSER_EXECUTABLE,
+const candidates = [...new Map([process.env.BOO_BROWSER_EXECUTABLE,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].filter(p => p && fs.existsSync(p)))];
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].filter(p => p && fs.existsSync(p))
+  .map(p => [path.resolve(p).toLowerCase(), path.resolve(p)])).values()];
 assert.ok(candidates.length, 'Chromium required');
 const attempts = [];
+let selected;
 for (const [i, exe] of candidates.entries()) {
   const r = spawnSync(exe, ['--headless=new', '--disable-gpu', '--no-first-run', '--allow-file-access-from-files',
     '--window-size=1440,1000', '--virtual-time-budget=6500', '--dump-dom', '--user-data-dir=' + path.join(out, 'profile-' + i),
     pathToFileURL(file).href], { encoding: 'utf8', windowsHide: true, timeout: 30000, maxBuffer: 16 * 1024 * 1024 });
   const dom = r.stdout || ''; fs.writeFileSync(path.join(out, 'dom-' + i + '.html'), dom);
-  attempts.push({ exe, status: r.status, pass: dom.includes('data-list-composition="PASS"'), error: dom.match(/data-error="[^"]*"/)?.[0] });
+  const body = /<body\b/.test(dom);
+  const attempt = { exe, status: r.status, body, pass: dom.includes('data-list-composition="PASS"'),
+    error: dom.match(/data-error="[^"]*"/)?.[0] || r.error?.message, stderr: r.stderr || '' };
+  attempts.push(attempt);
+  if (body) {
+    // A real DOM failure is a product/test failure, never permission to find a browser that passes.
+    selected = attempt;
+    const version = spawnSync('powershell.exe', ['-NoProfile', '-Command',
+      "(Get-Item -LiteralPath '" + exe.replace(/'/g, "''") + "').VersionInfo.ProductVersion"],
+    { encoding:'utf8', windowsHide:true, timeout:10000 });
+    attempt.version = (version.stdout || '').trim() || 'unavailable';
+    attempt.elementCount = (dom.match(/<[a-z][^>]*>/gi) || []).length;
+    break;
+  }
+  console.warn(`listview-composition: no DOM from ${exe}; status=${r.status}; error=${attempt.error || '<none>'}; stderr=${attempt.stderr || '<empty>'}`);
 }
 fs.writeFileSync(path.join(out, 'attempts.json'), JSON.stringify(attempts, null, 2));
-assert.ok(attempts.every(a => a.status === 0 && a.pass), JSON.stringify(attempts));
-console.log('listview-composition-browser.test.js: PASS parser + origin + nested clipping + horizontal/vertical scroll', attempts.map(a => a.exe));
+assert.ok(selected && selected.status === 0 && selected.pass, JSON.stringify(attempts));
+console.log('listview-composition-browser.test.js: PASS parser + origin + nested clipping + horizontal/vertical scroll',
+  { browser:selected.exe, version:selected.version, dom:selected.elementCount });

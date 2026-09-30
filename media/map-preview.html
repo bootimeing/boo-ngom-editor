@@ -319,7 +319,7 @@ const state={
   entityDragMoved:false,entityStartX:0,entityStartY:0,entitySaveTimer:0,entityRequest:0,entityPendingRequest:0,
   entityAnimationTimers:[],safeZoneAnimationTimer:0,safeZoneFrame:0,showSpawnRange:false,
   npcTargetMapKey:'',npcMoveRequest:0,pendingNpcMoveRequest:0,
-  pendingNpcReveal:null,navigatorDragging:false,navigatorGeometry:null,
+  pendingNpcReveal:null,navigatorDragging:false,navigatorGeometry:null,navigatorMarkers:[],
   original:{active:false,ready:false,requestId:0,generation:0,viewportSeq:0,viewportTimer:0,prefetchTimer:0,
     lastViewportKey:'',pendingViewportKey:'',chunkCellWidth:16,chunkCellHeight:16,
     mapWidth:0,mapHeight:0,viewportLimited:false,appliedViewport:null,layer:null,
@@ -819,6 +819,7 @@ function updateNpcJumpBar(){
 function updateMapNavigatorVisibility(){
   const visible=state.original.active&&state.original.ready&&Boolean(state.original.layer);
   mapNavigator.hidden=!visible;
+  if(!visible){state.navigatorMarkers=[];mapNavigatorOverlay.title=''}
   if(visible)requestAnimationFrame(renderMapNavigator);
 }
 function ensureMapNavigatorCanvasSize(){
@@ -866,7 +867,35 @@ function renderMapNavigator(){
     }
   }
   mapNavigatorContext.strokeStyle='rgba(255,255,255,.45)';mapNavigatorContext.lineWidth=1;mapNavigatorContext.strokeRect(g.left+.5,g.top+.5,Math.max(0,g.mapWidth-1),Math.max(0,g.mapHeight-1));
+  renderMapNavigatorMarkers(g);
   renderMapNavigatorViewport();
+}
+function renderMapNavigatorMarkers(g){
+  state.navigatorMarkers=[];
+  if(g.mapWidth<12||g.mapHeight<12)return;
+  const target=mapNavigatorContext,seen=new Set(),maxWidth=Math.max(1,Math.min(132,g.mapWidth-4));
+  target.save();
+  try{
+    target.beginPath();target.rect(g.left,g.top,g.mapWidth,g.mapHeight);target.clip();
+    target.font='10px "Microsoft YaHei",sans-serif';target.textAlign='center';target.textBaseline='middle';
+    target.lineWidth=3;target.lineJoin='round';target.strokeStyle='rgba(0,0,0,.95)';
+    for(const marker of state.markers){
+      const x=Number(marker.x),y=Number(marker.y),full=String(marker.displayText||marker.text||'');
+      if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x*48>=state.worldW||y*32>=state.worldH||!full)continue;
+      // Large/small-map copies of the same location should paint once in navigation.
+      const key=JSON.stringify([x,y,full,marker.color]);if(seen.has(key))continue;seen.add(key);
+      let text=full.replace(/[\r\n]+/g,' '),truncated=text.length>80;
+      text=text.slice(0,80);
+      while(text.length&&target.measureText(text+(truncated?'…':'')).width>maxWidth){text=text.slice(0,-1);truncated=true}
+      text+=(truncated?'…':'');
+      const width=Math.min(maxWidth,target.measureText(text).width),half=width/2;
+      const px=Math.max(g.left+half+1,Math.min(g.left+g.mapWidth-half-1,g.left+x*48*g.scale));
+      const py=Math.max(g.top+6,Math.min(g.top+g.mapHeight-6,g.top+y*32*g.scale));
+      target.fillStyle='#ffff00';if(typeof marker.color==='string')target.fillStyle=marker.color;
+      target.strokeText(text,px,py);target.fillText(text,px,py);
+      state.navigatorMarkers.push({left:px-half,right:px+half,top:py-6,bottom:py+6,text:full+' ('+x+','+y+')'});
+    }
+  }finally{target.restore()}
 }
 function renderMapNavigatorViewport(){
   if(mapNavigator.hidden||!state.navigatorGeometry)return;
@@ -905,7 +934,7 @@ function finishOriginalProgress(label){
 function renderMarkers(){
   markerLayer.textContent='';
   markerLayer.style.display=state.original.active?'none':'block';
-  if(state.original.active)return;
+  if(state.original.active){if(!mapNavigator.hidden)renderMapNavigator();return}
   for(const marker of state.markers){
     if(state.mode!==-1&&marker.mode!==state.mode)continue;
     const point=markerWorldPoint(marker);
@@ -1184,6 +1213,7 @@ function updateMap(data){
   state.entityWarnings=data.entityWarnings||[];
   state.pendingNpcReveal=data.revealNpc||null;
   state.navigatorGeometry=null;
+  state.navigatorMarkers=[];mapNavigatorOverlay.title='';
   state.warning=data.warning||'';
   state.markerFile=data.markerFile||'';
   state.image=null;
@@ -1827,6 +1857,11 @@ mapNavigatorOverlay.addEventListener('pointerdown',event=>{
 });
 mapNavigatorOverlay.addEventListener('pointermove',event=>{
   if(state.navigatorDragging)navigateFromMapNavigator(event,false);
+  else{
+    const rect=mapNavigatorOverlay.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
+    const hit=state.navigatorMarkers.find(box=>x>=box.left&&x<=box.right&&y>=box.top&&y<=box.bottom);
+    mapNavigatorOverlay.title=hit?hit.text:'';
+  }
 });
 function stopNavigatorDrag(event){
   if(!state.navigatorDragging)return;

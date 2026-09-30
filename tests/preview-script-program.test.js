@@ -62,6 +62,13 @@ function run() {
     '\\b.txt': '[@b]\n{\n#ACT\nRETURN 1\n}',
   });
   assert.match(nested.text, /GOTO @a/); assert.match(nested.text, /GOTO @b/); checkMap(nested);
+  const nestedPrimaryCollision = build('[@main]\n#ACT\n#CALL [\\a.txt] @a\n[@load]\n#SAY\n主文档', {
+    '\\a.txt': '[@a]\n{\n#ACT\nGOTO @load\n}\n[@load]\n{\n#SAY\n外部\n}',
+  });
+  assert.match(nestedPrimaryCollision.warnings.join('\n'), /主文档标签冲突/);
+  assert.equal((nestedPrimaryCollision.text.match(/\[@load\]/g) || []).length, 1,
+    'an imported GOTO helper cannot shadow a primary label');
+  checkMap(nestedPrimaryCollision);
   const cycle = build('[@main]\n#ACT\n#CALLEX [\\a.txt] @a', { '\\a.txt': '[@a]\n{\n#ACT\n#CALLEX [\\a.txt] @a\nRETURN 2\n}' });
   assert.equal((cycle.text.match(/\[@a(?:~\d+)?\]/g) || []).length, 1);
   assert.match(cycle.text, /#CALLEX \[\\a.txt\]/); assert.match(cycle.warnings.join('\n'), /循环|递归/); checkMap(cycle);

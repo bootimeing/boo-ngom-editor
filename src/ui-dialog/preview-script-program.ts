@@ -188,32 +188,88 @@ export function buildPreviewScriptProgram(
     const label = matches[0], labelIndex = labels.indexOf(label);
     const nextIndex = labels[labelIndex + 1]?.index ?? lines.length;
     const bodyLines = lines.slice(label.index, nextIndex);
-    const first = bodyLines.findIndex((line, index) => index > 0 && structuralText(line) !== '');
     const stripped = new Set<number>();
-    if (first >= 0 && structuralText(bodyLines[first]) === '{') {
-      let closing = -1;
-      for (let index = first + 1; index < bodyLines.length; index++) {
-        const value = structuralText(bodyLines[index]);
-        if (value === '{') { warn(`跨文件入口大括号边界不确定：${source.fileName} ${requested}`); return undefined; }
-        if (value === '}') { closing = index; break; }
+
+    // Keep the original, conservative block validation, but allow an already
+    // verified external entry to jump to another literal label in the same
+    // source.  The old extractor stopped at the first next label, so a common
+    // `CALL @entry -> GOTO @load -> MOV A201 ...` helper lost its assignment and
+    // the caller rendered the default value.  We import only direct, literal
+    // GOTO targets discovered from the selected block; no whole-file scan and
+    // no execution of the imported source happens here.
+    const extractBlock = (requestedLabel: string, blockLines: SourceLine[], allowBare: boolean): SourceLine[] | undefined => {
+      const first = blockLines.findIndex((line, index) => index > 0 && structuralText(line) !== '');
+      if (first >= 0 && structuralText(blockLines[first]) === '{') {
+        let closing = -1;
+        for (let index = first + 1; index < blockLines.length; index++) {
+          const value = structuralText(blockLines[index]);
+          if (value === '{') { warn(`跨文件入口大括号边界不确定：${source.fileName} ${requestedLabel}`); return undefined; }
+          if (value === '}') { closing = index; break; }
+        }
+        if (closing < 0 || blockLines.slice(closing + 1).some(line => structuralText(line) !== '')) {
+          warn(`跨文件入口缺少独立完整大括号边界：${source.fileName} ${requestedLabel}`); return undefined;
+        }
+        stripped.add(blockLines[first].start); stripped.add(blockLines[closing].start);
+      } else if (!allowBare || engine === '996PC' || labels.length !== 1 || blockLines.some(line => /^[{}]$/.test(structuralText(line)))) {
+        warn(`跨文件入口未展开：${source.fileName} ${requestedLabel}；需要独立 {} 块，多个无括号标签的边界尚未确认`); return undefined;
+      } else if (engine === 'GEE') {
+        warn('GEE/LFM 单标签无括号 CALL 文件采用本地兼容预览；完整客户端边界仍待核验');
       }
-      if (closing < 0 || bodyLines.slice(closing + 1).some(line => structuralText(line) !== '')) {
-        warn(`跨文件入口缺少独立完整大括号边界：${source.fileName} ${requested}`); return undefined;
+      return blockLines;
+    };
+    if (!extractBlock(requested, bodyLines, true)) return undefined;
+
+    const expandedLines = [...bodyLines];
+    const importedLabels = new Set<string>([labelKey(label.name)]);
+    const pendingLabels = [labelKey(label.name)];
+    const directGoto = (line: SourceLine): string | undefined => {
+      const text = structuralText(line);
+      const match = /^\s*(?:#\s*)?GOTO\s+(@[^\s\[\]{}()<>|$;]+)/i.exec(text);
+      return match ? match[1].trim() : undefined;
+    };
+    while (pendingLabels.length > 0 && importedLabels.size <= 32) {
+      const current = pendingLabels.shift()!;
+      const currentLabel = labels.find(item => labelKey(item.name) === current);
+      if (!currentLabel) continue;
+      const currentIndex = labels.indexOf(currentLabel);
+      const currentEnd = labels[currentIndex + 1]?.index ?? lines.length;
+      const currentBlock = lines.slice(currentLabel.index, currentEnd);
+      for (const line of currentBlock) {
+        const targetName = directGoto(line);
+        if (!targetName) continue;
+        const targetKey = labelKey(targetName);
+        if (importedLabels.has(targetKey)) continue;
+        if (primaryLabels.has(targetKey)) {
+          // Never let an imported helper shadow a physical label in the
+          // primary document: parseFunctions() uses the last duplicate name.
+          // Keeping the target unresolved is safer than silently changing a
+          // primary GOTO's meaning.
+          warn(`跨文件 GOTO 目标与主文档标签冲突：${source.fileName} ${targetName}`);
+          continue;
+        }
+        const targetMatches = labels.filter(item => labelKey(item.name) === targetKey);
+        if (targetMatches.length !== 1) {
+          warn(`跨文件 GOTO 目标${targetMatches.length ? '重复／歧义' : '缺失'}：${source.fileName} ${targetName}`);
+          continue;
+        }
+        const targetLabel = targetMatches[0];
+        const targetIndex = labels.indexOf(targetLabel);
+        const targetEnd = labels[targetIndex + 1]?.index ?? lines.length;
+        const targetBlock = lines.slice(targetLabel.index, targetEnd);
+        if (!extractBlock(targetName, targetBlock, false)) continue;
+        importedLabels.add(targetKey);
+        pendingLabels.push(targetKey);
+        expandedLines.push(...targetBlock);
       }
-      stripped.add(bodyLines[first].start); stripped.add(bodyLines[closing].start);
-    } else {
-      if (engine === '996PC' || labels.length !== 1 || bodyLines.some(line => /^[{}]$/.test(structuralText(line)))) {
-        warn(`跨文件入口未展开：${source.fileName} ${requested}；需要独立 {} 块，多个无括号标签的边界尚未确认`); return undefined;
-      }
-      if (engine === 'GEE') warn('GEE/LFM 单标签无括号 CALL 文件采用本地兼容预览；完整客户端边界仍待核验');
     }
+    if (pendingLabels.length > 0) warn(`跨文件 GOTO 目标递归达到 32 个标签上限：${source.fileName} ${requested}`);
     // An outer brace enclosing several labels is explicitly rejected by GOM/996PC help.
     const outerDepth = lines.slice(0, label.index).reduce((balance, line) =>
       balance + (structuralText(line) === '{' ? 1 : structuralText(line) === '}' ? -1 : 0), 0);
     if (outerDepth !== 0) {
       warn(`跨文件入口处于标签外大括号中：${source.fileName} ${requested}`); return undefined;
     }
-    return { source, start: bodyLines[0].start, end: bodyLines.at(-1)!.end, lines: bodyLines,
+    return { source, start: expandedLines[0].start, end: expandedLines.at(-1)!.end, lines: expandedLines,
       calls: new Map(), stripped, originalLabel: label.name, labelLine: lines[label.index] };
   }
 
@@ -301,7 +357,12 @@ export function buildPreviewScriptProgram(
         }
         if (engine === 'GEE') warn('GEE/LFM CALLEX 仅入口重命名、内部 GOTO 保持原文采用本地保守细则；手册只确认准确路径及 ~N 命名');
       }
-      const bytes = Buffer.byteLength(source.text.slice(extracted.start, extracted.end), 'utf8') + 128;
+      // `extract()` may append non-contiguous helper labels.  Count only the
+      // selected lines rather than the physical span between first and last;
+      // otherwise a large unused section between two helpers can consume the
+      // 8 MiB budget and make a valid delegated assignment disappear.
+      const bytes = extracted.lines.reduce((total, line) =>
+        total + Buffer.byteLength(source.text.slice(line.start, line.end), 'utf8'), 0) + 128;
       if (expandedBytes + bytes > MAX_BYTES) { warn('跨文件展开文本达到 8 MiB 大小上限；后续调用保持未展开'); continue; }
       const entry: ImportUnit = { ...extracted, targetLabel, identity, blocked: false };
       site.target = entry; imports.push(entry); expandedBytes += bytes;

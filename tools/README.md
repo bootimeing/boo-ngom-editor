@@ -4,6 +4,7 @@
 - `data-maintenance/archive/`：保留已实施的一次性数据迁移与回归引用；2026-09-05 迁移默认只提示，只有显式 `--apply` 才写入当前目录数据。
 - `M2Reloader/`：M2 定向重载的原生源码、构建脚本与发布运行时。
 - `PakBridge/`：特殊 PAK 格式的兼容解析源码、自包含运行时和验证工具。
+- `pak/`：只读 PAK 结构检查（`inspect-structure.js`）、参考源码摘要核对（`verify-source-evidence.js`）及归档规模压力测试（`archive-stress.js`）；结构检查见[使用指南](../docs/user-guide/PAK_STRUCTURE_INSPECTION.md)，压力测试见[验收报告](../docs/reports/ARCHIVE_LARGE_PACKAGE_STRESS_20260926.md)。
 - `release/`：VSIX 构建与解包后依赖完整性验证工具。
 
 编译中间文件、Python 缓存和一次性研究输出不进入 Git；被回归引用的迁移工具需要保留并标明写入开关。PAK 的 `bin/` 是必要运行时，不等于可随意清除的中间文件。

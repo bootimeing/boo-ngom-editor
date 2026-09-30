@@ -163,13 +163,14 @@
     .pak-row.error:not(.selected) { color: var(--vscode-errorForeground); }
     .row-main {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       min-width: 0;
       gap: 8px;
     }
     .pak-name {
       min-width: 0;
-      flex: 1;
+      flex: 1 1 90px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -177,6 +178,8 @@
     }
     .row-actions {
       display: flex;
+      flex-wrap: wrap;
+      max-width: 100%;
       flex: none;
       align-items: center;
       gap: 4px;
@@ -374,7 +377,7 @@
       const failed = state.entries.filter(entry => entry.status === 'password-error' || entry.status === 'error').length;
       summary.classList.toggle('visible', state.entries.length > 0);
       summary.classList.toggle('busy', state.busy);
-      summaryText.textContent = state.busy ? '正在准备资源' : '资源状态';
+      summaryText.textContent = state.entries.some(entry => entry.verification === 'running') ? '正在验证图片' : state.busy ? '正在准备资源' : '资源状态';
       summaryResult.textContent = state.entries.length ? `${cached}/${state.entries.length}${failed ? `，失败 ${failed}` : ''}` : '';
       renderList();
     }
@@ -391,10 +394,15 @@
         const actions = selected ? `
           <span class="row-actions">
             ${entry.status === 'password-error' ? '<span class="inline-error">密码错误</span>' : ''}
+            ${entry.status === 'cached' && entry.canVerify ? `<button class="action" type="button" data-action="openResourceEditor" ${state.busy ? 'disabled' : ''}>素材</button>` : ''}
             <button class="action" type="button" data-action="reloadPak" ${state.busy ? 'disabled' : ''}>重载</button>
             ${entry.passwordRequired === false ? '' : `<button class="action" type="button" data-action="changePassword" ${state.busy ? 'disabled' : ''}>密码</button>`}
+            ${entry.verification === 'running'
+              ? '<button class="action" type="button" data-action="cancelVerification">取消</button>'
+              : entry.canVerify ? `<button class="action" type="button" data-action="verifyPak" ${state.busy ? 'disabled' : ''}>${entry.verification === 'cancelled' ? '继续验证' : '验证'}</button>` : ''}
+            ${entry.hasVerificationDetails ? `<button class="action" type="button" data-action="verificationDetails" ${state.busy ? 'disabled' : ''}>详情</button>` : ''}
           </span>` : '';
-        const progress = entry.status === 'caching'
+        const progress = entry.status === 'caching' || entry.verification === 'running'
           ? `<div class="entry-progress"><span style="width:${Number(entry.progress) || 0}%"></span></div>`
           : '';
         return `<div class="pak-row${selected ? ' selected' : ''}${statusClass}" data-path="${escapeAttribute(entry.path)}" role="button" tabindex="0" aria-expanded="${selected}">

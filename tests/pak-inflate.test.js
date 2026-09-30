@@ -9,6 +9,16 @@ function main() {
   const normal = inflatePakPayload(valid, raw.length);
   assert.deepEqual(Buffer.from(normal.raw), raw);
   assert.equal(normal.recoveredChecksum, false, 'valid zlib data must use normal verification');
+  assert.throws(() => inflatePakPayload(valid, raw.length + 1), /长度|size/i);
+  assert.throws(() => inflatePakPayload(valid, 16), /larger|length|limit|大小/i);
+  assert.throws(() => inflatePakPayload(zlib.deflateSync(Buffer.alloc(1024 * 1024)), 16), /larger|length|limit|大小/i);
+  assert.throws(() => inflatePakPayload(zlib.deflateSync(Buffer.alloc(1024 * 1024)), 16),
+    error => error.slotCode === 3, 'bounded output overflow is corrupt image data, not an unclassified runtime allocation failure');
+  for (const size of [0, -1, NaN, Infinity, 1.5, 1024 * 1024 * 1024]) {
+    assert.throws(() => inflatePakPayload(valid, size), /大小|size|limit/i);
+  }
+  assert.throws(() => inflatePakPayload(Buffer.concat([valid, Buffer.from([0])]), raw.length), /尾随/);
+  assert.throws(() => inflatePakPayload(Buffer.concat([valid, valid]), raw.length), /尾随/);
 
   const checksumDamaged = Buffer.from(valid);
   checksumDamaged[checksumDamaged.length - 1] ^= 0x01;
@@ -21,6 +31,8 @@ function main() {
   assert.deepEqual(Buffer.from(recovered.raw), raw);
   assert.equal(recovered.recoveredChecksum, true, 'checksum-only damage should be recovered');
   assert.notEqual(recovered.actualChecksum, recovered.expectedChecksum);
+  assert.throws(() => inflatePakPayload(Buffer.concat([checksumDamaged, Buffer.from([0])]), raw.length), /incorrect data check|尾随/);
+  assert.throws(() => inflatePakPayload(checksumDamaged.subarray(0, checksumDamaged.length - 1), raw.length), /end|check|data/i);
 
   assert.throws(
     () => inflatePakPayload(checksumDamaged, raw.length + 1),

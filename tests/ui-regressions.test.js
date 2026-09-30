@@ -504,8 +504,8 @@ function main() {
   );
   assert.match(
     pakReader,
-    /enumeratePakSlots\(blocks, slotCount\)[\s\S]*isBlank: !block/,
-    'PAK loading must retain blank logical image slots'
+    /enumeratePakSlots\(blocks, slotCount\)[\s\S]*let isBlank = !block && !failure;[\s\S]*assets\.push\(\{[\s\S]*isBlank,/,
+    'PAK loading must retain blank logical image slots without disguising failures as blanks'
   );
   assert.match(
     patchCache,
@@ -559,8 +559,8 @@ function main() {
   );
   assert.match(
     editor,
-    /id="openPakBtn"[\s\S]*打开资源包[\s\S]*id="pakHistoryBtn"[\s\S]*资源包历史/,
-    'archive buttons must use neutral text until the active engine label arrives'
+    /id="openPakBtn"[\s\S]*打开资源包[\s\S]*id="pakHistoryBtn"[\s\S]*最近打开/,
+    'archive buttons must use engine-neutral labels until the active engine tooltip arrives'
   );
   assert.match(
     patchManager,

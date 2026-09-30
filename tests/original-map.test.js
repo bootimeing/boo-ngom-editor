@@ -190,6 +190,24 @@ async function main() {
       'near-miss MAP headers must not opt into the classic animation profile'
     );
   }
+
+  // GXX's MapUnit loader has two distinct layouts that do not share the
+  // classic MAP header/cell records.  BOO must reject them explicitly instead
+  // of surfacing a misleading width/height error or guessing classic offsets.
+  const enMap = Buffer.alloc(52);
+  enMap[0] = 16; // Delphi ShortString[16] length byte.
+  enMap.write('Map 2010 Ver 1.0', 1, 'ascii');
+  await assert.rejects(
+    () => parseOriginalMap(enMap),
+    /暂不支持 ENMap 地图 profile/,
+    'Map 2010 ENMap must remain an explicit unsupported profile'
+  );
+  const eiMap = Buffer.alloc(52); // EIMapHeader.Desc[0..4] are all zero.
+  await assert.rejects(
+    () => parseOriginalMap(eiMap),
+    /暂不支持 EIMap 地图 profile/,
+    'EIMap must remain an explicit unsupported profile'
+  );
   assert.equal(originalMapAnimationProfileSupportsPlayback('GOM', 'classic-12'), true);
   assert.equal(originalMapAnimationProfileSupportsPlayback('GOM', 'classic-14'), true);
   assert.equal(originalMapAnimationProfileSupportsPlayback('GOM', 'classic-prefix-compatible-36'), true);

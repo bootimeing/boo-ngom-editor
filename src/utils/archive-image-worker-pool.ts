@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { Worker } from 'worker_threads';
 import { ReadArchiveImageOptions } from './archive-index';
+import { ArchiveDiagnostic, sanitizeArchiveDiagnostic } from './archive-errors';
 
 interface QueueItem {
   id: number;
@@ -17,9 +18,11 @@ interface WorkerSlot {
 }
 
 export class ArchiveWorkerDecodeError extends Error {
-  constructor(message: string) {
+  readonly diagnostic: ArchiveDiagnostic;
+  constructor(message: string, public readonly slotCode?: number, diagnostic?: unknown) {
     super(message);
     this.name = 'ArchiveWorkerDecodeError';
+    this.diagnostic = sanitizeArchiveDiagnostic(diagnostic);
   }
 }
 
@@ -29,6 +32,7 @@ export class ArchiveImageWorkerPool {
   private nextId = 1;
   private disposed = false;
   private startupError: Error | undefined;
+  private termination: Promise<void> = Promise.resolve();
 
   constructor(private readonly workerCount = recommendedWorkerCount()) {}
 
@@ -42,15 +46,17 @@ export class ArchiveImageWorkerPool {
     });
   }
 
-  dispose(): void {
-    if (this.disposed) return;
+  dispose(): Promise<void> {
+    if (this.disposed) return this.termination;
     this.disposed = true;
     const error = new Error('素材解码 Worker 已关闭');
     for (const item of this.queue.splice(0)) item.reject(error);
-    for (const slot of this.slots.splice(0)) {
+    const stops = this.slots.splice(0).map(slot => {
       if (slot.current) slot.current.reject(error);
-      void slot.worker.terminate();
-    }
+      return slot.worker.terminate();
+    });
+    this.termination = Promise.all(stops).then(() => undefined);
+    return this.termination;
   }
 
   private ensureWorkers(): void {
@@ -66,7 +72,7 @@ export class ArchiveImageWorkerPool {
         slot.worker.on('message', message => this.complete(slot, message));
         slot.worker.on('error', error => this.failSlot(slot, error));
         slot.worker.on('exit', code => {
-          if (!this.disposed && code !== 0) {
+          if (!this.disposed) {
             this.failSlot(slot, new Error(`素材解码 Worker 退出 (${code})`));
           }
         });
@@ -87,11 +93,11 @@ export class ArchiveImageWorkerPool {
     }
   }
 
-  private complete(slot: WorkerSlot, message: { id?: number; data?: Uint8Array; error?: string }): void {
+  private complete(slot: WorkerSlot, message: { id?: number; data?: Uint8Array; error?: string; slotCode?: number; diagnostic?: unknown }): void {
     const item = slot.current;
     if (!item || message.id !== item.id) return;
     slot.current = undefined;
-    if (message.error) item.reject(new ArchiveWorkerDecodeError(message.error));
+    if (message.error) item.reject(new ArchiveWorkerDecodeError(message.error, message.slotCode, message.diagnostic));
     else if (message.data) item.resolve(new Uint8Array(message.data));
     else item.reject(new Error('素材解码 Worker 返回了无效响应'));
     this.dispatch();

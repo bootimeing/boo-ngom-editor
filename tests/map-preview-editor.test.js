@@ -276,6 +276,7 @@ function main() {
       scale: 1,
       worldW: 1920,
       worldH: 1280,
+      markers: [],
     },
     viewport: { clientWidth: 1920, clientHeight: 1280 },
     ctx: {
@@ -295,6 +296,7 @@ function main() {
     drawSafeZones() {},
     mapNavigator: { hidden: false },
     mapNavigatorContext: {
+      save() {}, restore() {}, beginPath() {}, rect() {}, clip() {},
       setTransform() {},
       clearRect() {},
       fillRect() {},
@@ -323,6 +325,7 @@ function main() {
   vm.runInContext(extractFunction(html, 'originalMapObjectRowPadding'), placementContext);
   vm.runInContext(extractFunction(html, 'drawOriginalMapResource'), placementContext);
   vm.runInContext(extractFunction(html, 'renderMapNavigator'), placementContext);
+  vm.runInContext(extractFunction(html, 'renderMapNavigatorMarkers'), placementContext);
   const verifiedBlendPlacement = placementContext.originalMapPlacement(
     'object',
     23,

@@ -78,4 +78,19 @@ assert.throws(
   /密码不正确或属于尚未支持的加密变体/
 );
 
-console.log('GEEPAK3 alternate global-header parser tests passed.');
+// Physical order differs from logical order. Neither parse path may read the
+// next encrypted header as pixels, even when that data is inside the file.
+const two = Buffer.concat([data, data.subarray(274)]);
+two.writeUInt32LE((294 ^ 0xffffffff) >>> 0, 266);
+two.writeUInt32LE((274 ^ 0xffffffff ^ 1) >>> 0, 270);
+for (const read of [
+  bytes => parser.parse(bytes, '', profile),
+  bytes => parser.parseFromReader(bytes.length, (o, n) => bytes.subarray(o, o + n), '', profile),
+]) {
+  assert.deepEqual(read(two).blocks.map(b => b.logicalIndex), [0, 1]);
+  const overlap = Buffer.from(two); overlap.writeUInt16LE(2, 274 + 4);
+  assert.throws(() => read(overlap), /重叠/, 'adjacent header must be an upper bound');
+  const insideIndex = Buffer.from(two); insideIndex.writeUInt32LE((270 ^ 0xffffffff) >>> 0, 266);
+  assert.throws(() => read(insideIndex), /块头越界/, 'image header must not enter the index');
+}
+console.log('GEEPAK3 alternate global-header and physical boundary parser tests passed.');

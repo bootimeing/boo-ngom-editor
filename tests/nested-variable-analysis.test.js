@@ -55,6 +55,10 @@ function main() {
   );
   assert.equal(resultFor(direct, 'U<$STR(N$技能变量)>').status, 'resolved');
 
+  const lowerStringFamily = analyzeNestedVariables('MOV s11 A\nEQUAL s1<$STR(N$未知)> 0');
+  assert.deepEqual(resultFor(lowerStringFamily, 's1<$STR(N$未知)>').variables, ['S11']);
+  assert.equal(resultFor(lowerStringFamily, 's1<$STR(N$未知)>').status, 'partial');
+
   const eventParameters = analyzeNestedVariables([
     '<&IMGEX:2:1:1:1:1:1/@选择技能(攻杀剑术,21)>',
     '<&IMGEX:2:1:1:1:1:1/@选择技能(刺杀剑术,22)>',

@@ -9,6 +9,8 @@ function main() {
   } = require('../out/utils/variable-statistics');
 
   assert.equal(normalizeScriptVariableName('u3'), 'U3');
+  assert.equal(normalizeScriptVariableName('u003'), 'U3');
+  assert.equal(normalizeScriptVariableName('G000'), 'G0');
   assert.equal(normalizeScriptVariableName('n$Score'), 'N$Score');
   assert.notEqual(
     normalizeScriptVariableName('N$Score'),

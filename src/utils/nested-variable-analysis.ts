@@ -4,7 +4,7 @@ import { isScriptCommentLine } from './script-labels';
 const MAX_INFERRED_VALUES = 512;
 const MAX_PERSONAL_FLAG = 1024;
 const VARIABLE_NAME = /^(?:[PDMNSIGAUTJZ]\d+|(?:GL|[NSLD])\$[A-Za-z0-9_\u3400-\u9fff]+)$/i;
-const CONCRETE_VARIABLE = /(?:[NSLDnsld]\$[A-Za-z0-9_\u3400-\u9fff]+|[Gg][Ll]\$[A-Za-z0-9_\u3400-\u9fff]+|[PDMNSIGAUTJZpdmnigautjz]\d+)/g;
+const CONCRETE_VARIABLE = /(?:[NSLD]\$[A-Za-z0-9_\u3400-\u9fff]+|GL\$[A-Za-z0-9_\u3400-\u9fff]+|[PDMNSIGAUTJZ]\d+)/gi;
 
 export type NestedVariableResolutionStatus = 'resolved' | 'partial' | 'unresolved';
 
@@ -88,6 +88,8 @@ export interface NestedDatabaseFieldResult {
 }
 
 export interface NestedVariableAnalysisOptions {
+  /** Statistics/candidates use the active engine's flag bounds; legacy callers retain 1..1024. */
+  personalFlagRange?: { min: number; max: number };
   /** Ctrl+F12 local initial values; never writes back to server persistence. */
   resolvePreviewGlobalValues?: () => Readonly<Record<string, string>>;
   /** Local equipment grouping from this server's database/configuration. */
@@ -292,13 +294,14 @@ export function extractNestedVariableReferences(text: string): NestedVariableRef
 export function extractPersonalFlagReferences(text: string): PersonalFlagReference[] {
   const references: PersonalFlagReference[] = [];
   const starts = lineStarts(text);
-  const commandPattern = /^[ \t]*(?:<\$[^>\r\n]+>\.)?(CHECK|SET|RESET)\s*\[/gim;
+  const commandPattern = /^[ \t]*(?:NOT[ \t]+)?(?:<\$[^>\r\n]+>\.)?(CHECK|SET|RESET)[ \t]*\[/gim;
   let match: RegExpExecArray | null;
 
   while ((match = commandPattern.exec(text)) !== null) {
     const open = commandPattern.lastIndex - 1;
     const close = findBalancedClose(text, open, '[', ']');
-    const lineEnd = text.indexOf('\n', open);
+    const lineBreak = /[\r\n]/.exec(text.slice(open));
+    const lineEnd = lineBreak ? open + lineBreak.index : -1;
     if (close < 0 || (lineEnd >= 0 && close > lineEnd)) {
       commandPattern.lastIndex = open + 1;
       continue;
@@ -375,7 +378,7 @@ export function analyzeNestedVariables(
   if (!requiresDataFlow) {
     return {
       references: [],
-      personalFlags: personalFlagReferences.map(resolveStaticPersonalFlagReference),
+      personalFlags: personalFlagReferences.map(reference => resolveStaticPersonalFlagReference(reference, options.personalFlagRange)),
       inferredValues: new Map(),
     };
   }
@@ -397,6 +400,7 @@ export function analyzeNestedVariables(
     completeVariables,
     parsed,
     labelsByLine[reference.line] || '',
+    options.personalFlagRange,
   ));
 
   return { references: resolved, personalFlags, inferredValues };
@@ -475,7 +479,7 @@ function parseScript(
   };
   let currentLabel = '';
 
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of text.split(/\r\n|\r|\n/)) {
     if (isScriptCommentLine(line)) continue;
     const label = /^\s*\[@([^\]]+)\]/.exec(line);
     if (label) {
@@ -1057,6 +1061,7 @@ function resolveReference(
 
 function resolveStaticPersonalFlagReference(
   reference: PersonalFlagReference,
+  range?: { min: number; max: number },
 ): PersonalFlagResolution {
   return buildPersonalFlagResolution(
     reference,
@@ -1064,6 +1069,7 @@ function resolveStaticPersonalFlagReference(
     reference.command === 'RESET'
       ? { values: new Set([reference.countExpression || '1']), complete: true }
       : undefined,
+    range,
   );
 }
 
@@ -1073,6 +1079,7 @@ function resolvePersonalFlagReference(
   complete: ReadonlyMap<string, boolean>,
   parsed: ParsedScript,
   label: string,
+  range?: { min: number; max: number },
 ): PersonalFlagResolution {
   const content = evaluateFlagExpression(
     reference.content,
@@ -1090,7 +1097,7 @@ function resolvePersonalFlagReference(
       parsed,
     )
     : undefined;
-  return buildPersonalFlagResolution(reference, content, count);
+  return buildPersonalFlagResolution(reference, content, count, range);
 }
 
 function evaluateFlagExpression(
@@ -1115,6 +1122,7 @@ function buildPersonalFlagResolution(
   reference: PersonalFlagReference,
   content: ValueResult | undefined,
   count: ValueResult | undefined,
+  range = { min: 1, max: MAX_PERSONAL_FLAG },
 ): PersonalFlagResolution {
   const numbers = new Set<number>();
   let complete = content?.complete === true;
@@ -1135,8 +1143,8 @@ function buildPersonalFlagResolution(
             continue;
           }
           for (let offset = 0; offset < amount; offset++) {
-            addPersonalFlag(numbers, start + offset);
-            if (offset >= MAX_PERSONAL_FLAG) {
+            if (!addPersonalFlag(numbers, start + offset, range)) complete = false;
+            if (offset >= range.max - range.min + 1) {
               complete = false;
               break;
             }
@@ -1146,7 +1154,7 @@ function buildPersonalFlagResolution(
     }
   } else if (content) {
     for (const value of content.values) {
-      const parsed = parsePersonalFlagList(value);
+      const parsed = parsePersonalFlagList(value, range);
       complete = complete && parsed.complete;
       for (const flag of parsed.flags) numbers.add(flag);
     }
@@ -1161,7 +1169,7 @@ function buildPersonalFlagResolution(
   return { ...reference, flags, status };
 }
 
-function parsePersonalFlagList(value: string): { flags: Set<number>; complete: boolean } {
+function parsePersonalFlagList(value: string, range: { min: number; max: number }): { flags: Set<number>; complete: boolean } {
   const flags = new Set<number>();
   let complete = true;
   for (const rawPart of value.split(',')) {
@@ -1172,18 +1180,18 @@ function parsePersonalFlagList(value: string): { flags: Set<number>; complete: b
     }
     const single = parseUnsignedInteger(part);
     if (single !== undefined) {
-      addPersonalFlag(flags, single);
+      if (!addPersonalFlag(flags, single, range)) complete = false;
       continue;
     }
-    const range = /^(\d+)\s*-\s*(\d+)$/.exec(part);
-    if (!range) {
+    const interval = /^(\d+)\s*-\s*(\d+)$/.exec(part);
+    if (!interval) {
       complete = false;
       continue;
     }
-    const first = Number(range[1]);
-    const last = Number(range[2]);
-    if (first > last) continue;
-    for (let flag = Math.max(1, first); flag <= Math.min(MAX_PERSONAL_FLAG, last); flag++) {
+    const first = Number(interval[1]);
+    const last = Number(interval[2]);
+    if (first > last || first < range.min || last > range.max) complete = false;
+    for (let flag = Math.max(range.min, first); flag <= Math.min(range.max, last); flag++) {
       flags.add(flag);
     }
   }
@@ -1195,8 +1203,10 @@ function parseUnsignedInteger(value: string): number | undefined {
   return /^\d+$/.test(trimmed) ? Number(trimmed) : undefined;
 }
 
-function addPersonalFlag(flags: Set<number>, value: number): void {
-  if (Number.isInteger(value) && value >= 1 && value <= MAX_PERSONAL_FLAG) flags.add(value);
+function addPersonalFlag(flags: Set<number>, value: number, range: { min: number; max: number }): boolean {
+  if (!Number.isSafeInteger(value) || value < range.min || value > range.max) return false;
+  flags.add(value);
+  return true;
 }
 
 function collectConcreteVariables(
@@ -1877,7 +1887,7 @@ function placeholderDepth(text: string): number {
 function lineStarts(text: string): number[] {
   const starts = [0];
   for (let index = 0; index < text.length; index++) {
-    if (text[index] === '\n') starts.push(index + 1);
+    if (text[index] === '\n' || (text[index] === '\r' && text[index + 1] !== '\n')) starts.push(index + 1);
   }
   return starts;
 }
@@ -1885,7 +1895,7 @@ function lineStarts(text: string): number[] {
 function collectLabelsByLine(text: string): string[] {
   const labels: string[] = [];
   let current = '';
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of text.split(/\r\n|\r|\n/)) {
     const label = /^\s*\[@([^\]]+)\]/.exec(line);
     if (label) current = label[1].trim().toUpperCase();
     labels.push(current);
@@ -1909,5 +1919,5 @@ function isVariableCharacter(character: string): boolean {
 }
 
 function maskCommentLines(text: string): string {
-  return text.replace(/^[ \t]*;[^\r\n]*/gm, line => ' '.repeat(line.length));
+  return text.replace(/^[ \t]*(?:;|\/\/)[^\r\n]*/gm, line => ' '.repeat(line.length));
 }

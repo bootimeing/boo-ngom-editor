@@ -23,7 +23,8 @@ function loadProviderInternals() {
     toString() { return value; },
   });
   const vscode = {
-    Uri: { parse: uri, file: uri, joinPath(base, ...parts) { return uri(path.join(base.fsPath, ...parts)); } },
+    Uri: { parse: uri, file: uri, from(parts) { return uri(`${parts.scheme}:${parts.path}`); },
+      joinPath(base, ...parts) { return uri(path.join(base.fsPath, ...parts)); } },
     EventEmitter: class { constructor() { this.event = () => undefined; } fire() {} dispose() {} },
     Disposable: { from: () => ({ dispose() {} }) },
     workspace: {
@@ -137,6 +138,31 @@ async function main() {
     fs.mkdirSync(patchRoot, { recursive: true });
     writeLegacyCache(patchRoot, 'items', itemsPath, itemsText);
     writeLegacyCache(patchRoot, 'dialog', dialogPath, dialogText);
+
+    // A rejected slot is not a successful transparent image. Exercise the
+    // production index, cache table and Provider with a real binary fixture.
+    {
+      const { buildFixture } = require('./gom-reader-tolerance.test');
+      const { openArchiveIndexed } = require('../out/utils/archive-index');
+      const { invalidatePatchCacheIndex } = require('../out/utils/patch-cache');
+      const badPath = path.join(dataRoot, 'Bad.pak');
+      buildFixture(badPath, 'fixture', new Set([1260]));
+      await openArchiveIndexed({ extensionPath: runtimeRoot, indexRoot: path.join(path.dirname(patchRoot), 'archive-index-v1'),
+        pakPath: badPath, password: 'fixture', willIdx: 1 });
+      invalidatePatchCacheIndex();
+      const manager = Object.create(Manager.prototype);
+      manager.context = context;
+      manager.patchState = () => ({ dataDirectory: dataRoot });
+      const resolve = imageIndex => manager.resolveAsset({ archiveName: 'Bad', imageIndex }, 'GOM',
+        { asWebviewUri: uri => uri }, { fileName: sourceFile, uri: { fsPath: sourceFile } }, new Map(), new Map());
+      const bad = resolve(1260), empty = resolve(1655), good = resolve(1261);
+      assert.equal(bad.status, 'missing');
+      assert.match(bad.message, /损坏或布局不受支持/);
+      assert.equal(bad.url, undefined);
+      assert.match(empty.message, /空槽/);
+      assert.equal(good.status, 'ready');
+      assert.match(good.url, /001261/);
+    }
 
     // A non-ITEMSHOW preview is resolved from the same request snapshot as an
     // exact-identity ITEMSHOW.  Mutate the ordinary package while the latter

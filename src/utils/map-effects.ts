@@ -424,11 +424,26 @@ function resolveStaticCallPath(
   if (!trimmed || hasDynamicValue(trimmed) || /[*?\0]/.test(trimmed)) {
     return { diagnosticCode: 'dynamic-call', message: '调用路径不是静态字面量' };
   }
-  if (/^[a-z]:/i.test(trimmed) || /^[\\/]{2,}/.test(trimmed) || trimmed.includes(':')) {
+  // The engine accepts one or two leading backslashes as QuestDiary-relative,
+  // never as a host UNC path. Resolve those locally below; reject device syntax.
+  if (/^[a-z]:/i.test(trimmed) || /^[\\/]{3,}/.test(trimmed) || trimmed.includes(':')) {
     return { diagnosticCode: 'call-outside-envir', message: '调用路径使用绝对路径或设备路径' };
   }
 
   let normalized = trimmed.replace(/\\/g, '/');
+  if (normalized.split('/').some(segment => segment === '..')) {
+    return { diagnosticCode: 'call-outside-envir', message: '#CALL 路径不允许包含 .. 段' };
+  }
+  // GXX LocalDB.LoadCallScript prefixes plain #CALL paths with QuestDiary,
+  // including calls made by scripts in nested directories. Prefer that exact
+  // engine target; retain the existing explicit ./ and same-directory fallback.
+  if (!/^(?:\/|\.\/|Envir\/|QuestDiary\/)/i.test(normalized) && context.questDiaryRealPath) {
+    const engineName = path.posix.extname(normalized) ? normalized : `${normalized}.txt`;
+    const engineTarget = path.resolve(context.questDiaryPath, ...engineName.split('/'));
+    const localTarget = path.resolve(path.dirname(sourceFile), ...engineName.split('/'));
+    if (isPathInside(context.questDiaryPath, engineTarget)
+      && (fs.existsSync(engineTarget) || !fs.existsSync(localTarget))) normalized = `QuestDiary/${normalized}`;
+  }
   let base = path.dirname(sourceFile);
   let lexicalRoot = context.envirPath;
   let realRoot = context.envirRealPath;
@@ -470,10 +485,6 @@ function resolveStaticCallPath(
     questDiaryScoped = true;
   }
 
-  if (normalized.split('/').some(segment => segment === '..')) {
-    return { diagnosticCode: 'call-outside-envir', message: '#CALL 路径不允许包含 .. 段' };
-  }
-
   if (!path.posix.extname(normalized)) normalized += '.txt';
   if (path.posix.extname(normalized).toLocaleLowerCase() !== '.txt') {
     return { diagnosticCode: 'dynamic-call', message: '静态 #CALL 仅扫描 .txt 脚本' };
@@ -490,7 +501,7 @@ function resolveStaticCallPath(
     };
   }
   if (!fs.existsSync(candidate)) {
-    return { diagnosticCode: 'call-target-not-found', message: '调用目标文件不存在' };
+    return { diagnosticCode: 'call-target-not-found', message: `调用目标文件不存在：[${trimmed}]（查找 ${path.relative(context.envirPath, candidate)}）` };
   }
 
   let realPath: string;

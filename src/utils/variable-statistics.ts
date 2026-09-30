@@ -3,6 +3,15 @@ export interface VariableUsage {
   files: Set<string>;
 }
 
+/** Script identifiers need a Unicode-aware boundary, not JavaScript's ASCII \b. */
+export function* findScriptVariables(text: string): IterableIterator<{ name: string; index: number }> {
+  const pattern = /(?:(?<![\p{L}\p{N}_$])|(?<=<\$))((?:GL|[NSLD])\$[A-Za-z0-9_\u3400-\u9fff]+|[PDMNSIGAUTJZ]\d+)(?![\p{L}\p{N}_$])/giu;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text)) !== null) {
+    yield { name: normalizeScriptVariableName(match[1]), index: match.index };
+  }
+}
+
 export function normalizeScriptVariableName(name: string): string {
   const trimmed = name.trim();
   const bracketed = /^\[([^\]]+)\]$/.exec(trimmed);
@@ -12,7 +21,7 @@ export function normalizeScriptVariableName(name: string): string {
 
   const numbered = /^([PDMNSIGAUTJZ])(\d+)$/i.exec(trimmed);
   if (numbered) {
-    return `${numbered[1].toUpperCase()}${numbered[2]}`;
+    return `${numbered[1].toUpperCase()}${numbered[2].replace(/^0+(?=\d)/, '')}`;
   }
 
   // The engine accepts case-insensitive type prefixes, while custom variable

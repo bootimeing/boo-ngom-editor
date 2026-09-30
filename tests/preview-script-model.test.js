@@ -43,6 +43,19 @@ function run() {
   assert.equal(element.x.span.start, source.indexOf(':40:40>')+1);
   assert.equal(element.lineNumber, 5);
   assert.equal(element.x.displayValue, 36); assert.equal(element.y.displayValue,36);
+
+  // An external entry may delegate its read-only preparation through another
+  // label in the same QuestDiary file.  The virtual program must import that
+  // literal GOTO target as well; otherwise the caller resumes with the default
+  // value even though the source is local and fully bounded.
+  const delegatedExternal = [
+    '[@calculate]', '{', '#ACT', 'GOTO @load', '}',
+    '[@load]', '{', '#ACT', 'MOV N$result <$STR(N$base)>', '}',
+  ].join('\n');
+  const delegated = parse(source, {'N$base':'40'}, {}, delegatedExternal).model;
+  assert.ok(delegated.pages.find(page => page.sourceLabel === '@main')?.elements.some(item => item.text === '主结果=40'),
+    'CALL entry GOTO to a same-file helper must resolve the caller value');
+
   const updated = applyTextReplacements(source,buildDialogCoordinateEdits(source,model,[{elementId:element.id,x:48,y:44}]).replacements);
   assert.equal(updated,source.replace(':40:40>',':52:48>'), 'only physical primary numeric spans change');
   assert.equal(parse(updated,{'N$base':'40'}).model.pages[0].elements[0].x.displayValue,48);

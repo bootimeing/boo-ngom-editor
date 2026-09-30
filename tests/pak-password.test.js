@@ -16,6 +16,14 @@ function main() {
     selectPakPassword,
   } = require('../out/utils/pak-password');
 
+  const { ArchiveStructureError } = require('../out/utils/archive-errors');
+  assert.equal(classifyPakPasswordError(new ArchiveStructureError('密码错误', {
+    stage: 'index', reasonCode: 'index-truncated',
+  })), 'none', 'known structural cause takes precedence over localized text');
+  assert.equal(classifyPakPasswordError(new ArchiveStructureError('verifier failed', {
+    stage: 'global-header', reasonCode: 'password-check-failed',
+  })), 'ambiguous', 'damaged password verifier is not proof that a saved password is incorrect');
+
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-pak-password-'));
   try {
     const dataDirectory = path.join(tempRoot, 'current-client', 'data');

@@ -20,6 +20,10 @@ function main() {
   assert.equal(detectPakFormat(signature(9, 'GAMEOFMIR')), 'GOM');
   assert.equal(detectPakFormat(signature(9, 'GAMEOFMIX')), 'UNKNOWN');
   assert.equal(detectPakFormat(signature(10, 'GAMEOFMIR')), 'UNKNOWN');
+  assert.equal(detectPakFormat(Buffer.from('HXM2.')), 'HXM');
+  assert.equal(detectPakFormat(Buffer.from('HXM2')), 'UNKNOWN');
+  assert.equal(detectPakFormat(Buffer.from('PACK4.0 ')), 'PACK4');
+  assert.equal(detectPakFormat(Buffer.from('PACK')), 'UNKNOWN');
 
   const colorKeyed = applyGomColorKeyTransparency(
     Uint8ClampedArray.from([

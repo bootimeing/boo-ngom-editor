@@ -30,7 +30,7 @@ function main() {
   assert.equal(unusedVariableCandidates('U', direct).includes(4), true);
   assert.equal(unusedPersonalFlagCandidates(direct).includes(10), false);
   assert.equal(unusedPersonalFlagCandidates(direct).includes(9), true);
-  assert.equal(unusedVariableCandidates('A', direct).at(-1), 499);
+  assert.equal(unusedVariableCandidates('A', direct).at(-1), 999);
   assert.equal(unusedVariableCandidates('G', direct).includes(499), false);
 
   const nested = collectCandidateUsage([
@@ -78,7 +78,9 @@ function main() {
   assert.match(assistant, /command: 'boo\.pickUnusedScriptCandidate'/);
   assert.doesNotMatch(assistant, /无法静态确定编号的 \$\{family\} 类动态变量/);
   assert.doesNotMatch(assistant, /动态个人标识，暂不提供候选/);
-  assert.doesNotMatch(assistant, /usage\.personalFlagsUncertain/);
+  assert.match(assistant, /usage\.personalFlagsUncertain/);
+  assert.match(assistant, /这些候选不能保证未使用/);
+  assert.match(assistant, /snapshot\.errors\.length/);
   assert.match(assistant, /选择当前统计中未使用的个人标识/);
   assert.match(assistant, /candidateUsageGeneration/);
 

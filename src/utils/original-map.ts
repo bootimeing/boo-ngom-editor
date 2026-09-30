@@ -79,6 +79,14 @@ export function classifyOriginalMapTileLayout(table: {
 const HEADER_SIZE = 52;
 const FOREGROUND_LOOKAHEAD_ROWS = 35;
 const LEGEND_MAP_TITLE = Buffer.from('Legend of mir', 'ascii');
+// GXX's MapUnit loader distinguishes these layouts before reading the
+// classic 52-byte header.  They use different headers/records and therefore
+// must never fall through to the classic parser: doing so would interpret the
+// title/descriptor bytes as a bogus width/height and could accidentally accept
+// a malformed file after a future format change.  Keep the signatures here
+// only for a precise, fail-closed diagnostic; no ENMap/EIMap fields are
+// decoded until a verified profile and real samples are available.
+const ENMAP_TITLE = Buffer.from('Map 2010 Ver 1.0', 'ascii');
 const VERIFIED_EMBEDDED_OBJECT_ANIMATION_PROFILES: Readonly<
   Partial<Record<EngineId, ReadonlySet<OriginalMapAnimationProfile>>>
 > = {
@@ -122,6 +130,27 @@ function hasLegendMapTitle(data: Buffer): boolean {
   return data.subarray(5, 5 + LEGEND_MAP_TITLE.length).equals(LEGEND_MAP_TITLE);
 }
 
+function unsupportedMapProfile(data: Buffer): 'ENMap' | 'EIMap' | undefined {
+  // Delphi ShortString[16] stores a one-byte length before the 16-byte title.
+  // The title is the exact marker used by GXX's MapUnit loader.
+  if (
+    data.length >= 1 + ENMAP_TITLE.length
+    && data[0] === ENMAP_TITLE.length
+    && data.subarray(1, 1 + ENMAP_TITLE.length).equals(ENMAP_TITLE)
+  ) {
+    return 'ENMap';
+  }
+  // EIMapHeader.Desc is five zeroed Int32 values.  Require the complete
+  // descriptor before classifying to avoid broad magic-byte guesses.
+  if (
+    data.length >= 20
+    && data.subarray(0, 20).every(byte => byte === 0)
+  ) {
+    return 'EIMap';
+  }
+  return undefined;
+}
+
 function mapAnimationProfile(
   data: Buffer,
   cellSize: 12 | 14 | 36
@@ -149,6 +178,10 @@ function mapImageReference(rawValue: number): number {
 
 function validateHeader(data: Buffer): { width: number; height: number; cellSize: 12 | 14 | 36 } {
   if (data.length < HEADER_SIZE) throw new Error('MAP 文件小于 52 字节，文件头不完整');
+  const unsupportedProfile = unsupportedMapProfile(data);
+  if (unsupportedProfile) {
+    throw new Error(`暂不支持 ${unsupportedProfile} 地图 profile；当前仅解析经典 MAP 12/14/36 字节布局`);
+  }
   const width = data.readUInt16LE(0);
   const height = data.readUInt16LE(2);
   if (width <= 0 || height <= 0 || width > 4000 || height > 4000) {

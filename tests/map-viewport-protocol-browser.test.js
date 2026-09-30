@@ -6,7 +6,7 @@ const { spawnSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
 
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(process.env.BOO_PAK_RUNTIME_ROOT || path.join(__dirname, '..'));
 
 function browserCandidates() {
   return [...new Set([
@@ -138,6 +138,32 @@ function scenarioScript() {
     check(loads.length===0,'navigator rendering triggered an original-map resource request');
   });
 
+  await run('navigator draws readable location markers in grid coordinates without duplicate modes',async function(){
+    await loaded(16,16);clearOriginalPrefetchTimer();
+    var marker={x:64,y:32,displayText:'入口',text:'入口',color:'#ffff00',mode:0,lineNumber:1};
+    state.markers=[marker,Object.assign({},marker,{mode:1,lineNumber:2}),
+      {x:0,y:0,displayText:'边缘长文字地点标记'.repeat(6),text:'完整长文字',color:'#00ffff',mode:0},
+      {x:-1,y:10,displayText:'越界',color:'#fff',mode:0}];
+    var calls=[],fill=mapNavigatorContext.fillText;
+    mapNavigatorContext.fillText=function(text,x,y){calls.push({text:text,x:x,y:y,color:this.fillStyle});return fill.apply(this,arguments)};
+    renderMapNavigator();mapNavigatorContext.fillText=fill;
+    check(calls.filter(function(c){return c.text==='入口'}).length===1,'location text absent or duplicated across large/small map modes');
+    var g=state.navigatorGeometry,center=calls.find(function(c){return c.text==='入口'});
+    check(Math.abs(center.x-(g.left+64*48*g.scale))<1,'grid X was not converted through original-map cell width');
+    check(center.color==='#ffff00','marker color was lost');
+    check(calls.every(function(c){return c.text!=='越界'}),'out-of-bounds marker was drawn');
+    check(state.navigatorMarkers.length===2,'valid unique labels not retained for hover');
+    check(state.navigatorMarkers.every(function(box){return box.left>=g.left&&box.right<=g.left+g.mapWidth&&box.top>=g.top&&box.bottom<=g.top+g.mapHeight}),'edge label is clipped outside map');
+    var before=mapNavigatorCanvas.toDataURL();state.markers=[];renderMapNavigator();
+    check(before!==mapNavigatorCanvas.toDataURL(),'marker text was not painted to the actual Canvas');
+    state.markers=[marker];renderMapNavigator();
+    var box=state.navigatorMarkers[0],rect=mapNavigatorOverlay.getBoundingClientRect();
+    mapNavigatorOverlay.dispatchEvent(new PointerEvent('pointermove',{clientX:rect.left+(box.left+box.right)/2,clientY:rect.top+(box.top+box.bottom)/2}));
+    check(mapNavigatorOverlay.title.indexOf('入口')>=0,'hover does not reveal location text');
+    var next=mapData();next.map.mapId='next-map';next.markers=[];updateMap(next);
+    check(mapNavigator.hidden&&state.navigatorMarkers.length===0&&mapNavigatorOverlay.title==='','map switch retains old marker or hover');
+  });
+
   await run('ready layer survives preview round trip',async function(){
     var setup=await loaded(16,16);
     var generation=state.original.generation;
@@ -228,6 +254,9 @@ function scenarioScript() {
 }
 
 function main() {
+  const windowWidth = Number(process.env.BOO_MAP_TEST_WIDTH || 1200), windowHeight = Number(process.env.BOO_MAP_TEST_HEIGHT || 800);
+  assert.ok(Number.isInteger(windowWidth) && windowWidth >= 700 && windowWidth <= 3000);
+  assert.ok(Number.isInteger(windowHeight) && windowHeight >= 500 && windowHeight <= 2000);
   const candidates = browserCandidates();
   assert.ok(candidates.length > 0, 'no installed Chromium browser was found');
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-map-viewport-protocol-'));
@@ -249,7 +278,7 @@ function main() {
         '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--no-first-run',
         '--allow-file-access-from-files', '--force-device-scale-factor=1',
         `--user-data-dir=${path.join(temporary, `profile-${index}`)}`,
-        '--window-size=1200,800', '--virtual-time-budget=2500', '--dump-dom', pathToFileURL(harness).href,
+        `--window-size=${windowWidth},${windowHeight}`, '--virtual-time-budget=2500', '--dump-dom', pathToFileURL(harness).href,
       ], { encoding: 'utf8', timeout: 20000, maxBuffer: 8 * 1024 * 1024 });
       diagnostics.push(`${candidates[index]}: status=${result.status}, error=${result.error?.message || '<none>'}`);
       if (!result.error && result.status === 0 && /data-viewport-protocol-test=/i.test(result.stdout || '')) {

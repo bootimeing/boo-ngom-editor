@@ -163,12 +163,14 @@ function writeDirectCache(
   slotCount,
   blocks,
   sourceMd5,
-  format = 'GOM'
+  format = 'GOM',
+  sourceSnapshot = fs.readFileSync(pakPath)
 ) {
   const stat = fs.statSync(pakPath);
   const cacheDir = path.join(indexRoot, archiveId);
   fs.mkdirSync(cacheDir, { recursive: true });
-  fs.writeFileSync(path.join(cacheDir, ARCHIVE_INDEX_FILE), encodeIndex(slotCount, blocks));
+  const index = encodeIndex(slotCount, blocks);
+  fs.writeFileSync(path.join(cacheDir, ARCHIVE_INDEX_FILE), index);
   fs.writeFileSync(path.join(cacheDir, 'summary.json'), JSON.stringify({
     schemaVersion: ARCHIVE_INDEX_SCHEMA_VERSION,
     decoderRevision: ARCHIVE_INDEX_DECODER_REVISION,
@@ -178,6 +180,10 @@ function writeDirectCache(
     pakPath,
     sourceSize: stat.size,
     sourceMtimeMs: stat.mtimeMs,
+    sourceCtimeMs: stat.ctimeMs,
+    sourceSha256: crypto.createHash('sha256').update(sourceSnapshot).digest('hex'),
+    indexGeneration: crypto.randomBytes(16).toString('hex'),
+    indexSha256: crypto.createHash('sha256').update(index).digest('hex'),
     sourceMd5,
     passwordHash: '0'.repeat(64),
     storedWillIdx: 0,
@@ -379,7 +385,9 @@ async function main() {
         pakPath,
         2,
         [{ logicalIndex: 0 }, { logicalIndex: 1 }],
-        md5(original)
+        md5(original),
+        'GOM',
+        original
       );
       invalidatePatchCacheIndex();
       const current = listCachedPatchPaks(scenario.patchCacheRoot, [scenario.customData]);
@@ -436,7 +444,9 @@ async function main() {
         pakPath,
         2,
         [{ logicalIndex: 0 }, { logicalIndex: 1 }],
-        md5(original)
+        md5(original),
+        'GOM',
+        original
       );
       invalidatePatchCacheIndex();
 
@@ -483,7 +493,8 @@ async function main() {
         2,
         [{ logicalIndex: 0 }, { logicalIndex: 1 }],
         md5(original),
-        'JPK'
+        'JPK',
+        original
       );
       invalidatePatchCacheIndex();
 

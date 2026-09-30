@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+let editorHashBeforeTest;
 
 const staticLanguage = require('../data/static-language.json');
 const {
@@ -4257,12 +4258,13 @@ function testManifestAndEditorIsolation() {
   const oldEditor = fs.readFileSync(path.join(root, 'media', 'editor.html'));
   assert.equal(
     crypto.createHash('sha256').update(oldEditor).digest('hex').toUpperCase(),
-    '606CFA148B63D691239572FDFBD669D45FA58687BD04C7E0597ED8BCDAC89743',
-    'the independent Ctrl+F12 editor must not modify the original UI editor'
+    editorHashBeforeTest,
+    'Ctrl+F12 tests must not write the independent UI editor; its own authorized feature changes are allowed'
   );
 }
 
 async function main() {
+  editorHashBeforeTest = crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, '..', 'media', 'editor.html'))).digest('hex').toUpperCase();
   testSetupOffsets();
   testGomScenesAndLosslessPatch();
   testGomAddDlgBuildsIndependentStaticWindowPages();

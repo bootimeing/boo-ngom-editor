@@ -11,7 +11,8 @@ import {
   selectPakPassword,
 } from '../utils/pak-password';
 import { decodePakFully } from '../utils/pak-reader';
-import { openArchiveIndexed } from '../utils/archive-index';
+import { assertArchiveReadCurrent, loadArchiveSummary, openArchiveIndexed } from '../utils/archive-index';
+import { ArchiveVerificationReport, verifyArchive } from '../utils/archive-verification';
 import { clearPakCache, loadPakIndex, matchPakFile } from '../utils/pak';
 import {
   filterRequiredPatchPakFiles,
@@ -69,13 +70,17 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
   private autoPromise: Promise<void> | undefined;
   private engine: EngineId;
   private pendingEngine: EngineId | undefined;
+  private verificationAbort: AbortController | undefined;
+  private readonly verificationReports = new Map<string, ArchiveVerificationReport>();
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  constructor(private readonly context: vscode.ExtensionContext,
+    private readonly openResourceWorkbench?: (archiveId: string, password?: string) => Promise<void>) {
     this.engine = normalizeEngineId(
       vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
     );
     this.restoreState(this.engine);
     context.subscriptions.push(
+      { dispose: () => this.verificationAbort?.abort() },
       vscode.workspace.onDidChangeConfiguration(event => {
         if (!event.affectsConfiguration('boo.engine')) return;
         const nextEngine = normalizeEngineId(
@@ -95,7 +100,7 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
       void this.handleMessage(message as PatchManagerMessage);
     });
     webviewView.onDidDispose(() => {
-      if (this.view === webviewView) this.view = undefined;
+      if (this.view === webviewView) { this.verificationAbort?.abort(); this.view = undefined; }
     });
   }
 
@@ -128,6 +133,54 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
       case 'changePassword':
         if (message.path) await this.changePassword(message.path);
         return;
+      case 'verifyPak':
+        if (message.path) await this.verifyPak(message.path);
+        return;
+      case 'cancelVerification':
+        if (message.path && this.entries.some(entry => normalizePath(entry.path) === normalizePath(message.path!) && entry.verification === 'running')) {
+          this.verificationAbort?.abort();
+        }
+        return;
+      case 'verificationDetails':
+        if (message.path) await this.showVerificationDetails(message.path);
+        return;
+      case 'openResourceEditor':
+        if (typeof message.path === 'string') await this.openResourceEditor(message.path);
+        return;
+    }
+  }
+
+  /** Entry paths are resolved from the current patch list, never trusted as arbitrary file access. */
+  public async openResourceEditor(pakPath?: string): Promise<void> {
+    if (this.busy || !this.openResourceWorkbench) return;
+    const engine = this.engine;
+    if (pakPath === undefined) {
+      const choices = this.entries.filter(entry => entry.status === 'cached' && entry.canVerify)
+        .map(entry => ({ label: entry.name, description: entry.path, entry }));
+      if (!choices.length) {
+        void vscode.window.showInformationMessage('请先在补丁管理中使用高速模式读取资源包。');
+        return;
+      }
+      const choice = await vscode.window.showQuickPick(choices, { title: '打开补丁资源工作台', placeHolder: '选择已读取的资源包' });
+      if (!choice || this.busy || engine !== this.engine || !this.entries.includes(choice.entry)) return;
+      pakPath = choice.entry.path;
+    }
+    const entry = this.entries[this.findEntryIndex(pakPath)];
+    const layout = this.clientLayout();
+    if (!entry || entry.status !== 'cached' || !entry.canVerify || !layout) return;
+    const cached = findCachedPatchPakByPath(getPatchCacheRoot(this.context), entry.path, layout.dataRoots, 'direct');
+    if (!cached?.archiveId || cached.storageMode !== 'direct') return;
+    try {
+      const summary = loadArchiveSummary(getArchiveIndexRoot(this.context), cached.archiveId);
+      if (normalizePath(summary.pakPath) !== normalizePath(entry.path)) return;
+      assertArchiveReadCurrent(getArchiveIndexRoot(this.context), summary);
+      const password = summary.format !== 'WIL' && summary.format !== 'WZL' ? selectPakPassword(undefined,
+        resolvePakPasswordFromRecords(this.readPasswordRecords(), entry.path, this.passwordDataRoot(entry.path)),
+        await this.context.secrets.get(patchPasswordSecretKey(entry.path))) : undefined;
+      if (this.busy || engine !== this.engine || !this.entries.includes(entry)) return;
+      await this.openResourceWorkbench(cached.archiveId, password);
+    } catch {
+      void vscode.window.showWarningMessage('资源索引已变化或无法读取，请重载此资源包后再打开工作台。');
     }
   }
 
@@ -337,6 +390,7 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
             status: validation.current ? 'cached' : 'waiting',
             message: patchValidationMessage(validation, cached?.slotCount, this.archiveLabel()),
             progress: validation.current ? 100 : 0,
+            canVerify: validation.current && cached?.storageMode === 'direct',
             passwordRequired: !isPairedArchiveExtension(
               path.extname(pakPath).slice(1).toLowerCase()
             ),
@@ -417,6 +471,76 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private async verifyPak(pakPath: string): Promise<void> {
+    if (this.busy || !this.validateSelections()) return;
+    const entry = this.entries[this.findEntryIndex(pakPath)];
+    if (!entry || entry.status !== 'cached' || !entry.canVerify) return;
+    const cached = findCachedPatchPakByPath(getPatchCacheRoot(this.context), entry.path, this.clientLayout()!.dataRoots, 'direct');
+    if (!cached?.archiveId || cached.storageMode !== 'direct') return;
+    const controller = new AbortController();
+    this.verificationAbort = controller;
+    this.busy = true;
+    entry.verification = 'running'; entry.hasVerificationDetails = false;
+    entry.message = '正在核对源文件';
+    this.verificationReports.delete(normalizePath(entry.path));
+    this.postState();
+    try {
+      const report = await verifyArchive({
+        extensionPath: this.context.extensionPath, indexRoot: getArchiveIndexRoot(this.context),
+        archiveId: cached.archiveId, signal: controller.signal,
+        onProgress: progress => {
+          entry.progress = progress.total ? Math.floor(progress.completed / progress.total * 100) : 100;
+          entry.message = `验证 ${progress.completed}/${progress.total}`;
+          this.postEntry(entry);
+        },
+      });
+      const summary = loadArchiveSummary(getArchiveIndexRoot(this.context), report.archiveId);
+      assertArchiveReadCurrent(getArchiveIndexRoot(this.context), summary);
+      if (summary.indexGeneration !== report.indexGeneration) throw new Error('素材索引已发生变化，请重新验证');
+      this.verificationReports.set(normalizePath(entry.path), report);
+      while (this.verificationReports.size > 32) {
+        const oldest = this.verificationReports.keys().next().value as string;
+        this.verificationReports.delete(oldest);
+        const oldEntry = this.entries.find(item => normalizePath(item.path) === oldest);
+        if (oldEntry) oldEntry.hasVerificationDetails = false;
+      }
+      entry.verification = report.state === 'complete' ? 'complete' : 'cancelled';
+      entry.hasVerificationDetails = true;
+      const c = report.counts;
+      entry.message = report.state === 'cancelled' ? `已取消 ${report.completed}/${report.total} · 可继续`
+        : `验证完成 · 正常 ${c.decoded} · 空 ${c.empty} · 恢复 ${c.recovered} · 失败 ${c.corrupt + c.unsupported}`;
+    } catch (error) {
+      Object.assign(entry, { verification: 'error', hasVerificationDetails: false,
+        message: `验证中止：${truncate(errorText(error), 160)}` });
+    } finally {
+      this.verificationAbort = undefined;
+      invalidatePatchCacheIndex();
+      await this.finishOperation();
+    }
+  }
+
+  private async showVerificationDetails(pakPath: string): Promise<void> {
+    const entry = this.entries[this.findEntryIndex(pakPath)];
+    if (!entry || this.busy) return;
+    const report = this.verificationReports.get(normalizePath(entry.path));
+    if (!report) return;
+    try {
+      const summary = loadArchiveSummary(getArchiveIndexRoot(this.context), report.archiveId);
+      assertArchiveReadCurrent(getArchiveIndexRoot(this.context), summary);
+      if (summary.indexGeneration !== report.indexGeneration) throw new Error('素材索引已变化，请重新验证');
+      const document = await vscode.workspace.openTextDocument({
+        language: 'json', content: JSON.stringify({ name: entry.name, ...report }, null, 2),
+      });
+      if (!this.entries.includes(entry)) return;
+      assertArchiveReadCurrent(getArchiveIndexRoot(this.context), summary);
+      await vscode.window.showTextDocument(document, { preview: true });
+    } catch (error) {
+      if (!this.entries.includes(entry)) return;
+      Object.assign(entry, { verification: 'error', hasVerificationDetails: false, message: truncate(errorText(error), 160) });
+      this.postEntry(entry);
+    }
+  }
+
   private async changePassword(pakPath: string): Promise<void> {
     if (this.busy || !this.validateSelections()) return;
     const selectionEngine = this.engine;
@@ -458,6 +582,8 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
     records: ReturnType<typeof readPakPasswordRecords>,
     suppliedPassword?: string
   ): Promise<void> {
+    entry.verification = undefined; entry.hasVerificationDetails = false; entry.canVerify = false;
+    this.verificationReports.delete(normalizePath(entry.path));
     entry.status = 'caching';
     entry.message = forceRefresh ? '正在重新读取' : '正在读取';
     entry.progress = 0;
@@ -537,6 +663,7 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
         ? `，${compatibilityNotes.join('，')}`
         : '';
       entry.status = 'cached';
+      Object.assign(entry, { canVerify: result.storageMode === 'direct' });
       entry.message = result.fromCache
         ? `资源已就绪，共 ${result.slotCount} 项${compatibilityNote}`
         : result.storageMode === 'direct'
@@ -633,6 +760,7 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
   private async switchEngine(nextEngine: EngineId): Promise<void> {
     if (this.busy) {
       this.pendingEngine = nextEngine;
+      this.verificationAbort?.abort();
       return;
     }
     this.pendingEngine = undefined;
@@ -671,6 +799,7 @@ export class PatchManagerProvider implements vscode.WebviewViewProvider {
     this.readScope = 'required';
     // Resource indexes are persistent; the potentially huge previous UI row list is not.
     this.entries = [];
+    this.verificationReports.clear();
   }
 
   private async saveState(): Promise<void> {

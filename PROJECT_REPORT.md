@@ -1,9 +1,9 @@
 # BOO 可视化编辑器项目报告（2026-09-05 历史快照）
 
-本文保留原始统计与验收结果，不代表当前文件数或功能覆盖。最新目录约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，本次源码同步范围见 [2026-09-20 整理说明](docs/reports/PROJECT_CLEANUP_20260920.md)，功能增量见 [CHANGELOG.md](CHANGELOG.md)。
+本文保留 2026-09-05 的原始统计与验收结果，不代表当前文件数、功能覆盖或发布版本。最新目录约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，当前功能见 [README.md](README.md)，后续增量见 [CHANGELOG.md](CHANGELOG.md)。
 
 > 报告日期：2026-09-05  
-> 当前版本：V4.3.5  
+> 报告时版本：V4.3.5  
 > 项目类型：Visual Studio Code 扩展  
 > 发布标识：`boo1213.boo-NGOM-editor`
 
@@ -11,16 +11,16 @@
 
 BOO 可视化编辑器面向传奇 GM、版本制作人员和脚本开发者，将多引擎脚本语言服务、UI 编辑、补丁资源、数据库、地图预览、脚本同步、M2 重载和本地 AI 助手集中到 VS Code。
 
-| 项目 | 当前状态 |
+| 项目 | 报告时状态 |
 | --- | --- |
-| 扩展版本 | V4.3.5 |
+| 报告时扩展版本 | V4.3.5 |
 | VS Code 要求 | `^1.68.0` |
 | TypeScript 源文件 | 108 个，51,832 行 |
 | 自动回归文件 | 171 个 `*.test.js`，其中 43 个浏览器测试 |
 | 注册命令 | 47 个 |
 | 内置主题 | 19 套 |
 | 生产依赖闭包 | 解包后验证 60 个实际包节点 |
-| 当前发布包 | `artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.5.vsix` |
+| 报告时发布包 | `artifacts/releases/vscode-marketplace/boo-ngom-editor-4.3.5.vsix` |
 
 ## 2. 目录结构
 

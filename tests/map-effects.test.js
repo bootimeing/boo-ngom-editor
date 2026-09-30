@@ -417,11 +417,41 @@ function testSameFileCallWidthBudget(scanStartupPermanentMapEffects) {
   }
 }
 
+function testEngineQuestDiaryCallPaths(scan) {
+  const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-map-call-roots-'));
+  try {
+    const envir = path.join(root, 'Mir200', 'Envir');
+    writeScript(path.join(envir, 'MapQuest_Def', 'QManage.txt'), [
+      '[@Startup]', '#IF', '#ACT', '#CALL [效果 子目录\\永久.txt] @入口',
+      '#CALL [\\\\效果 子目录\\双斜线.txt] @入口', '#CALL [缺少.txt] @入口',
+    ]);
+    writeScript(path.join(envir, 'QuestDiary', '效果 子目录', '永久.txt'), [
+      '[@入口]', '#IF', '#ACT', 'MAPEFFECT 根目录解析 1 2 9 1 1 -1 150 0 0|0|1',
+      '#CALL [共享.txt] @入口',
+    ]);
+    writeScript(path.join(envir, 'QuestDiary', '效果 子目录', '双斜线.txt'), [
+      '[@入口]', '#IF', '#ACT', 'MAPEFFECT 双斜线 1 2 9 1 1 -1 150 0 0|0|2',
+    ]);
+    writeScript(path.join(envir, 'QuestDiary', '共享.txt'), [
+      '[@入口]', '#IF', '#ACT', 'MAPEFFECT QuestDiary优先 1 2 9 1 1 -1 150 0 0|0|3',
+    ]);
+    // A homonym alongside the caller must not override the engine's QuestDiary root.
+    writeScript(path.join(envir, 'QuestDiary', '效果 子目录', '共享.txt'), [
+      '[@入口]', '#IF', '#ACT', 'MAPEFFECT 错误同目录 1 2 9 1 1 -1 150 0 0|0|4',
+    ]);
+    const result = scan(envir);
+    assert.deepEqual(result.definitions.map(item => item.mapName), ['根目录解析', 'QuestDiary优先', '双斜线']);
+    assert.equal(result.diagnosticCounts['call-target-not-found'], 1);
+    assert.ok(result.diagnostics.find(d => d.code === 'call-target-not-found').message.includes('缺少.txt'));
+  } finally { removeTemporaryDirectory(root); }
+}
+
 function main() {
   const {
     DEFAULT_MAP_EFFECT_SCAN_LIMITS,
     scanStartupPermanentMapEffects,
-  } = require('../out/utils/map-effects');
+  } = require(path.join(process.env.BOO_PAK_RUNTIME_ROOT || path.join(__dirname, '..'), 'out/utils/map-effects'));
   assert.deepEqual(DEFAULT_MAP_EFFECT_SCAN_LIMITS, {
     maxDepth: 8,
     maxFiles: 64,
@@ -434,6 +464,7 @@ function main() {
   testRenderingSafetyBounds(scanStartupPermanentMapEffects);
   testBudgetsAndMalformedBlocks(scanStartupPermanentMapEffects);
   testSameFileCallWidthBudget(scanStartupPermanentMapEffects);
+  testEngineQuestDiaryCallPaths(scanStartupPermanentMapEffects);
   console.log('map-effects.test.js: PASS');
 }
 

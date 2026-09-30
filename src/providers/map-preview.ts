@@ -2349,7 +2349,9 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
           if (scan.truncated) {
             mapEffectScanWarning = '启动脚本扫描达到安全预算，未显示不完整结果';
           } else if (blockingDiagnostic) {
-            mapEffectScanWarning = blockingDiagnostic.message;
+            const location = blockingDiagnostic.filePath
+              ? `${path.relative(envirDirectory, blockingDiagnostic.filePath)}:${blockingDiagnostic.lineNumber || 1}` : '';
+            mapEffectScanWarning = `${blockingDiagnostic.message}${location ? `；来源 ${location}` : ''}`;
           }
           if (!scan.truncated) {
             const strictOmissions: string[] = [];

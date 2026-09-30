@@ -1783,6 +1783,13 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
         message: `素材缓存索引无法读取：${errorMessage(error)}`,
       };
     }
+    if (table.rejected?.[index]) {
+      return {
+        status: 'missing',
+        archiveLabel: `${pak.pakName}/${String(index).padStart(6, '0')}`,
+        message: '该图片槽损坏或布局不受支持，不是空帧',
+      };
+    }
     if (index >= table.slotCount || table.present[index] !== 1) {
       return {
         status: 'missing',

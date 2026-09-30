@@ -22,7 +22,7 @@ function main() {
   assert.match(icon, />补<\/text>/, 'patch manager icon must use the requested character');
   assert.match(
     extension,
-    /const patchManagerProvider = new PatchManagerProvider\(context\)[\s\S]*registerWebviewViewProvider\('boo\.patchView', patchManagerProvider\)[\s\S]*patchManagerProvider\.autoLoadOrCache\(\)/,
+    /const patchManagerProvider = new PatchManagerProvider\(context, \(archiveId, password\) => resourceEditorProvider\.openArchive\(archiveId, password\)\)[\s\S]*registerWebviewViewProvider\('boo\.patchView', patchManagerProvider\)[\s\S]*patchManagerProvider\.autoLoadOrCache\(\)/,
     'the patch manager view provider must be registered'
   );
 

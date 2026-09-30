@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 async function main() {
-  const { GOM_DECODER_REVISION } = require('../out/utils/pak-reader');
+  const { GOM_DECODER_REVISION, JPK_DECODER_REVISION } = require('../out/utils/pak-reader');
   const { ARCHIVE_INDEX_DECODER_REVISION, ARCHIVE_INDEX_FILE } = require('../out/utils/archive-index');
   const {
     findCachedPatchImage,
@@ -108,9 +108,11 @@ async function main() {
       archiveId: 'paired-index',
       sourceSize: pairedSourceStat.size,
       sourceMtimeMs: pairedSourceStat.mtimeMs,
+      sourceCtimeMs: pairedSourceStat.ctimeMs,
       companionPath: pairedCompanionPath,
       companionSize: pairedCompanionStat.size,
       companionMtimeMs: pairedCompanionStat.mtimeMs,
+      companionCtimeMs: pairedCompanionStat.ctimeMs,
     };
     assert.equal((await validatePatchCacheMd5(pairedCache)).current, true);
     const changedSourceTime = new Date(pairedSourceStat.mtimeMs + 1000);
@@ -359,7 +361,7 @@ async function main() {
       pakName: 'Items1',
       pakPath: jpkPath,
       sourceMd5: crypto.createHash('md5').update('jpk-items').digest('hex'),
-      decoderRevision: 'jpk-alpha-plane-v2',
+      decoderRevision: JPK_DECODER_REVISION,
       willIdx: 99,
       slotCount: 2,
       assets: [],

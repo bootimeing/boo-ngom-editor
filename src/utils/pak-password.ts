@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { decodeTextFile } from './text';
+import { getArchiveDiagnostic } from './archive-errors';
 
 export interface PakPasswordRecord {
   configuredPath: string;
@@ -23,6 +24,12 @@ export function patchPasswordSecretKey(pakPath: string): string {
 }
 
 export function classifyPakPasswordError(error: unknown): PakPasswordErrorKind {
+  const diagnostic = getArchiveDiagnostic(error);
+  if (diagnostic.reasonCode !== 'unknown') {
+    // A failed verifier can also be a damaged check field; don't delete a saved password as proven wrong.
+    return ['password-check-failed', 'password-or-profile-mismatch', 'password-required'].includes(diagnostic.reasonCode)
+      ? 'ambiguous' : 'none';
+  }
   const message = error instanceof Error ? error.message : String(error);
   const errorName = error instanceof Error ? error.name : '';
   if (

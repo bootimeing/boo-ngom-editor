@@ -6,6 +6,8 @@ import {
   DecodedPakResult,
   GOM_DECODER_REVISION,
   JPK_DECODER_REVISION,
+  GEE2_DECODER_REVISION,
+  PAK_DECODER_REVISION,
 } from './pak-reader';
 import {
   ARCHIVE_INDEX_DECODER_REVISION,
@@ -39,6 +41,9 @@ export interface PatchEntry {
   message: string;
   progress: number;
   passwordRequired?: boolean;
+  canVerify?: boolean;
+  verification?: 'running' | 'cancelled' | 'complete' | 'error';
+  hasVerificationDetails?: boolean;
 }
 
 export interface SavedPatchManagerState {
@@ -66,6 +71,8 @@ export interface CachedPatchPak {
   archiveId?: string;
   sourceSize?: number;
   sourceMtimeMs?: number;
+  sourceCtimeMs?: number;
+  companionCtimeMs?: number;
   companionPath?: string;
   companionSize?: number;
   companionMtimeMs?: number;
@@ -75,6 +82,7 @@ export interface CachedPatchAssetTable {
   slotCount: number;
   present: Uint8Array;
   blank: Uint8Array;
+  rejected?: Uint8Array;
   width: Uint16Array;
   height: Uint16Array;
   offsetX: Int32Array;
@@ -116,6 +124,7 @@ interface StoredPatchManifest {
   slotCount: number;
   assets: DecodedPakAsset[];
   skippedMalformedIndices?: number[];
+  profileId?: string;
 }
 
 export const PATCH_MANAGER_STATE_KEY = 'boo.patchManager.state';
@@ -356,12 +365,13 @@ export function isPatchCacheCurrent(item: CachedPatchPak): boolean {
     if (!item.archiveId || !fs.existsSync(path.join(item.cacheDir, ARCHIVE_INDEX_FILE))) return false;
     try {
       const stat = fs.statSync(item.pakPath);
-      if (stat.size !== item.sourceSize || stat.mtimeMs !== item.sourceMtimeMs) return false;
+      if (stat.size !== item.sourceSize || stat.mtimeMs !== item.sourceMtimeMs || stat.ctimeMs !== item.sourceCtimeMs) return false;
       if (item.companionPath) {
         const companionStat = fs.statSync(item.companionPath);
         if (
           companionStat.size !== item.companionSize
           || companionStat.mtimeMs !== item.companionMtimeMs
+          || companionStat.ctimeMs !== item.companionCtimeMs
         ) return false;
       }
       return true;
@@ -369,11 +379,7 @@ export function isPatchCacheCurrent(item: CachedPatchPak): boolean {
       return false;
     }
   }
-  if (item.slotCount > 0) {
-    const first = patchImagePath(item, 0);
-    const last = patchImagePath(item, item.slotCount - 1);
-    if (!fs.existsSync(first) || !fs.existsSync(last)) return false;
-  }
+  if (!hasCompletePatchCache(item)) return false;
   try {
     if (fs.existsSync(item.pakPath) && fs.statSync(item.pakPath).mtimeMs > item.cachedAt + 1) return false;
   } catch {
@@ -399,7 +405,7 @@ export async function validatePatchCacheMd5(
     const companionAfter = item.companionPath
       ? await fs.promises.stat(item.companionPath)
       : undefined;
-    if (before.size !== after.size || before.mtimeMs !== after.mtimeMs) {
+    if (before.size !== after.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs) {
       return { current: false, reason: 'changed', sourceMd5 };
     }
     if (
@@ -410,6 +416,7 @@ export async function validatePatchCacheMd5(
         || companionBefore.mtimeMs !== companionAfter.mtimeMs
         || companionAfter.size !== item.companionSize
         || companionAfter.mtimeMs !== item.companionMtimeMs
+        || (item.storageMode === 'direct' && companionAfter.ctimeMs !== item.companionCtimeMs)
       )
     ) {
       return { current: false, reason: 'changed', sourceMd5 };
@@ -419,7 +426,7 @@ export async function validatePatchCacheMd5(
     }
     if (
       item.storageMode === 'direct'
-      && (after.size !== item.sourceSize || after.mtimeMs !== item.sourceMtimeMs)
+      && (after.size !== item.sourceSize || after.mtimeMs !== item.sourceMtimeMs || after.ctimeMs !== item.sourceCtimeMs)
     ) {
       return { current: false, reason: 'metadata-changed', sourceMd5 };
     }
@@ -443,6 +450,8 @@ function hasCurrentDecoderRevision(item: CachedPatchPak): boolean {
   }
   if (item.format === 'JPK') return item.decoderRevision === JPK_DECODER_REVISION;
   if (item.format === 'GOM') return item.decoderRevision === GOM_DECODER_REVISION;
+  if (item.format === 'GEE') return item.decoderRevision === GEE2_DECODER_REVISION || item.decoderRevision === PAK_DECODER_REVISION;
+  if (item.format === 'HXM' || item.format === 'PACK4') return item.decoderRevision === PAK_DECODER_REVISION;
   return true;
 }
 
@@ -518,7 +527,7 @@ export function loadCachedPatchPakResult(item: CachedPatchPak, willIdx: number):
   }
   const assets = stored.assets.map(asset => ({
     ...asset,
-    path: rebaseCachedAssetPath(asset, item.cacheDir),
+    path: asset.failureCode ? '' : rebaseCachedAssetPath(asset, item.cacheDir),
     pakName: item.pakName,
     pakPath: item.pakPath,
     willIdx,
@@ -540,6 +549,7 @@ export function loadCachedPatchPakResult(item: CachedPatchPak, willIdx: number):
     cacheDir: item.cacheDir,
     fromCache: true,
     skippedMalformedCount: stored.skippedMalformedIndices?.length || 0,
+    profileId: stored.profileId,
   };
 }
 
@@ -555,10 +565,12 @@ export function loadCachedPatchAssetTable(item: CachedPatchPak): CachedPatchAsse
     throw new Error(`${item.pakName} 的补丁缓存清单无效`);
   }
   const slotCount = stored.slotCount;
+  const rejectedIds = new Set(stored.skippedMalformedIndices || []);
   const table: CachedPatchAssetTable = {
     slotCount,
     present: new Uint8Array(slotCount),
     blank: new Uint8Array(slotCount),
+    rejected: new Uint8Array(slotCount),
     width: new Uint16Array(slotCount),
     height: new Uint16Array(slotCount),
     offsetX: new Int32Array(slotCount),
@@ -567,8 +579,10 @@ export function loadCachedPatchAssetTable(item: CachedPatchPak): CachedPatchAsse
   for (const asset of stored.assets) {
     const index = Number(asset.imageIdx);
     if (!Number.isInteger(index) || index < 0 || index >= slotCount) continue;
-    table.present[index] = 1;
-    table.blank[index] = asset.isBlank ? 1 : 0;
+    const rejected = !!asset.failureCode || rejectedIds.has(index);
+    table.present[index] = rejected ? 0 : 1;
+    table.blank[index] = !rejected && asset.isBlank ? 1 : 0;
+    table.rejected![index] = rejected ? 1 : 0;
     table.width[index] = Math.max(0, Math.min(65535, Math.trunc(Number(asset.width) || 0)));
     table.height[index] = Math.max(0, Math.min(65535, Math.trunc(Number(asset.height) || 0)));
     table.offsetX[index] = Math.trunc(Number(asset.offsetX) || 0);
@@ -717,6 +731,7 @@ function cachedPatchFromSummary(indexRoot: string, summary: ArchiveIndexSummary)
     format: summary.format, storedWillIdx: summary.storedWillIdx, slotCount: summary.slotCount,
     cachedAt: summary.createdAt, storageMode: 'direct', archiveId: summary.archiveId,
     sourceSize: summary.sourceSize, sourceMtimeMs: summary.sourceMtimeMs,
+    sourceCtimeMs: summary.sourceCtimeMs, companionCtimeMs: summary.companionCtimeMs,
     companionPath: summary.companionPath, companionSize: summary.companionSize,
     companionMtimeMs: summary.companionMtimeMs,
   };
@@ -829,6 +844,8 @@ function readPatchManifestHeader(manifestPath: string, cacheDir: string): Cached
       || !pakPath
       || (
         format !== 'GEE'
+        && format !== 'HXM'
+        && format !== 'PACK4'
         && format !== 'GOM'
         && format !== 'JPK'
         && format !== 'WIL'
@@ -860,8 +877,13 @@ function hasCompletePatchCache(item: CachedPatchPak): boolean {
     return !!item.archiveId && fs.existsSync(path.join(item.cacheDir, ARCHIVE_INDEX_FILE));
   }
   if (item.slotCount <= 0) return true;
-  return fs.existsSync(patchImagePath(item, 0))
-    && fs.existsSync(patchImagePath(item, item.slotCount - 1));
+  const endpoints = [0, item.slotCount - 1];
+  if (endpoints.every(id => fs.existsSync(patchImagePath(item, id)))) return true;
+  try {
+    const stored = JSON.parse(fs.readFileSync(item.manifestPath, 'utf8')) as StoredPatchManifest;
+    return endpoints.every(id => fs.existsSync(patchImagePath(item, id))
+      || stored.assets.some(asset => asset.imageIdx === id && !!asset.failureCode));
+  } catch { return false; }
 }
 
 function rebaseCachedAssetPath(asset: DecodedPakAsset, cacheDir: string): string {

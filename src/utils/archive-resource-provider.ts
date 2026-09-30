@@ -3,6 +3,7 @@ import * as os from 'os';
 import { DecodedPakAsset } from './pak-reader';
 import {
   loadArchiveSummary,
+  assertArchiveReadCurrent,
   readArchiveImagePng,
 } from './archive-index';
 import {
@@ -28,6 +29,7 @@ export class ArchiveResourceProvider implements vscode.FileSystemProvider, vscod
   private readonly pendingReads = new Map<string, Promise<Uint8Array>>();
   private readonly workerPool = new ArchiveImageWorkerPool();
   private cachedBytes = 0;
+  private disposed = false;
 
   readonly onDidChangeFile = this.changedEmitter.event;
 
@@ -74,8 +76,11 @@ export class ArchiveResourceProvider implements vscode.FileSystemProvider, vscod
   }
 
   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    if (this.disposed) throw new Error('素材资源读取器已关闭');
     const target = parseArchiveResourceUri(uri);
-    const key = `${target.archiveId}/${target.imageIndex}`;
+    const summary = loadArchiveSummary(this.indexRoot, target.archiveId);
+    assertArchiveReadCurrent(this.indexRoot, summary);
+    const key = `${target.archiveId}/${summary.indexGeneration}/${target.imageIndex}`;
     const cached = this.imageCache.get(key);
     if (cached) {
       cached.lastUsed = Date.now();
@@ -92,12 +97,16 @@ export class ArchiveResourceProvider implements vscode.FileSystemProvider, vscod
       indexRoot: this.indexRoot,
       archiveId: target.archiveId,
       imageIndex: target.imageIndex,
+      indexGeneration: summary.indexGeneration,
     };
     const read = this.workerPool.read(options).catch(error => {
+      if (this.disposed) throw error;
       if (error instanceof ArchiveWorkerDecodeError) throw error;
       console.warn('[BOO] 素材解码 Worker 不可用，改用兼容的单张解码:', error.message);
       return readArchiveImagePng(options);
     }).then(data => {
+      if (this.disposed) throw new Error('素材资源读取器已关闭');
+      assertArchiveReadCurrent(this.indexRoot, summary);
       const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
       this.remember(key, bytes);
       return bytes;
@@ -121,8 +130,9 @@ export class ArchiveResourceProvider implements vscode.FileSystemProvider, vscod
   }
 
   dispose(): void {
+    this.disposed = true;
     this.pendingReads.clear();
-    this.workerPool.dispose();
+    void this.workerPool.dispose();
     this.imageCache.clear();
     this.cachedBytes = 0;
     this.changedEmitter.dispose();

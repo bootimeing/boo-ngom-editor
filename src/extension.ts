@@ -30,10 +30,12 @@ import { cleanAllLogs } from './utils/log-cleaner';
 import { CsvEditorProvider } from './providers/csv-editor';
 import { XlsEditorProvider } from './providers/xls-editor';
 import { clearPakCache, loadPakIndex, matchPakFile } from './utils/pak';
-import { decodePakFully, DecodedPakAsset, DecodedPakResult } from './utils/pak-reader';
-import { openArchiveIndexed } from './utils/archive-index';
+import { decodePakFully, DecodedPakResult } from './utils/pak-reader';
+import { inspectArchiveSlots, openArchiveIndexed } from './utils/archive-index';
+import { archiveAssetUrlTemplate, buildArchiveAssetCatalog } from './utils/archive-asset-catalog';
 import {
   archiveAssetUri,
+  archiveResourceUri,
   ArchiveResourceProvider,
   ARCHIVE_RESOURCE_SCHEME,
   webviewResourceRoots,
@@ -45,6 +47,7 @@ import {
 import { disposeGmBridge, ensureGmBridge } from './utils/gm-bridge';
 import { TableEditorProvider } from './providers/table-editor';
 import { PatchManagerProvider } from './providers/patch-manager';
+import { ResourceEditorProvider, RESOURCE_EDITOR_OPEN_COMMAND } from './providers/resource-editor';
 import { MapPreviewProvider } from './providers/map-preview';
 import { MerchantMapLinkProvider } from './providers/merchant-map-link';
 import { registerNpcDialogVisualEditor } from './providers/npc-dialog-visual';
@@ -128,6 +131,7 @@ interface QuickImportAssetData {
   imageIdx?: number;
   pakName?: string;
   willIdx?: number;
+  archiveId?: string;
 }
 
 interface QuickImportData extends QuickImportAssetData {
@@ -212,9 +216,12 @@ export function activate(context: vscode.ExtensionContext) {
   resourceRootsSet.add(context.extensionPath);
   resourceRootsSet.add(path.join(context.extensionPath, 'media'));
 
-  const patchManagerProvider = new PatchManagerProvider(context);
+  const resourceEditorProvider = new ResourceEditorProvider(context);
+  const patchManagerProvider = new PatchManagerProvider(context, (archiveId, password) => resourceEditorProvider.openArchive(archiveId, password));
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('boo.patchView', patchManagerProvider)
+    resourceEditorProvider,
+    vscode.window.registerWebviewViewProvider('boo.patchView', patchManagerProvider),
+    vscode.commands.registerCommand(RESOURCE_EDITOR_OPEN_COMMAND, () => patchManagerProvider.openResourceEditor())
   );
   void patchManagerProvider.autoLoadOrCache();
 
@@ -715,7 +722,8 @@ ${tools.map(t => '<a class="t" href="command:' + t.cmd + '" title="' + t.desc + 
 // ========== 编辑器面板 ==========
 function openEditorPanel(context: vscode.ExtensionContext) {
   if (currentPanel) {
-    currentPanel.reveal(vscode.ViewColumn.Beside);
+    // Preserve the existing group, including its auxiliary window.
+    currentPanel.reveal(undefined, false);
     return;
   }
   createEditorPanel(context);
@@ -736,11 +744,73 @@ function createEditorPanel(context: vscode.ExtensionContext) {
     localResourceRoots: webviewResourceRoots(resourceRootsSet)
   });
 
-  currentPanel.webview.html = getWebviewContent(context, currentPanel.webview);
-
+  const editorPanel = currentPanel;
+  let readyDocumentId: string | undefined;
+  const moveToFloatingWindow = async () => {
+    // Keep the same panel; a cross-window iframe is restored by getState/ready.
+    await new Promise<void>(resolve => setTimeout(resolve, 350));
+    if (currentPanel !== editorPanel) return;
+    const command = 'workbench.action.moveEditorToNewWindow';
+    try {
+      const commands = await vscode.commands.getCommands(true);
+      if (currentPanel !== editorPanel) return;
+      if (!commands.includes(command)) {
+        void vscode.window.showInformationMessage('当前 VS Code 不支持独立窗口，UI 编辑器保留在标签页。');
+        return;
+      }
+      // No await between reveal and the active-editor command.
+      editorPanel.reveal(undefined, false);
+      await vscode.commands.executeCommand(command);
+    } catch {
+      if (currentPanel === editorPanel) {
+        void vscode.window.showInformationMessage('未能打开独立窗口，UI 编辑器仍可在标签页使用。');
+      }
+    }
+  };
+  const quickImportPickers = new Map<string, { requestId: number; sessionId: number }>();
   currentPanel.webview.onDidReceiveMessage(async (message: WebviewMessage) => {
-    if (!currentPanel) return;
+    if (!currentPanel || currentPanel !== editorPanel) return;
     switch (message.type) {
+      case 'ready': {
+        const documentId = message.documentId;
+        if (typeof documentId !== 'string' || !documentId || documentId.length > 128
+          || documentId === readyDocumentId) break;
+        const firstDocument = readyDocumentId === undefined;
+        readyDocumentId = documentId;
+        // A picker from a destroyed document must not resolve into the next one,
+        // whose local request/session counters may start at the same values.
+        quickImportPickers.clear();
+        if (firstDocument) {
+          restoreOpenedPakFiles(editorPanel, context);
+          void moveToFloatingWindow();
+        } else {
+          // VS Code rebuilds the DOM on cross-window moves. Replay the compact
+          // current catalog, including empty state, without re-reading packages.
+          postLoadedPakAssets(editorPanel);
+        }
+        break;
+      }
+      case 'inspectArchiveSlots': {
+        const panel = currentPanel;
+        const { archiveId, indexGeneration, requestId, assetGeneration, indices } = message;
+        // The webview may inspect only its opened packages, never arbitrary caches or paths.
+        const opened = [...loadedPakResults.values()].find(item => item.archiveId === archiveId
+          && item.indexGeneration === indexGeneration && item.storageMode === 'direct');
+        if (!opened || typeof archiveId !== 'string' || typeof indexGeneration !== 'string'
+          || !Number.isSafeInteger(requestId) || !Number.isSafeInteger(assetGeneration) || !Array.isArray(indices)) break;
+        const response = { type: 'archiveSlotsInspected', command: 'archiveSlotsInspected',
+          requestId, assetGeneration, archiveId, indexGeneration };
+        try {
+          const slots = inspectArchiveSlots(getArchiveIndexRoot(context), archiveId, indexGeneration, indices as number[]);
+          if (panel === currentPanel && loadedPakResults.get(normalizePakPath(opened.pakPath)) === opened) {
+            void panel.webview.postMessage({ ...response, slots });
+          }
+        } catch {
+          // A stale/unreadable cache is not evidence that a particular image is corrupt.
+          if (panel === currentPanel) void panel.webview.postMessage({ ...response, error: '素材状态已变化或无法读取，请重新读取资源包' });
+        }
+        break;
+      }
       case 'openPakFiles':
         await handleOpenPakFiles(currentPanel!, context);
         break;
@@ -781,32 +851,40 @@ function createEditorPanel(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage((message.text as string) || '发生错误');
         break;
       case 'selectQuickImportFile': {
+        const { importType, subType, requestId, sessionId } = message;
+        if (!Number.isSafeInteger(requestId) || (requestId as number) <= 0
+          || !Number.isSafeInteger(sessionId) || (sessionId as number) <= 0
+          || !(importType === 'progressBar' ? subType === 'bg' || subType === 'fill'
+            : (importType === 'closeBtn' || importType === 'equipFrame') && !subType)) break;
+        const panel = currentPanel, engine = loadedPakEngine, operationVersion = archiveOperationVersion;
+        const key = `${importType}:${subType || ''}`;
+        const ticket = { requestId: requestId as number, sessionId: sessionId as number };
+        quickImportPickers.set(key, ticket);
+        const stillCurrent = () => currentPanel === panel && loadedPakEngine === engine
+          && archiveOperationVersion === operationVersion && quickImportPickers.get(key) === ticket;
+        const response = { type: 'loadQuickImport', importType, subType, requestId, sessionId };
         const typeLabels: Record<string, string> = { 'closeBtn': '关闭按钮', 'equipFrame': '装备框', 'progressBar': '进度条' };
-        const label = typeLabels[message.importType as string] || '文件';
-        const result = await vscode.window.showOpenDialog({
-          canSelectFiles: true, canSelectFolders: false, canSelectMany: false,
-          openLabel: '选择' + label + '图片',
-          filters: { '图片文件': ['png', 'gif', 'bmp', 'jpg', 'jpeg'] }
-        });
-        if (result && result.length > 0) {
-          const filePath = result[0].fsPath;
-          const fileDir = path.dirname(filePath);
-          resourceRootsSet.add(fileDir);
-          currentPanel!.webview.options = {
-            enableScripts: true,
-            localResourceRoots: webviewResourceRoots(resourceRootsSet)
-          };
-          const uri = currentPanel!.webview.asWebviewUri(vscode.Uri.file(filePath));
-          currentPanel!.webview.postMessage({
-            type: 'loadQuickImport', importType: message.importType as string, subType: message.subType as string | undefined,
-            name: path.basename(filePath), url: uri.toString(), filePath
+        try {
+          const result = await vscode.window.showOpenDialog({
+            canSelectFiles: true, canSelectFolders: false, canSelectMany: false,
+            openLabel: '选择' + typeLabels[importType as string] + '图片',
+            filters: { '图片文件': ['png', 'gif', 'bmp', 'jpg', 'jpeg'] }
           });
-          // 进度条需要等待背景图和填充图都确认后再整体保存。
-          if (message.importType !== 'progressBar') {
-            const quickImports = readQuickImports(context, loadedPakEngine);
-            quickImports[message.importType as string] = { name: path.basename(filePath), filePath };
-            await context.workspaceState.update(quickImportsStateKey(loadedPakEngine), quickImports);
+          if (!stillCurrent()) break;
+          if (!result?.length) {
+            void panel.webview.postMessage({ ...response, cancelled: true });
+          } else {
+            const filePath = result[0].fsPath;
+            resourceRootsSet.add(path.dirname(filePath));
+            panel.webview.options = { enableScripts: true, localResourceRoots: webviewResourceRoots(resourceRootsSet) };
+            const uri = panel.webview.asWebviewUri(vscode.Uri.file(filePath));
+            // Selection is a modal draft; only explicit saveQuickImport confirms it.
+            void panel.webview.postMessage({ ...response, name: path.basename(filePath), url: uri.toString(), filePath });
           }
+        } catch {
+          if (stillCurrent()) void panel.webview.postMessage({ ...response, error: '无法读取所选图片，请重试' });
+        } finally {
+          if (quickImportPickers.get(key) === ticket) quickImportPickers.delete(key);
         }
         break;
       }
@@ -872,13 +950,19 @@ function createEditorPanel(context: vscode.ExtensionContext) {
       }
       case 'saveQuickImport': {
         // 保存快捷导入（来自PAK或默认素材选择）
+        if (!['closeBtn', 'equipFrame', 'progressBar'].includes(message.importType as string)) break;
         const qi = readQuickImports(context, loadedPakEngine);
-        const structuredData = message.data && typeof message.data === 'object'
+        const structuredData = message.importType === 'progressBar' && message.data && typeof message.data === 'object'
           ? message.data as QuickImportData
           : undefined;
         qi[message.importType as string] = structuredData || {
-          name: message.name as string,
-          filePath: (message.filePath as string) || '',
+          name: typeof message.name === 'string' ? message.name : '',
+          filePath: typeof message.filePath === 'string' ? message.filePath : '',
+          imageIdx: Number.isSafeInteger(message.imageIdx) && (message.imageIdx as number) >= 0 ? message.imageIdx as number : undefined,
+          willIdx: Number.isSafeInteger(message.willIdx) && (message.willIdx as number) >= 0 ? message.willIdx as number : undefined,
+          pakName: typeof message.pakName === 'string' ? message.pakName : undefined,
+          archiveId: typeof message.archiveId === 'string' && /^[a-f0-9]{64}$/.test(message.archiveId) ? message.archiveId : undefined,
+          isDefault: message.isDefault === true,
         };
         await context.workspaceState.update(quickImportsStateKey(loadedPakEngine), qi);
         break;
@@ -901,7 +985,10 @@ function createEditorPanel(context: vscode.ExtensionContext) {
             imports[type] = { ...data, bg: hydrate(data.bg), fill: hydrate(data.fill) };
             continue;
           }
-          if (data.filePath && fs.existsSync(data.filePath)) {
+          if (Number.isSafeInteger(data.imageIdx) && (data.imageIdx as number) >= 0 && data.pakName) {
+            // Direct archive slots have no exported PNG path; resolve after the current catalog arrives.
+            imports[type] = { ...data, url: '' };
+          } else if (data.filePath && fs.existsSync(data.filePath)) {
             resourceRootsSet.add(path.dirname(data.filePath));
             const uri = currentPanel!.webview.asWebviewUri(vscode.Uri.file(data.filePath));
             imports[type] = { ...data, url: uri.toString() };
@@ -924,11 +1011,13 @@ function createEditorPanel(context: vscode.ExtensionContext) {
   }, undefined, context.subscriptions);
 
   currentPanel.onDidDispose(() => {
+    if (currentPanel !== editorPanel) return;
     currentPanel = undefined;
     loadedPakResults.clear();
   }, null, context.subscriptions);
 
-  restoreOpenedPakFiles(currentPanel, context);
+  // Install listeners before HTML: initialization messages can arrive immediately.
+  editorPanel.webview.html = getWebviewContent(context, editorPanel.webview);
 }
 
 function restoreOpenedPakFiles(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
@@ -1503,13 +1592,14 @@ async function loadPakFiles(
 
 function postLoadedPakAssets(panel: vscode.WebviewPanel) {
   const decoded = [...loadedPakResults.values()].sort((left, right) => left.willIdx - right.willIdx);
-  const assets: DecodedPakAsset[] = decoded.flatMap(item => item.assets);
-  const files = assets.map(asset => {
-    const resourceUri = archiveAssetUri(asset) || vscode.Uri.file(asset.path);
-    return {
-      ...asset,
-      url: panel.webview.asWebviewUri(resourceUri).toString(),
-    };
+  const assetCatalog = buildArchiveAssetCatalog(decoded, {
+    directTemplate: archiveId => archiveAssetUrlTemplate(
+      panel.webview.asWebviewUri(archiveResourceUri(archiveId, 0)).toString()
+    ),
+    fileUrl: asset => {
+      const resourceUri = archiveAssetUri(asset) || (asset.path ? vscode.Uri.file(asset.path) : undefined);
+      return resourceUri ? panel.webview.asWebviewUri(resourceUri).toString() : '';
+    },
   });
   const pakList = decoded
     .map(item => ({ name: item.pakName, willIdx: item.willIdx }))
@@ -1520,10 +1610,10 @@ function postLoadedPakAssets(panel: vscode.WebviewPanel) {
     : `未打开 ${archiveLabel}`;
   panel.webview.postMessage({
     type: 'loadAssets',
-    files,
+    assetCatalog,
     folderName,
     folderPath: '',
-    totalCount: files.length,
+    totalCount: decoded.reduce((sum, item) => sum + item.assets.length, 0),
     pakMode: true,
     pakList,
     sourceType: loadedPakEngine === '996PC' ? 'jpk' : 'pak',
@@ -1698,9 +1788,9 @@ function getWebviewContent(context: vscode.ExtensionContext, webview: vscode.Web
   const htmlPath = path.join(context.extensionPath, 'media', 'editor.html');
   let html = fs.readFileSync(htmlPath, 'utf8');
   html = html.replace(/{{CSP_SOURCE}}/g, webview.cspSource);
-  const baseUri = webview.asWebviewUri(vscode.Uri.file(context.extensionPath));
-  html = html.replace(/src="resources\//g, 'src="' + baseUri + 'resources/');
-  html = html.replace(/href="resources\//g, 'href="' + baseUri + 'resources/');
+  const resourcesUri = webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'resources')));
+  html = html.replace(/src="resources\//g, 'src="' + resourcesUri + '/');
+  html = html.replace(/href="resources\//g, 'href="' + resourcesUri + '/');
   return secureWebviewHtml(webview, html, { allowInlineEventHandlers: true });
 }
 

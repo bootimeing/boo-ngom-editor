@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "sourceFamily": "GxxSource/GameOfGeeM2",
+  "encoding": "GBK",
+  "boundary": "Version-pinned evidence, not a universal specification or a redistribution of engine source.",
+  "files": [
+    {
+      "path": "Client-HGE/ReadResources/Pak.pas",
+      "sha256": "060f8be6ead4665774220f503b68595df40ef65c1d0f57076bed3d4d0448b4df",
+      "evidence": [
+        { "lines": [30, 111], "meaning": "Packed global, V0/V1 image and index records" },
+        { "lines": [476, 480], "meaning": "Accepted Lz password check strings" },
+        { "lines": [800, 899], "meaning": "Active signature, header and single-byte Lz version selection" },
+        { "lines": [1259, 1268], "meaning": "Active ReadImageHeader uses a fresh feedback state for both V0 and V1" },
+        { "lines": [1403, 1489], "meaning": "Active index layouts and transform routing" },
+        { "lines": [1499, 1524], "meaning": "WriteHeader is explicitly noted as buggy and unused; not authoritative writer evidence" },
+        { "lines": [2188, 2198], "meaning": "ReadLzImageHeader is commented out; not an active call path" },
+        { "lines": [2200, 2468], "meaning": "V0/V1 validation, raw/zlib/RLE and alpha layouts; implementation limits require separate checks" },
+        { "lines": [2471, 2539], "meaning": "Active V0/V1 image-header and payload loading" }
+      ]
+    },
+    { "path": "Common/UnitDes.pas", "sha256": "c6113c3b731c7abd91a741d68603d8423c6c74a8c8fe0601ab16e3f39ba24087", "role": "Feedback crypto reference; not a claim that all PAK uses standard CBC" },
+    { "path": "Common/RLEUnit.pas", "sha256": "db104e56e84ac7ca6b4f8600ff1b7cdefa18d3cfa25ed8d51cdf92d706d3cab6", "role": "V0 RLE packet semantics; BOO adds input/output bounds and rejects ambiguous non-aligned multi-row copying" },
+    { "path": "Client-HGE/ReadResources/GameImages.pas", "sha256": "5ddfbc7bb4b92bb249093d39fd1c8b04fb23816e50f0b14e92c4da1e54a23799", "evidence": [
+      { "lines": [1024, 1088], "meaning": "Active DIB factory: both pf15bit and pf16bit use 565, not assumed 555" },
+      { "lines": [1757, 1774], "meaning": "Active RGB565 lookup construction uses left shifts without low-bit replication; zero is transparent" }
+    ] },
+    { "path": "Client-HGE/ReadResources/DesUtils.pas", "sha256": "48dc00be56f7b5236678797865c1e5eb552826c7995f40cd379454637970ed37", "role": "GEE2 transform reference" },
+    { "path": "Client-HGE/DxComponent/DIB.pas", "sha256": "06bfa53dbac552faeb6eb1b660b938b841926f86ec3ae348f8a78213c8e47ed6", "role": "Bitmap allocation and row-layout reference" },
+    { "path": "Client-HGE/DxComponent/DxCanvas.pas", "sha256": "5cde3ffd217f9ef68a2c01fa3cb85c88ca9b312faa9a9306cf8c7ed28f34faa7", "role": "Pixel conversion and transparency reference" }
+  ]
+}

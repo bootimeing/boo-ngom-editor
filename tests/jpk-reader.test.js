@@ -12,6 +12,7 @@ const {
   renderJpkRgba,
 } = require('../out/utils/jpk-reader');
 const { decodePakFully } = require('../out/utils/pak-reader');
+const { openArchiveIndexed, readArchiveImagePng } = require('../out/utils/archive-index');
 const geeParser = require('../media/geepak3_exact.js');
 
 function imageBlock(state, options) {
@@ -151,9 +152,32 @@ async function main() {
       assert.equal(trailerArchive.slotCount, 4);
     }
 
-    const invalidTrailerPath = path.join(root, 'Invalid-Trailer.jpk');
-    buildFixture(invalidTrailerPath, password, { trailerWordCount: 4, invalidTrailer: true });
-    assert.throws(() => parseJpkFile(invalidTrailerPath, password), /尾部|边界/);
+    // Real edited GameLib files retain stale index words after the active table.
+    // The declared count, not a sentinel or the physical EOF, owns logical IDs.
+    for (const [name, tail] of [
+      ['zero-padding', Buffer.alloc(80)],
+      ['stale-index', Buffer.alloc(3364, 0xff)],
+      ['opaque-tail', Buffer.from([1, 2, 3])],
+    ]) {
+      const file = path.join(root, `${name}.jpk`);
+      fs.writeFileSync(file, Buffer.concat([fs.readFileSync(jpkPath), tail]));
+      const archive = parseJpkFile(file, password);
+      assert.equal(archive.trailerSize, tail.length);
+      assert.equal(archive.slotCount, 4);
+      assert.deepEqual(archive.blocks, parsed.blocks, 'tail bytes cannot add or shift slots');
+    }
+    const legacyTrailerPath = path.join(root, 'Different-Trailer-Word.jpk');
+    buildFixture(legacyTrailerPath, password, { trailerWordCount: 4, invalidTrailer: true });
+    assert.deepEqual(parseJpkFile(legacyTrailerPath, password).blocks, parsed.blocks);
+
+    const invalidIndexPath = path.join(root, 'Invalid-Active-Index.jpk');
+    const invalidIndex = fs.readFileSync(jpkPath);
+    invalidIndex.writeUInt32LE(parsed.indexOffset, parsed.indexOffset);
+    fs.writeFileSync(invalidIndexPath, invalidIndex);
+    assert.throws(() => parseJpkFile(invalidIndexPath, password), /块头偏移越界/,
+      'trailer tolerance must never forgive an out-of-range active pointer');
+    fs.writeFileSync(invalidIndexPath, fs.readFileSync(jpkPath).subarray(0, -1));
+    assert.throws(() => parseJpkFile(invalidIndexPath, password), /索引边界异常/);
 
     const m2Path = path.join(root, '996M2.jpk');
     buildFixture(m2Path, password, { title: '996M2 GameLib 2021/07/27' });
@@ -214,6 +238,55 @@ async function main() {
       [...fs.readFileSync(result.assets[0].path).subarray(0, 8)],
       [137, 80, 78, 71, 13, 10, 26, 10]
     );
+
+    const partialPath = path.join(root, 'Partial.jpk');
+    const partial = Buffer.concat([fs.readFileSync(jpkPath), Buffer.alloc(3364)]);
+    // A wiped record and a damaged zlib stream, followed by a healthy frame.
+    partial.fill(0, parsed.blocks[1].headerOffset, parsed.blocks[1].payloadOffset);
+    partial[parsed.blocks[0].payloadOffset] ^= 0xff;
+    fs.writeFileSync(partialPath, partial);
+    const partialArchive = parseJpkFile(partialPath, password);
+    assert.equal(partialArchive.slotCount, 4);
+    assert.deepEqual(partialArchive.skippedMalformedIndices, [2]);
+    assert.deepEqual(partialArchive.blocks.map(block => block.logicalIndex), [0, 3]);
+    const hash = data => require('node:crypto').createHash('sha256').update(data).digest('hex');
+    const sourceHash = hash(partial);
+    const indexRoot = path.join(root, 'direct');
+    const options = { extensionPath: path.resolve('.'), pakPath: partialPath, password, willIdx: 7 };
+    const direct = await openArchiveIndexed({ ...options, indexRoot });
+    assert.equal(direct.skippedMalformedCount, 1);
+    assert.deepEqual(direct.assets.map(asset => asset.imageIdx), [0, 1, 2, 3]);
+    assert.deepEqual(direct.assets.map(asset => asset.decodeStatus), ['indexed-unverified', 'empty', 'corrupt', 'indexed-unverified']);
+    const read = imageIndex => readArchiveImagePng({
+      extensionPath: path.resolve('.'), indexRoot, archiveId: direct.archiveId, imageIndex,
+    });
+    await assert.rejects(() => read(0), /zlib/, 'direct reads report the damaged frame');
+    await assert.rejects(() => read(2), /invalid-image-header/, 'known bad header is not an empty frame');
+    assert.deepEqual(await read(3), fs.readFileSync(result.assets[3].path));
+    const cachedDirect = await openArchiveIndexed({ ...options, indexRoot });
+    assert.equal(cachedDirect.fromCache, true);
+    assert.equal(cachedDirect.skippedMalformedCount, 1);
+
+    const legacyOptions = { ...options, cacheRoot: path.join(root, 'partial-cache') };
+    const recovered = await decodePakFully(legacyOptions);
+    assert.equal(recovered.skippedMalformedCount, 2);
+    assert.deepEqual(recovered.assets.map(asset => asset.isBlank), [false, true, false, false]);
+    assert.deepEqual(recovered.assets.map(asset => asset.decodeStatus), ['corrupt', 'empty', 'corrupt', 'decoded']);
+    assert.equal(recovered.assets[0].path, '');
+    assert.equal(recovered.assets[2].path, '');
+    assert.deepEqual([recovered.assets[0].width, recovered.assets[0].height, recovered.assets[0].offsetX, recovered.assets[0].offsetY],
+      [partialArchive.blocks[0].width, partialArchive.blocks[0].height, partialArchive.blocks[0].x, partialArchive.blocks[0].y],
+      'a payload error must not discard dimensions/offsets from its validated header');
+    assert.deepEqual(fs.readFileSync(recovered.assets[3].path), fs.readFileSync(result.assets[3].path));
+    const cachedLegacy = await decodePakFully(legacyOptions);
+    assert.equal(cachedLegacy.fromCache, true);
+    assert.equal(cachedLegacy.skippedMalformedCount, 2);
+    const { listCachedPatchPaks, isPatchCacheCurrent } = require('../out/utils/patch-cache');
+    const legacyEntries = listCachedPatchPaks(legacyOptions.cacheRoot);
+    assert.equal(legacyEntries.length, 1);
+    assert.equal(isPatchCacheCurrent(legacyEntries[0]), true, 'an explicitly failed first image must not invalidate healthy later PNGs');
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(recovered.cacheDir, 'manifest.json'))).skippedMalformedIndices, [0, 2]);
+    assert.equal(hash(fs.readFileSync(partialPath)), sourceHash, 'reading cannot repair/write the input file');
   } finally {
     const resolvedRoot = path.resolve(root);
     if (resolvedRoot.startsWith(path.resolve(os.tmpdir()) + path.sep)) {

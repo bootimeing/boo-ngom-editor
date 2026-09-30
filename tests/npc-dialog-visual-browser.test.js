@@ -219,7 +219,7 @@ function hydrateDomFixture(model, imageUrl) {
       element.asset = {
         status: 'missing',
         archiveLabel: 'NewopUI.Pak/000010',
-        message: '素材未缓存或缓存已失效',
+        message: '该图片槽损坏或布局不受支持，不是空帧',
       };
     }
   }
@@ -919,6 +919,9 @@ window.acquireVsCodeApi = function () {
     if (!root || !child || !item || !progress || !animatedProgress || !staticProgress || !imageCountdown || !imageNumber || !textAtlas || !slider || !loadingStyle || !loadingHidden || !loadingAnimated || !variablePreview || !coloredFlow || !costItem || !itemShowOn || !itemShowOff || !verticalList || !horizontalList || !disabledHorizontalList || !flowLayout) throw new Error('fixture elements missing: ' + Object.entries({root,child,item,progress,animatedProgress,staticProgress,imageCountdown,imageNumber,textAtlas,slider,loadingStyle,loadingHidden,loadingAnimated,variablePreview,coloredFlow,costItem,itemShowOn,itemShowOff,verticalList,horizontalList,disabledHorizontalList,flowLayout}).filter(entry => !entry[1]).map(entry => entry[0]).join(','));
     if (!variablePreview.editable || node(variablePreview.id).classList.contains('locked')) {
       throw new Error('variable preview with literal source coordinates remained locked');
+    }
+    if (node(child.id).querySelector('img') || !node(child.id).querySelector('.element-placeholder')) {
+      throw new Error('rejected archive slot must show a missing placeholder, not a transparent image');
     }
     var coloredFlowNode = node(coloredFlow.id);
     var coloredFlowRuns = coloredFlowNode

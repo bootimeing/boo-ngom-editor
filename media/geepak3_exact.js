@@ -10,6 +10,18 @@
   const PASSWORD = 'QQ1167746';
   const HEADER_SIZE = 266;
 
+  // Same wire contract as archive-errors.ts; this module also runs without Node in Webviews.
+  function archiveError(message, stage, reasonCode, details = {}) {
+    const error = new Error(message);
+    error.name = 'ArchiveStructureError';
+    const diagnostic = { stage, reasonCode, family: 'GEE' };
+    for (const key of ['logicalIndex', 'offset', 'length']) {
+      if (Number.isSafeInteger(details[key]) && details[key] >= 0) diagnostic[key] = details[key];
+    }
+    error.diagnostic = Object.freeze(diagnostic);
+    return error;
+  }
+
   function base64Bytes(value) {
     if (typeof Buffer !== 'undefined') return new Uint8Array(Buffer.from(value, 'base64'));
     const binary = atob(value);
@@ -56,7 +68,7 @@
 
   function titleFrom(plain) {
     const length = plain[1];
-    if (2 + length > plain.length) throw new Error('GEE global title length is invalid');
+    if (2 + length > plain.length) throw archiveError('GEE global title length is invalid', 'global-header', 'password-or-profile-mismatch');
     let result = '';
     for (let i = 0; i < length; i++) result += String.fromCharCode(plain[2 + i]);
     return result;
@@ -89,11 +101,11 @@
       '7:1': 'GEE_A8R8G8B8',
     };
     const result = formats[imageType + ':' + flags];
-    if (!result) throw new Error(`unsupported GEE image format type=${imageType}, flags=${flags}`);
+    if (!result) throw archiveError(`unsupported GEE image format type=${imageType}, flags=${flags}`, 'image-header', 'unsupported-image-layout');
     return result;
   }
 
-  function rawImageSize(imageType, flags, width, height) {
+  function rawImageSize(imageType, flags, width, height, details = {}) {
     let rowSize;
     if (imageType === 3 && flags === 0) rowSize = (width + 3) & ~3;
     else if (imageType === 5 && flags === 0) rowSize = (width * 2 + 3) & ~3;
@@ -101,7 +113,7 @@
     else if (imageType === 6 && flags === 1) {
       rowSize = ((width * 3 + 3) & ~3) + ((width + 3) & ~3);
     } else if (imageType === 7 && (flags === 0 || flags === 1)) rowSize = width * 4;
-    else throw new Error(`unsupported GEE image layout type=${imageType}, flags=${flags}`);
+    else throw archiveError(`unsupported GEE image layout type=${imageType}, flags=${flags}`, 'image-header', 'unsupported-image-layout', details);
     return rowSize * height;
   }
 
@@ -112,7 +124,7 @@
   function decodeProfileBytes(value, name, expectedLength) {
     const bytes = value instanceof Uint8Array ? value : base64Bytes(value || '');
     if (bytes.length !== expectedLength) {
-      throw new Error(`PAK 离线引擎返回的 ${name} 长度无效：${bytes.length}`);
+      throw archiveError(`PAK 离线引擎返回的 ${name} 长度无效：${bytes.length}`, 'runtime', 'missing-runtime-data');
     }
     return bytes;
   }
@@ -120,7 +132,7 @@
   function profileKeys(password, profile) {
     if (!profile) {
       if (password !== PASSWORD) {
-        throw new Error('当前密码需要 PAK 离线引擎派生密钥');
+        throw archiveError('当前密码需要 PAK 离线引擎派生密钥', 'runtime', 'missing-runtime-data');
       }
       return { indexKey: INDEX_KEY, globalKey: GLOBAL_KEY, imageKey: IMAGE_KEY };
     }
@@ -145,10 +157,10 @@
   function parseGee2FromReader(fileSize, read, profile, prefix = null) {
     const headerPrefix = prefix || read(0, HEADER_SIZE);
     if (!hasSignature(headerPrefix, SIGNATURE_V2)) {
-      throw new Error('不是有效的 GEEPAK2 文件');
+      throw archiveError('不是有效的 GEEPAK2 文件', 'global-header', 'unsupported-global-header', { offset: 0, length: HEADER_SIZE });
     }
     if (!profile || profile.format !== 'GEEPAK2' || profile.family !== 'gee2') {
-      throw new Error('GEEPAK2 需要离线引擎返回精确索引');
+      throw archiveError('GEEPAK2 需要离线引擎返回精确索引', 'runtime', 'missing-runtime-data');
     }
     const fields = {
       title: String(profile.title || ''),
@@ -158,7 +170,7 @@
       indexOffset: Number(profile.indexOffset),
     };
     if (!Number.isInteger(fields.count) || !validGlobal(fields, fileSize)) {
-      throw new Error('PAK 离线引擎返回的 GEEPAK2 全局头无效');
+      throw archiveError('PAK 离线引擎返回的 GEEPAK2 全局头无效', 'global-header', 'unsupported-global-header');
     }
     const imageMask = decodeProfileBytes(profile.imageHeaderMask, 'GEEPAK2 imageHeaderMask', 8);
     const decryptedIndex = decodeProfileBytes(
@@ -175,9 +187,9 @@
       offsets[logicalIndex] = headerOffset;
       if (headerOffset === 0) continue;
       if (headerOffset < indexEnd || headerOffset + 16 > fileSize) {
-        throw new Error(`图像 ${logicalIndex} 的 GEEPAK2 块头越界`);
+        throw archiveError(`图像 ${logicalIndex} 的 GEEPAK2 块头越界`, 'index', 'index-out-of-bounds', { logicalIndex, offset: headerOffset, length: 16 });
       }
-      if (seenOffsets.has(headerOffset)) throw new Error(`图像 ${logicalIndex} 的块偏移重复`);
+      if (seenOffsets.has(headerOffset)) throw archiveError(`图像 ${logicalIndex} 的块偏移重复`, 'index', 'duplicate-offset', { logicalIndex, offset: headerOffset, length: 16 });
       seenOffsets.add(headerOffset);
       entries.push({ logicalIndex, headerOffset });
     }
@@ -199,23 +211,23 @@
       const y = i16(decrypted, 10);
       const compressedSize = u32(decrypted, 12);
       if (width < 1 || height < 1 || width > 4096 || height > 4096) {
-        throw new Error(`图像 ${logicalIndex} 的尺寸无效：${width}x${height}`);
+        throw archiveError(`图像 ${logicalIndex} 的尺寸无效：${width}x${height}`, 'image-header', 'invalid-dimensions', { logicalIndex, offset: headerOffset, length: 16 });
       }
-      const rawSize = rawImageSize(imageType, flags, width, height);
+      const rawSize = rawImageSize(imageType, flags, width, height, { logicalIndex, offset: headerOffset, length: 16 });
       const payloadSize = compressedSize || rawSize;
       const payloadOffset = headerOffset + 16;
       if (payloadSize < 1 || payloadOffset + payloadSize > fileSize) {
-        throw new Error(`图像 ${logicalIndex} 的数据越界`);
+        throw archiveError(`图像 ${logicalIndex} 的数据越界`, 'image-header', 'payload-out-of-bounds', { logicalIndex, offset: payloadOffset, length: payloadSize });
       }
       const nextHeaderOffset = entries[entryIndex + 1]?.headerOffset || fileSize;
       if (payloadOffset + payloadSize > nextHeaderOffset) {
-        throw new Error(`图像 ${logicalIndex} 的数据与下一个图像块重叠`);
+        throw archiveError(`图像 ${logicalIndex} 的数据与下一个图像块重叠`, 'image-header', 'overlapping-blocks', { logicalIndex, offset: payloadOffset, length: payloadSize });
       }
       if (compressedSize) {
         const zlibHeader = read(payloadOffset, 2);
         const cmf = zlibHeader[0], flg = zlibHeader[1];
         if ((cmf & 0x0f) !== 8 || ((cmf << 8) + flg) % 31 !== 0) {
-          throw new Error(`图像 ${logicalIndex} 的 zlib 头无效`);
+          throw archiveError(`图像 ${logicalIndex} 的 zlib 头无效`, 'image-header', 'invalid-compression-header', { logicalIndex, offset: payloadOffset, length: compressedSize });
         }
       }
       blocks.push({
@@ -230,7 +242,7 @@
 
   function parse(bytes, password, profile = null) {
     if (!(bytes instanceof Uint8Array)) bytes = new Uint8Array(bytes);
-    if (bytes.length < HEADER_SIZE) throw new Error('GEE 文件长度无效');
+    if (bytes.length < HEADER_SIZE) throw archiveError('GEE 文件长度无效', 'global-header', 'truncated-data', { offset: 0, length: HEADER_SIZE });
     if (hasSignature(bytes, SIGNATURE_V2)) {
       return parseGee2FromReader(
         bytes.length,
@@ -239,10 +251,10 @@
         bytes.subarray(0, HEADER_SIZE)
       );
     }
-    const keys = profileKeys(password, profile);
     if (!hasSignature(bytes, SIGNATURE_V3)) {
-      throw new Error('不是有效的 GEEPAK3 文件');
+      throw archiveError('不是有效的 GEEPAK3 文件', 'global-header', 'unsupported-global-header', { offset: 0, length: HEADER_SIZE });
     }
+    const keys = profileKeys(password, profile);
 
     let plain = new Uint8Array(256);
     for (let i = 0; i < 256; i++) plain[i] = bytes[10 + i] ^ keys.globalKey[i];
@@ -264,7 +276,7 @@
       }
     }
     if (!validGlobal(fields, bytes.length)) {
-      throw new Error('GEE 全局头校验失败：密码不正确或属于尚未支持的加密变体');
+      throw archiveError('GEE 全局头校验失败：密码不正确或属于尚未支持的加密变体', 'global-header', 'password-or-profile-mismatch', { offset: 10, length: 256 });
     }
 
     const offsets = new Uint32Array(fields.count);
@@ -278,11 +290,14 @@
 
     const blocks = [];
     const seenOffsets = new Set();
+    const physicalOffsets = Array.from(offsets).filter(offset => offset !== 0).sort((a, b) => a - b);
+    const blockEnds = new Map(physicalOffsets.map((offset, i) => [offset, physicalOffsets[i + 1] || bytes.length]));
     for (let logicalIndex = 0; logicalIndex < offsets.length; logicalIndex++) {
       const headerOffset = offsets[logicalIndex];
       if (headerOffset === 0) continue;
-      if (headerOffset + 16 > bytes.length) throw new Error(`图像 ${logicalIndex} 的块头越界`);
-      if (seenOffsets.has(headerOffset)) throw new Error(`图像 ${logicalIndex} 的块偏移重复`);
+      if (headerOffset < fields.indexOffset + fields.count * 4 || headerOffset + 16 > bytes.length) throw archiveError(`图像 ${logicalIndex} 的块头越界`, 'index', 'index-out-of-bounds', { logicalIndex, offset: headerOffset, length: 16 });
+      if (headerOffset + 16 > blockEnds.get(headerOffset)) throw archiveError(`图像 ${logicalIndex} 的块重叠`, 'image-header', 'overlapping-blocks', { logicalIndex, offset: headerOffset, length: 16 });
+      if (seenOffsets.has(headerOffset)) throw archiveError(`图像 ${logicalIndex} 的块偏移重复`, 'index', 'duplicate-offset', { logicalIndex, offset: headerOffset, length: 16 });
       seenOffsets.add(headerOffset);
 
       const decrypted = new Uint8Array(16);
@@ -302,16 +317,18 @@
       const y = family === 'legacy' ? 0 : i16(decrypted, 10);
       const compressedSize = u32(decrypted, 12);
       if (width < 1 || height < 1 || width > 4096 || height > 4096) {
-        throw new Error(`图像 ${logicalIndex} 的尺寸无效：${width}x${height}`);
+        throw archiveError(`图像 ${logicalIndex} 的尺寸无效：${width}x${height}`, 'image-header', 'invalid-dimensions', { logicalIndex, offset: headerOffset, length: 16 });
       }
-      const rawSize = rawImageSize(imageType, flags, width, height);
+      const rawSize = rawImageSize(imageType, flags, width, height, { logicalIndex, offset: headerOffset, length: 16 });
       const payloadSize = compressedSize || rawSize;
       const payloadOffset = headerOffset + 16;
-      if (payloadOffset + payloadSize > bytes.length) throw new Error(`图像 ${logicalIndex} 的数据越界`);
+      if (payloadOffset + payloadSize > bytes.length) throw archiveError(`图像 ${logicalIndex} 的数据越界`, 'image-header', 'payload-out-of-bounds', { logicalIndex, offset: payloadOffset, length: payloadSize });
+      if (payloadOffset + payloadSize > blockEnds.get(headerOffset)) throw archiveError(`图像 ${logicalIndex} 的块重叠`, 'image-header', 'overlapping-blocks', { logicalIndex, offset: headerOffset, length: 16 });
       if (compressedSize) {
+        if (compressedSize < 2) throw archiveError(`图像 ${logicalIndex} 的 zlib 头不完整`, 'image-header', 'invalid-compression-header', { logicalIndex, offset: payloadOffset, length: compressedSize });
         const cmf = bytes[payloadOffset], flg = bytes[payloadOffset + 1];
         if ((cmf & 0x0f) !== 8 || ((cmf << 8) + flg) % 31 !== 0) {
-          throw new Error(`图像 ${logicalIndex} 的 zlib 头无效`);
+          throw archiveError(`图像 ${logicalIndex} 的 zlib 头无效`, 'image-header', 'invalid-compression-header', { logicalIndex, offset: payloadOffset, length: compressedSize });
         }
       }
       blocks.push({
@@ -325,23 +342,23 @@
 
   function parseFromReader(fileSize, readRange, password, profile = null) {
     if (!Number.isSafeInteger(fileSize) || fileSize < HEADER_SIZE) {
-      throw new Error('GEE 文件长度无效');
+      throw archiveError('GEE 文件长度无效', 'global-header', 'truncated-data', { offset: 0, length: HEADER_SIZE });
     }
-    if (typeof readRange !== 'function') throw new Error('GEE 文件读取器无效');
+    if (typeof readRange !== 'function') throw archiveError('GEE 文件读取器无效', 'runtime', 'missing-runtime-data');
     const read = (offset, length) => {
       const value = readRange(offset, length);
       const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
-      if (bytes.length !== length) throw new Error(`GEE 文件数据提前结束：${offset}+${length}`);
+      if (bytes.length !== length) throw archiveError(`GEE 文件数据提前结束：${offset}+${length}`, 'source', 'truncated-data', { offset, length });
       return bytes;
     };
     const prefix = read(0, HEADER_SIZE);
     if (hasSignature(prefix, SIGNATURE_V2)) {
       return parseGee2FromReader(fileSize, read, profile, prefix);
     }
-    const keys = profileKeys(password, profile);
     if (!hasSignature(prefix, SIGNATURE_V3)) {
-      throw new Error('不是有效的 GEEPAK3 文件');
+      throw archiveError('不是有效的 GEEPAK3 文件', 'global-header', 'unsupported-global-header', { offset: 0, length: HEADER_SIZE });
     }
+    const keys = profileKeys(password, profile);
 
     let plain = new Uint8Array(256);
     for (let i = 0; i < 256; i++) plain[i] = prefix[10 + i] ^ keys.globalKey[i];
@@ -363,7 +380,7 @@
       }
     }
     if (!validGlobal(fields, fileSize)) {
-      throw new Error('GEE 全局头校验失败：密码不正确或属于尚未支持的加密变体');
+      throw archiveError('GEE 全局头校验失败：密码不正确或属于尚未支持的加密变体', 'global-header', 'password-or-profile-mismatch', { offset: 10, length: 256 });
     }
 
     const encryptedIndex = read(fields.indexOffset, fields.count * 4);
@@ -378,16 +395,18 @@
       const headerOffset = (encrypted ^ mask ^ logicalIndex) >>> 0;
       offsets[logicalIndex] = headerOffset;
       if (headerOffset === 0) continue;
-      if (headerOffset + 16 > fileSize) throw new Error(`图像 ${logicalIndex} 的块头越界`);
-      if (seenOffsets.has(headerOffset)) throw new Error(`图像 ${logicalIndex} 的块偏移重复`);
+      if (headerOffset < fields.indexOffset + fields.count * 4 || headerOffset + 16 > fileSize) throw archiveError(`图像 ${logicalIndex} 的块头越界`, 'index', 'index-out-of-bounds', { logicalIndex, offset: headerOffset, length: 16 });
+      if (seenOffsets.has(headerOffset)) throw archiveError(`图像 ${logicalIndex} 的块偏移重复`, 'index', 'duplicate-offset', { logicalIndex, offset: headerOffset, length: 16 });
       seenOffsets.add(headerOffset);
       entries.push({ logicalIndex, headerOffset });
     }
 
     entries.sort((left, right) => left.headerOffset - right.headerOffset);
     const blocks = [];
-    for (const entry of entries) {
-      const { logicalIndex, headerOffset } = entry;
+    for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+      const { logicalIndex, headerOffset } = entries[entryIndex];
+      const blockEnd = entries[entryIndex + 1]?.headerOffset || fileSize;
+      if (headerOffset + 16 > blockEnd) throw archiveError(`图像 ${logicalIndex} 的块重叠`, 'image-header', 'overlapping-blocks', { logicalIndex, offset: headerOffset, length: 16 });
       const encryptedHeader = read(headerOffset, 16);
       const decrypted = new Uint8Array(16);
       const keyOffset = (logicalIndex % 64) * 16;
@@ -406,17 +425,19 @@
       const y = family === 'legacy' ? 0 : i16(decrypted, 10);
       const compressedSize = u32(decrypted, 12);
       if (width < 1 || height < 1 || width > 4096 || height > 4096) {
-        throw new Error(`图像 ${logicalIndex} 的尺寸无效：${width}x${height}`);
+        throw archiveError(`图像 ${logicalIndex} 的尺寸无效：${width}x${height}`, 'image-header', 'invalid-dimensions', { logicalIndex, offset: headerOffset, length: 16 });
       }
-      const rawSize = rawImageSize(imageType, flags, width, height);
+      const rawSize = rawImageSize(imageType, flags, width, height, { logicalIndex, offset: headerOffset, length: 16 });
       const payloadSize = compressedSize || rawSize;
       const payloadOffset = headerOffset + 16;
-      if (payloadOffset + payloadSize > fileSize) throw new Error(`图像 ${logicalIndex} 的数据越界`);
+      if (payloadOffset + payloadSize > fileSize) throw archiveError(`图像 ${logicalIndex} 的数据越界`, 'image-header', 'payload-out-of-bounds', { logicalIndex, offset: payloadOffset, length: payloadSize });
+      if (payloadOffset + payloadSize > blockEnd) throw archiveError(`图像 ${logicalIndex} 的块重叠`, 'image-header', 'overlapping-blocks', { logicalIndex, offset: headerOffset, length: 16 });
       if (compressedSize) {
+        if (compressedSize < 2) throw archiveError(`图像 ${logicalIndex} 的 zlib 头不完整`, 'image-header', 'invalid-compression-header', { logicalIndex, offset: payloadOffset, length: compressedSize });
         const zlibHeader = read(payloadOffset, 2);
         const cmf = zlibHeader[0], flg = zlibHeader[1];
         if ((cmf & 0x0f) !== 8 || ((cmf << 8) + flg) % 31 !== 0) {
-          throw new Error(`图像 ${logicalIndex} 的 zlib 头无效`);
+          throw archiveError(`图像 ${logicalIndex} 的 zlib 头无效`, 'image-header', 'invalid-compression-header', { logicalIndex, offset: payloadOffset, length: compressedSize });
         }
       }
       blocks.push({
@@ -433,14 +454,14 @@
     if (!(bytes instanceof Uint8Array)) bytes = new Uint8Array(bytes);
     let raw;
     if (block.compressedSize) {
-      if (typeof inflate !== 'function') throw new Error('zlib inflater is required');
+      if (typeof inflate !== 'function') throw archiveError('zlib inflater is required', 'runtime', 'missing-runtime-data');
       raw = inflate(bytes.subarray(block.payloadOffset, block.payloadOffset + block.compressedSize));
     } else {
       raw = bytes.slice(block.payloadOffset, block.payloadOffset + block.rawSize);
     }
     if (!(raw instanceof Uint8Array)) raw = new Uint8Array(raw);
     if (raw.length !== block.rawSize) {
-      throw new Error(`图像 ${block.logicalIndex} 解压长度 ${raw.length}，预期 ${block.rawSize}`);
+      throw archiveError(`图像 ${block.logicalIndex} 解压长度 ${raw.length}，预期 ${block.rawSize}`, 'decompression', 'decoded-size-mismatch', { logicalIndex: block.logicalIndex, offset: block.payloadOffset, length: block.payloadSize });
     }
     return raw;
   }
@@ -450,13 +471,13 @@
     const width = block.width, height = block.height;
     if (!Number.isInteger(width) || !Number.isInteger(height)
       || width < 1 || height < 1 || width > 4096 || height > 4096) {
-      throw new Error('GEE image dimensions are invalid');
+      throw archiveError('GEE image dimensions are invalid', 'pixels', 'invalid-dimensions', { logicalIndex: block.logicalIndex });
     }
     // Direct-cache consumers may supply metadata without running the archive
     // header parser again. Do not interpret an unknown layout as BGRA or trust
     // a self-consistent but forged rawSize from that metadata.
     const expectedSize = rawImageSize(block.imageType, block.flags, width, height);
-    if (raw.length !== expectedSize || block.rawSize !== expectedSize) throw new Error('GEE raw image size mismatch');
+    if (raw.length !== expectedSize || block.rawSize !== expectedSize) throw archiveError('GEE raw image size mismatch', 'pixels', 'decoded-size-mismatch', { logicalIndex: block.logicalIndex, offset: block.payloadOffset, length: block.payloadSize });
     const rgba = new Uint8ClampedArray(width * height * 4);
     if (block.imageType === 3) {
       const stride = (width + 3) & ~3;

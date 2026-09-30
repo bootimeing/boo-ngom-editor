@@ -6,7 +6,10 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { parseGomFile } = require('../out/utils/gom-reader');
-const { openArchiveIndexed } = require('../out/utils/archive-index');
+const { openArchiveIndexed, readArchiveImagePng, loadArchiveAssetTable, forgetArchiveIndex } = require('../out/utils/archive-index');
+const { decodePakFully } = require('../out/utils/pak-reader');
+const { ArchiveImageWorkerPool } = require('../out/utils/archive-image-worker-pool');
+const { loadCachedPatchAssetTable } = require('../out/utils/patch-cache');
 
 const SIGNATURE = Buffer.from([0x0a, ...Buffer.from('GAMEOFMIR2', 'ascii'), 0, 0]);
 const FIXED_KEY = Buffer.from('d0740a42ee869c94', 'hex');
@@ -114,6 +117,7 @@ function buildFixture(filePath, password, malformedIndices) {
 async function main() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-gom-tolerance-'));
   const password = 'fixture password ';
+  const workers = new ArchiveImageWorkerPool(1);
   try {
     const toleratedPath = path.join(tempRoot, 'one-malformed.pak');
     buildFixture(toleratedPath, password, new Set([1260]));
@@ -133,11 +137,47 @@ async function main() {
     });
     assert.equal(indexed.skippedMalformedCount, 1);
     assert.equal(indexed.assets.length, SLOT_COUNT);
-    assert.equal(indexed.assets[1260].isBlank, true, 'the malformed logical slot must remain a blank placeholder');
+    assert.equal(indexed.assets[1260].isBlank, false, 'a rejected image must not masquerade as an empty slot');
+    assert.equal(indexed.assets[1260].decodeStatus, 'corrupt');
+    assert.equal(indexed.assets[1655].decodeStatus, 'empty');
+    assert.equal(indexed.assets[1261].decodeStatus, 'indexed-unverified');
     assert.equal(indexed.assets[1261].isBlank, false, 'later logical slots must retain their original numbering');
+    const indexRoot = path.join(tempRoot, 'index');
+    const readOptions = { extensionPath: path.resolve(__dirname, '..'), indexRoot, archiveId: indexed.archiveId, imageIndex: 1260 };
+    await assert.rejects(readArchiveImagePng(readOptions), /1260.*invalid-dimensions/);
+    await assert.rejects(workers.read(readOptions), /1260.*invalid-dimensions/);
+    assert.deepEqual(await readArchiveImagePng({ ...readOptions, imageIndex: 1261 }),
+      Buffer.from(await workers.read({ ...readOptions, imageIndex: 1261 })));
+    const checkTable = table => {
+      assert.deepEqual([table.present[1260], table.blank[1260], table.rejected[1260]], [0, 0, 1]);
+      assert.deepEqual([table.present[1655], table.blank[1655], table.rejected[1655]], [1, 1, 0]);
+    };
+    checkTable(loadArchiveAssetTable(indexRoot, indexed.archiveId));
+    forgetArchiveIndex(indexRoot);
+    checkTable(loadArchiveAssetTable(indexRoot, indexed.archiveId));
+    const legacyOptions = { extensionPath: readOptions.extensionPath, cacheRoot: path.join(tempRoot, 'legacy'),
+      pakPath: toleratedPath, password, willIdx: 0,
+      ensureBridge: async () => { throw new Error('GOM direct and legacy must use the same local parser'); } };
+    const stat = fs.statSync(toleratedPath);
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    const oldId = crypto.createHash('sha256').update(`4|${path.resolve(toleratedPath).toLowerCase()}|${stat.size}|${stat.mtimeMs}|${passwordHash}|0`).digest('hex');
+    const oldDir = path.join(legacyOptions.cacheRoot, oldId);
+    fs.mkdirSync(oldDir, { recursive: true });
+    fs.writeFileSync(path.join(oldDir, '001260.png'), 'old-transparent-placeholder');
+    const legacy = await decodePakFully(legacyOptions);
+    assert.notEqual(legacy.cacheDir, oldDir, 'new decoder must not reuse old transparent placeholders');
+    assert.equal(fs.readFileSync(path.join(oldDir, '001260.png'), 'utf8'), 'old-transparent-placeholder');
+    assert.equal(legacy.profileId, indexed.profileId);
+    assert.equal(legacy.assets[1260].decodeStatus, 'corrupt');
+    assert.equal(legacy.assets[1260].path, '');
+    assert.equal(fs.existsSync(path.join(legacy.cacheDir, '001260.png')), false);
+    assert.equal(legacy.assets[1655].decodeStatus, 'empty');
+    assert.equal(legacy.assets[1261].decodeStatus, 'decoded');
+    checkTable(loadCachedPatchAssetTable({ manifestPath: path.join(legacy.cacheDir, 'manifest.json') }));
+    assert.equal((await decodePakFully(legacyOptions)).fromCache, true);
     assert.throws(
       () => parseGomFile(toleratedPath, password.trim(), parser),
-      /密码错误|索引损坏/,
+      /密码或索引不匹配/,
       'password bytes must not be trimmed by the archive parser'
     );
 
@@ -148,13 +188,25 @@ async function main() {
       /2 个异常图片块/,
       'the tolerance must reject more than one malformed block for this fixture size'
     );
+    const overlapPath = path.join(tempRoot, 'overlap.pak');
+    buildFixture(overlapPath, password, new Set());
+    const overlap = fs.readFileSync(overlapPath);
+    overlap[269 + SLOT_COUNT * 4 + 4] ^= 1 ^ 2;
+    fs.writeFileSync(overlapPath, overlap);
+    const bounded = parseGomFile(overlapPath, password, parser);
+    assert.deepEqual(bounded.skippedMalformedIndices, [0], 'do not read next header as image pixels');
+    assert.equal(bounded.structure.rejectedBlocks[0].reasonCode, 'overlapping-blocks');
+    assert.equal(bounded.blocks[0].logicalIndex, 1);
   } finally {
+    workers.dispose();
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
   console.log('gom-reader-tolerance.test.js: PASS');
 }
 
-main().catch(error => {
+if (require.main === module) main().catch(error => {
   console.error(error);
   process.exitCode = 1;
 });
+
+module.exports = { buildFixture };

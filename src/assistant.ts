@@ -42,22 +42,18 @@ import {
 } from './utils/script-labels';
 import { findHostScriptLabelKeys } from './utils/script-call-context';
 import {
-  compactVariableTypeLabel,
-  formatVariableGroupLabel,
   normalizeScriptVariableName,
   recordVariableUsage,
 } from './utils/variable-statistics';
+import { VariableListProvider, registerVariableListRefresh } from './providers/variable-list';
+import { analyzeVariableListFile, VariableListScanner } from './utils/variable-list';
 import {
-  analyzeNestedVariables,
-  isNestedVariableBaseOffset,
   NestedConfigValueRequest,
   NestedConfigValueResult,
   NestedListDataRequest,
   NestedListDataResult,
   NestedTableDataRequest,
   NestedTableDataResult,
-  normalizeNestedVariableReference,
-  normalizePersonalFlagReference,
 } from './utils/nested-variable-analysis';
 import { isBinarySpreadsheet, parseScriptTableData } from './utils/table-data';
 import {
@@ -143,6 +139,7 @@ import {
 } from './utils/database-detail';
 import { secureWebviewHtml } from './utils/webview-security';
 import { parseMerchantLine } from './utils/map-entities';
+import { isMerchantScriptTargetSafe, resolveMerchantScriptReference, resolveMerchantScriptTarget } from './utils/merchant-script';
 import { getReloadOptions, normalizeReloadSelection } from './utils/reload-options';
 import {
   activeStaticLanguageEntries,
@@ -181,9 +178,7 @@ import { collectVariableWrapEdits } from './utils/variable-wrap';
 import {
   CandidateUsage,
   CandidateVariableFamily,
-  collectCandidateUsage,
-  createCandidateUsage,
-  mergeCandidateUsage,
+  personalFlagRangeForEngine,
   unusedPersonalFlagCandidates,
   unusedVariableCandidates,
 } from './utils/variable-candidates';
@@ -485,61 +480,31 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       title: 'BOO 正在扫描未使用变量与个人标识',
       cancellable: true,
     }, async (progress, cancellation) => {
-      const directories = ['MapQuest_Def', 'Market_Def', 'QuestDiary', 'Robot_def', 'Npc_Def'];
-      const searches: Thenable<vscode.Uri[]>[] = [];
-      for (const folder of folders) {
-        for (const directory of directories) {
-          for (const extension of ['txt', 'ini']) {
-            searches.push(vscode.workspace.findFiles(
-              new vscode.RelativePattern(folder, `**/Envir/${directory}/**/*.${extension}`),
-              '**/{node_modules,.git}/**'
-            ));
-            searches.push(vscode.workspace.findFiles(
-              new vscode.RelativePattern(folder, `${directory}/**/*.${extension}`),
-              '**/{node_modules,.git}/**'
-            ));
-          }
-        }
-      }
-      const discovered = (await Promise.all(searches)).flat();
-      const files = [...new Map(discovered.map(uri => [uri.toString().toLowerCase(), uri])).values()]
-        .sort((left, right) => left.fsPath.localeCompare(right.fsPath, 'zh-CN'));
-      const openDocuments = new Map(
-        vscode.workspace.textDocuments.map(document => [document.uri.toString().toLowerCase(), document])
+      const scanner = new VariableListScanner({
+        engine: () => normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')),
+        nestedOptions: file => ({
+          resolveConfigValues: request => resolveNestedConfigValues(file, request),
+          resolveTableData: request => resolveNestedTableData(file, request),
+          resolveListData: request => resolveNestedListData(file, request),
+        }),
+        mapRanges: (text, file) => findMapCodeRangesInText(text, file, configuredMapCodesForFile(file), resolveIndexedCommandToken),
+      });
+      const snapshot = await scanner.scan(
+        folders.filter(folder => folder.uri.scheme === 'file').map(folder => folder.uri.fsPath),
+        vscode.workspace.textDocuments.filter(doc => doc.uri.scheme === 'file')
+          .map(doc => ({ filePath: doc.uri.fsPath, text: doc.getText() })),
+        () => cancellation.isCancellationRequested || scanGeneration !== candidateUsageGeneration,
       );
-      const usage = createCandidateUsage();
-      for (let index = 0; index < files.length; index++) {
-        if (cancellation.isCancellationRequested) return undefined;
-        const uri = files[index];
-        try {
-          const openDocument = openDocuments.get(uri.toString().toLowerCase());
-          const text = openDocument?.getText()
-            ?? readFileGBK(await vscode.workspace.fs.readFile(uri));
-          const excludedRanges = findMapCodeRangesInText(
-            text,
-            uri.fsPath,
-            configuredMapCodesForFile(uri.fsPath),
-            resolveIndexedCommandToken
-          );
-          mergeCandidateUsage(usage, collectCandidateUsage(text, {
-            excludedRanges,
-            resolveConfigValues: request => resolveNestedConfigValues(uri.fsPath, request),
-            resolveTableData: request => resolveNestedTableData(uri.fsPath, request),
-            resolveListData: request => resolveNestedListData(uri.fsPath, request),
-          }));
-        } catch (error) {
-          log(`候选变量扫描跳过 ${uri.fsPath}: ${error instanceof Error ? error.message : String(error)}`);
-        }
-        if (index === files.length - 1 || index % 25 === 0) {
-          progress.report({
-            message: `${index + 1}/${files.length}`,
-            increment: files.length ? 2500 / files.length : 100,
-          });
-        }
+      if (!snapshot) return undefined;
+      if (snapshot.errors.length || !snapshot.scannedFiles) {
+        for (const error of snapshot.errors) log('候选变量扫描失败: ' + error);
+        void vscode.window.showWarningMessage(snapshot.errors.length
+          ? '部分脚本读取失败，不能准确提供未用候选。请查看 BOO 输出后重试。'
+          : '当前目录未扫描到脚本，不能据此判断变量或个人标识未使用。');
+        return undefined;
       }
-      if (scanGeneration !== candidateUsageGeneration) {
-        return scanCandidateUsage();
-      }
+      progress.report({ increment: 100, message: snapshot.scannedFiles + ' 个脚本' });
+      const usage = snapshot.candidates;
       candidateUsageCache = { workspaceKey, usage };
       return usage;
     });
@@ -562,6 +527,8 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     const usage = await scanCandidateUsage();
     if (!usage) return;
     const family = args.family;
+    const uncertain = args.kind === 'variable' && family
+      ? usage.uncertainVariableFamilies.has(family) : usage.personalFlagsUncertain;
     const values = args.kind === 'variable' && family
       ? unusedVariableCandidates(family, usage)
       : unusedPersonalFlagCandidates(usage);
@@ -569,19 +536,19 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       void vscode.window.showInformationMessage(
         args.kind === 'variable' && family
           ? `${family} 类变量已经全部使用`
-          : '个人标识 1-1024 已经全部使用'
+          : '当前引擎个人标识候选范围已经全部使用'
       );
       return;
     }
     const pick = await vscode.window.showQuickPick(
       values.map(value => ({
         label: args.kind === 'variable' && family ? `${family}${value}` : `[${value}]`,
-        description: '未使用',
+        description: uncertain ? '待核实：存在动态引用' : '当前扫描未发现使用',
         value,
       })),
       {
-        title: args.kind === 'variable' && family ? `选择未使用的 ${family} 类变量` : '选择未使用的个人标识',
-        placeHolder: '可输入编号进行模糊筛选',
+        title: (args.kind === 'variable' && family ? `选择 ${family} 类变量候选` : '选择个人标识候选') + (uncertain ? '（动态引用待核实）' : ''),
+        placeHolder: uncertain ? '有无法确定的动态编号；这些候选不能保证未使用，请核对后选择' : '当前工作区扫描结果，可输入编号筛选',
         matchOnDescription: true,
       }
     );
@@ -1459,7 +1426,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
 
         // 4. 路径引用跳转: 定义查询必须无副作用，Ctrl 悬停也会触发这里。
         const pathReference = findScriptPathReferenceAt(line, charPos);
-        if (pathReference) {
+        if (pathReference && path.basename(document.fileName).toLowerCase() !== 'merchant.txt') {
           const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
           const wsRoot = workspaceFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
           if (!wsRoot) return null;
@@ -1478,32 +1445,13 @@ export function activateAssistant(context: vscode.ExtensionContext) {
             merchantLine
             && scriptColumn
             && charPos >= scriptColumn.start
-            && charPos <= scriptColumn.end
+            && charPos < scriptColumn.end
           ) {
-            const merchParts = merchantLine.npc.fields;
-            const ref = merchantLine.npc.scriptRef;
-            // 如果有路径分隔符 → dir=目录 file=文件名, 否则 dir=空 file=ref
-            const sep = ref.includes('\\') ? '\\' : (ref.includes('/') ? '/' : '');
-            const slashIdx = sep ? ref.lastIndexOf(sep) : -1;
-            const dir = slashIdx >= 0 ? ref.substring(0, slashIdx) : '';
-            const file = slashIdx >= 0 ? ref.substring(slashIdx + 1) : ref;
-            // 文件命名: 文件名-地图名.txt (desc = 地图名去掉$前缀)
-            const desc = merchParts.length > 1 ? merchParts[1].replace(/^\$/, '') : '';
-            const wsRootM = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            const wsRootM = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath;
             if (wsRootM) {
-              const bases = [path.join(wsRootM, 'Mir200', 'Envir', 'Market_Def'), path.join(wsRootM, 'Envir', 'Market_Def')];
-              for (const base of bases) {
-                for (const fname of [`${file}-${desc}.txt`, `${file}.txt`]) {
-                  const mp = dir ? path.join(base, dir, fname) : path.join(base, fname);
-                  try {
-                    if (fs.existsSync(mp)) {
-                      return new vscode.Location(vscode.Uri.file(mp), new vscode.Position(0, 0));
-                    }
-                  } catch (e) {
-                    console.warn('[BOO] NPC脚本文件检查失败:', e instanceof Error ? e.message : String(e));
-                  }
-                }
-              }
+              const resolution = resolveMerchantScriptReference(wsRootM, document.uri.fsPath,
+                merchantLine.npc.scriptRef, merchantLine.npc.mapName);
+              if (resolution.existingPath) return new vscode.Location(vscode.Uri.file(resolution.existingPath), new vscode.Position(0, 0));
             }
           }
         }
@@ -1528,6 +1476,21 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         const links: vscode.DocumentLink[] = [];
         for (let lineNumber = 0; lineNumber < document.lineCount; lineNumber++) {
           const line = document.lineAt(lineNumber).text;
+          if (path.basename(document.fileName).toLowerCase() === 'merchant.txt') {
+            const merchant = parseMerchantLine(line, lineNumber + 1);
+            if (merchant) {
+              const resolution = resolveMerchantScriptReference(wsRoot, document.uri.fsPath, merchant.npc.scriptRef, merchant.npc.mapName);
+              if (!resolution.existingPath && resolution.createPath && resolution.relativePath) {
+                const column = merchant.columns[0];
+                const args = JSON.stringify([document.uri, resolution.relativePath, 'merchant']);
+                const link = new vscode.DocumentLink(new vscode.Range(lineNumber, column.start, lineNumber, column.end),
+                  vscode.Uri.parse(`command:boo.createMissingFile?${encodeURIComponent(args)}`));
+                link.tooltip = 'Ctrl+左键：NPC 脚本不存在，可选择创建文本';
+                links.push(link);
+              }
+            }
+            continue; // Other Merchant columns are not generic script-path references.
+          }
           const commandReferences = findScriptCommandPathReferences(line);
           for (const reference of commandReferences) {
             const baseKind = reference.kind === 'scriptCall' ? 'questDiary' : 'defines';
@@ -2044,40 +2007,16 @@ export function activateAssistant(context: vscode.ExtensionContext) {
 
     // 7. 检查 merchant.txt NPC引用文件存在性 (仅merchant.txt本身触发)
     if (docUri && /merchant\.txt$/i.test(docUri.fsPath)) {
-      const wsRoot3 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      const wsRoot3 = vscode.workspace.getWorkspaceFolder(docUri)?.uri.fsPath;
       if (wsRoot3) {
-        const marketDefDir = path.join(wsRoot3, 'Mir200', 'Envir', 'Market_Def');
-        const altMarketDir = path.join(wsRoot3, 'Envir', 'Market_Def');
-        // merchant.txt格式: 脚本路径/文件名 地图名 X Y NPC显示名 0 外观编号 0 0 0 ...
         for (let i = 0; i < lines.length; i++) {
-          if (isComment(lines[i]) || !lines[i].trim()) continue;
-          const parts = lines[i].trim().split(/\s+/);
-          if (parts.length < 3) continue;
-          const ref = parts[0]; // 如: 0新手接待/开始游戏 或 0新手接待/开始游戏
-          // 文件名-地图名.txt, 动态地图$前缀需去掉
-          const mapName = parts.length > 1 ? parts[1].replace(/^\$/, '') : '';
-          const descPart = mapName || '';
-          const refParts = ref.split(/[\/\\]/);
-          // 无分隔符=根目录; 有分隔符=最后一段文件名,前面是目录 (支持多层嵌套)
-          const fileName2 = refParts[refParts.length - 1];
-          const dir2 = refParts.length > 1 ? refParts.slice(0, -1).join('\\') : '';
-          const descSuffix = descPart ? '-' + descPart : '';
-          const targetName = fileName2 + descSuffix + '.txt';
-          let found = false;
-          for (const base of [marketDefDir, altMarketDir]) {
-            try {
-              const fullPath = dir2 ? path.join(base, dir2, targetName) : path.join(base, targetName);
-              if (fs.existsSync(fullPath)) { found = true; break; }
-              const altPath = dir2 ? path.join(base, dir2, fileName2 + '.txt') : path.join(base, fileName2 + '.txt');
-              if (fs.existsSync(altPath)) { found = true; break; }
-            } catch (e) {
-              console.warn('[BOO] 诊断文件检查失败:', e instanceof Error ? e.message : String(e));
-            }
-          }
-          if (!found) {
-            const range = new vscode.Range(i, 0, i, ref.length);
+          const merchant = parseMerchantLine(lines[i], i + 1);
+          if (!merchant) continue;
+          const resolution = resolveMerchantScriptReference(wsRoot3, docUri.fsPath, merchant.npc.scriptRef, merchant.npc.mapName);
+          if (!resolution.existingPath && resolution.createPath) {
+            const column = merchant.columns[0], range = new vscode.Range(i, column.start, i, column.end);
             diagnostics.push(new vscode.Diagnostic(range,
-              `merchant.txt引用的NPC脚本可能不存在: ${dir2}/${targetName}`, vscode.DiagnosticSeverity.Warning));
+              `merchant.txt引用的NPC脚本可能不存在: ${resolution.relativePath}`, vscode.DiagnosticSeverity.Warning));
           }
         }
       }
@@ -2250,26 +2189,6 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     return undefined;
   }
 
-  function sidebarVariableType(name: string): string {
-    return compactVariableTypeLabel(name);
-  }
-
-  function maskScriptCommentLines(text: string): string {
-    return text.replace(/^[ \t]*;[^\r\n]*/gm, line => ' '.repeat(line.length));
-  }
-
-  function getLineOffsets(text: string, lines: readonly string[]): number[] {
-    const offsets: number[] = [];
-    let offset = 0;
-    for (const line of lines) {
-      offsets.push(offset);
-      offset += line.length;
-      if (text[offset] === '\r' && text[offset + 1] === '\n') offset += 2;
-      else if (text[offset] === '\n' || text[offset] === '\r') offset++;
-    }
-    return offsets;
-  }
-
   type IniSections = Map<string, Map<string, string[]>>;
   const nestedConfigCache = new Map<string, { stamp: string; sections: IniSections }>();
   const nestedTableCache = new Map<string, {
@@ -2307,7 +2226,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     let cached = nestedConfigCache.get(configPath);
     if (!cached || cached.stamp !== stamp) {
       try {
-        cached = { stamp, sections: parseIniSections(readFileGBK(fs.readFileSync(configPath))) };
+        cached = { stamp, sections: parseIniSections(decodeTextFile(fs.readFileSync(configPath)).text) };
         nestedConfigCache.set(configPath, cached);
       } catch {
         return undefined;
@@ -2451,9 +2370,13 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       title: 'BOO 变量统计',
       cancellable: true
     }, async (progress, token) => {
-      const files = await vscode.workspace.findFiles('**/*.txt', '**/node_modules/**');
+      const files = await vscode.workspace.findFiles('**/*.[tT][xX][tT]', '**/node_modules/**');
       const total = files.length;
       let done = 0;
+      let failed = 0;
+      const engine = normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM'));
+      const flagRange = personalFlagRangeForEngine(engine);
+      const flagCategory = `个人标识 [${flagRange.min}-${flagRange.max}]`;
 
       // 按类别聚合: 类别名 -> { 变量名 -> { count: 使用次数, files: Set<文件路径> } }
       type VarInfo = { count: number; files: Set<string> };
@@ -2468,107 +2391,29 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         }));
       }
 
-      // 已知命令关键字 (避免单字母+数字误匹配)
-      const cmdKeywords = new Set<string>([
-        'ACT','BREAK','CALL','CHECK','CLOSE','DEC','DIV','ELSEACT','ELSESAY',
-        'GIVE','GOTO','INC','MAPMOVE','MOV','MUL','OR','SENDMSG','TAKE'
-      ]);
-
       for (const file of files) {
         if (token.isCancellationRequested) break;
         done++;
         progress.report({ increment: 100 / total, message: `${done}/${total}` });
 
         try {
-          const raw = await vscode.workspace.fs.readFile(file);
-          const text = readFileGBK(raw);
-          const activeText = maskScriptCommentLines(text);
-          const fp = file.fsPath;
-          const mapCodeRanges = findMapCodeRangesInText(
-            activeText,
-            fp,
-            configuredMapCodesForFile(fp),
-            resolveIndexedCommandToken
-          );
-          const nested = analyzeNestedVariables(text, {
-            resolveConfigValues: request => resolveNestedConfigValues(fp, request),
-            resolveTableData: request => resolveNestedTableData(fp, request),
-            resolveListData: request => resolveNestedListData(fp, request),
+          const openDocument = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === file.toString());
+          const text = openDocument?.getText() ?? decodeTextFile(await vscode.workspace.fs.readFile(file)).text;
+          const analysis = analyzeVariableListFile(text, file.fsPath, {
+            engine: () => engine,
+            nestedOptions: sourceFile => ({
+              resolveConfigValues: request => resolveNestedConfigValues(sourceFile, request),
+              resolveTableData: request => resolveNestedTableData(sourceFile, request),
+              resolveListData: request => resolveNestedListData(sourceFile, request),
+            }),
+            mapRanges: (content, sourceFile) => findMapCodeRangesInText(content, sourceFile, configuredMapCodesForFile(sourceFile), resolveIndexedCommandToken),
           });
-
-          for (const reference of nested.references) {
-            for (const variable of reference.variables) {
-              const category = reportVariableCategory(variable);
-              if (category) addVar(category, variable, fp);
-            }
-            if (reference.status !== 'resolved') {
-              const category = reference.status === 'partial'
-                ? '嵌套变量（部分推导）'
-                : '嵌套变量（运行时确定）';
-              addVar(category, normalizeNestedVariableReference(reference), fp);
-            }
-          }
-
-          for (const reference of nested.personalFlags) {
-            for (const flag of reference.flags) {
-              addVar('个人标识 [1-1024]', flag, fp);
-            }
-            if (reference.status !== 'resolved') {
-              const category = reference.status === 'partial'
-                ? '个人标识（部分推导）'
-                : '个人标识（运行时确定）';
-              addVar(category, normalizePersonalFlagReference(reference), fp);
-            }
-          }
-
-          // (a) 数字型变量 A/G/U/T (0-499: 1-3位数字)
-          let m;
-          const reAGUT = /\b([AGUT])(\d{1,3})\b/gi;
-          while ((m = reAGUT.exec(activeText)) !== null) {
-            if (isNestedVariableBaseOffset(m.index, nested.references)) continue;
-            if (isOffsetInTextRanges(m.index, mapCodeRanges)) continue;
-            const prefix = m[1].toUpperCase();
-            const varName = prefix + m[2];
-            if (!cmdKeywords.has(varName.toUpperCase())) {
-              const num = parseInt(m[2], 10);
-              if (num <= 499) addVar(prefix + '类变量', varName, fp);
-            }
-          }
-
-          // (a2) 数字型变量 P/D/M/N/S/I (0-99: 1-2位数字)
-          const rePDMNIS = /\b([PDMNIS])(\d{1,2})\b/gi;
-          while ((m = rePDMNIS.exec(activeText)) !== null) {
-            if (isNestedVariableBaseOffset(m.index, nested.references)) continue;
-            if (isOffsetInTextRanges(m.index, mapCodeRanges)) continue;
-            const prefix = m[1].toUpperCase();
-            const varName = prefix + m[2];
-            if (!cmdKeywords.has(varName.toUpperCase())) {
-              const num = parseInt(m[2], 10);
-              if (num <= 99) addVar(prefix + '类变量', varName, fp);
-            }
-          }
-
-          // (a3) J/Z 字符串变量
-          const reJZ = /\b([JZ])(\d+)\b/gi;
-          while ((m = reJZ.exec(activeText)) !== null) {
-            if (isNestedVariableBaseOffset(m.index, nested.references)) continue;
-            if (isOffsetInTextRanges(m.index, mapCodeRanges)) continue;
-            const prefix = m[1].toUpperCase();
-            const varName = prefix + m[2];
-            addVar(prefix + '类变量', varName, fp);
-          }
-
-          // (b) 自定义变量 N$xxx / S$xxx (支持中文变量名) - GPTea -
-          const reNS = /([NSLDnsld])\$([\w\u4e00-\u9fff]+)|([Gg][Ll])\$([\w\u4e00-\u9fff]+)/g;
-          while ((m = reNS.exec(activeText)) !== null) {
-            if (isNestedVariableBaseOffset(m.index, nested.references)) continue;
-            if (m[3]) { addVar('GL$ 全局列表', m[3].toUpperCase() + '$' + m[4], fp); continue; }
-            const prefix = m[1].toUpperCase();
-            const varName = prefix + '$' + m[2];
-            addVar(prefix + '$ 自定义变量', varName, fp);
+          for (const variable of analysis.variables) {
+            addVar(reportVariableCategory(variable.name) || variable.type, variable.name, file.fsPath);
           }
 
         } catch (e) {
+          failed++;
           console.warn('[BOO] 变量统计文件读取失败:', e instanceof Error ? e.message : String(e));
         }
       }
@@ -2598,15 +2443,15 @@ tr:hover{background:#2a2a2a}
 </head>
 <body>
 <h1>BOO 变量统计报告</h1>
-<div class="summary">扫描文件: ${done} 个 &nbsp;|&nbsp; 变量种类: <span id="totalTypes">-</span></div>`;
+<div class="summary">扫描文件: ${done} 个 &nbsp;|&nbsp; 读取失败: ${failed} 个${failed ? '（统计不完整）' : ''} &nbsp;|&nbsp; 变量种类: <span id="totalTypes">-</span></div>`;
 
       const catOrder = [
         'A类变量', 'G类变量', 'U类变量', 'T类变量',
         'J类变量', 'Z类变量',
         'P类变量', 'D类变量', 'M类变量', 'N类变量', 'S类变量', 'I类变量',
         'N$ 自定义变量', 'S$ 自定义变量', 'D$ 自定义变量', 'L$ 自定义变量',
-        'GL$ 全局列表', '个人标识 [1-1024]',
-        '个人标识（部分推导）', '个人标识（运行时确定）',
+        'GL$ 全局列表', flagCategory,
+        '个人标识（部分推导）', '个人标识（未确定或越界）',
         '嵌套变量（部分推导）', '嵌套变量（运行时确定）'
       ];
 
@@ -2632,10 +2477,7 @@ tr:hover{background:#2a2a2a}
         html += `<h2>${escapeHtml(cat)} (${entries.length} 个)</h2>`;
         html += '<table><tr><th>变量名</th><th>使用次数</th><th>涉及文件</th></tr>';
         for (const [name, info] of entries) {
-          const fileList = [...info.files].map(f => {
-            const idx = f.lastIndexOf('\\');
-            return idx >= 0 ? f.substring(idx + 1) : f;
-          }).join(', ');
+          const fileList = [...info.files].map(f => vscode.workspace.asRelativePath(f, true)).join(', ');
           html += `<tr><td class="col-name">${escapeHtml(name)}</td><td class="col-count">${info.count}</td><td class="col-files">${escapeHtml(fileList)}</td></tr>`;
         }
         html += '</table>';
@@ -2788,7 +2630,7 @@ tr:hover{background:#2a2a2a}
               title: '创建缺失文件',
               arguments: fileMatch
                 ? [document.uri, missingFile, 'scriptCall']
-                : [document.uri, missingFile]
+                : [document.uri, missingFile, 'merchant']
             };
             action.isPreferred = true;
             actions.push(action);
@@ -2841,7 +2683,7 @@ tr:hover{background:#2a2a2a}
             title: '创建缺失文件',
             arguments: fileMatch
               ? [editor.document.uri, missingFile, 'scriptCall']
-              : [editor.document.uri, missingFile]
+              : [editor.document.uri, missingFile, 'merchant']
           };
           action.isPreferred = true;
           actions.push(action);
@@ -2871,7 +2713,7 @@ tr:hover{background:#2a2a2a}
     vscode.commands.registerCommand('boo.createMissingFile', async (
       docUri: vscode.Uri,
       missingFile: string,
-      referenceKind: 'pathReference' | 'scriptCall' | 'include' | undefined
+      referenceKind: 'pathReference' | 'scriptCall' | 'include' | 'merchant' | undefined
     ): Promise<vscode.Uri | undefined> => {
       const workspaceFolder = vscode.workspace.getWorkspaceFolder(docUri);
       const wsRoot = workspaceFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -2900,11 +2742,10 @@ tr:hover{background:#2a2a2a}
           vscode.window.showErrorMessage(`无法在当前工作区解析路径: ${missingFile}`);
           return;
         }
-      } else if (isMerchant) {
-        const marketDefBase = path.join(wsRoot, 'Mir200', 'Envir', 'Market_Def');
-        const altBase = path.join(wsRoot, 'Envir', 'Market_Def');
-        const base = fs.existsSync(marketDefBase) ? marketDefBase : (fs.existsSync(altBase) ? altBase : marketDefBase);
-        targetPath = path.resolve(base, cleanMissingFile);
+      } else if (referenceKind === 'merchant' || isMerchant) {
+        const resolution = resolveMerchantScriptTarget(wsRoot, docUri.fsPath, missingFile);
+        targetPath = resolution.existingPath || resolution.createPath || '';
+        if (!targetPath) { vscode.window.showErrorMessage('无法在当前服务端 Market_Def 中解析 NPC 脚本路径'); return; }
       } else {
         // #CALL 引用 → Envir 目录下解析
         const bestDir = getBestCreateDir(wsRoot, docDir);
@@ -2929,7 +2770,13 @@ tr:hover{background:#2a2a2a}
               '创建文本'
             );
             if (choice !== '创建文本') return undefined;
+            if ((referenceKind === 'merchant' || isMerchant) && !isMerchantScriptTargetSafe(wsRoot, docUri.fsPath, finalPath)) {
+              vscode.window.showErrorMessage('NPC 脚本路径已变化，拒绝在 Market_Def 以外创建文件'); return undefined;
+            }
             fs.mkdirSync(path.dirname(finalPath), { recursive: true });
+            if ((referenceKind === 'merchant' || isMerchant) && !isMerchantScriptTargetSafe(wsRoot, docUri.fsPath, finalPath)) {
+              vscode.window.showErrorMessage('NPC 脚本路径已变化，请重新点击引用'); return undefined;
+            }
             try {
               fs.writeFileSync(finalPath, '', { encoding: 'utf-8', flag: 'wx' });
             } catch (e: unknown) {
@@ -3031,226 +2878,38 @@ tr:hover{background:#2a2a2a}
   );
 
   // ---- 变量侧边栏 ----
-  class BooVarProvider implements vscode.TreeDataProvider<BooVarItem> {
-    private _onDidChangeTreeData = new vscode.EventEmitter<BooVarItem | undefined | void>();
-    readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-
-    refresh() { this._onDidChangeTreeData.fire(); }
-
-    getTreeItem(element: BooVarItem): vscode.TreeItem {
-      return element;
-    }
-
-    getChildren(element?: BooVarItem): BooVarItem[] {
-      if (element) return element.children || [];
-      if (this.cachedItems) return this.cachedItems;
-      if (this.scanning) return [new BooVarItem("(正在扫描变量...)", "", vscode.TreeItemCollapsibleState.None)];
-      this.scanning = true;
-      void this.doAsyncScan();
-      return [new BooVarItem("(正在扫描变量...)", "", vscode.TreeItemCollapsibleState.None)];
-    }
-    clearCache() { this.cachedItems = null; }
-    private cachedItems: BooVarItem[] | null = null;
-    private scanning = false;
-    private async doAsyncScan(): Promise<void> {
-      try {
-        this.cachedItems = await this.scanVariables();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        outputChannel.appendLine(`变量扫描失败: ${message}`);
-        this.cachedItems = [new BooVarItem("(变量扫描失败，请查看输出)", "", vscode.TreeItemCollapsibleState.None)];
-      } finally {
-        this.scanning = false;
-        this.refresh();
-      }
-    }
-    private async scanVariables(): Promise<BooVarItem[]> {
-      const wsFolders = vscode.workspace.workspaceFolders;
-      if (!wsFolders || wsFolders.length === 0) return [new BooVarItem("(未打开工作区)", "", vscode.TreeItemCollapsibleState.None)];
-      const wsRoot = wsFolders[0].uri.fsPath;
-      const scanDirs = ["MapQuest_Def", "Market_Def", "QuestDiary", "Robot_def", "Npc_Def"];
-      const varSet = new Map<string, { type: string; count: number; files: Set<string> }>();
-      _varOccurrences.clear(); _varCycleIdx.clear();
-      const varRe = /\b([NSLDnsld]\$[A-Za-z0-9_\u4e00-\u9fff]+|[Gg][Ll]\$[A-Za-z0-9_\u4e00-\u9fff]+|[PDMNSIGAUTJZpdmnigautjz]\d+)\b/g;
-      function recordOccurrence(name: string, file: string, line: number) {
-        const key = normalizeScriptVariableName(name);
-        if (!_varOccurrences.has(key)) _varOccurrences.set(key, []);
-        _varOccurrences.get(key)!.push({ file, line });
-      }
-      function scanDir(basePath: string) {
-        if (!fs.existsSync(basePath)) return;
-        try {
-          const entries = fs.readdirSync(basePath, { withFileTypes: true });
-          for (const entry of entries) {
-            const full = path.join(basePath, entry.name);
-            if (entry.isDirectory()) { scanDir(full); }
-            else if (entry.name.endsWith(".txt") || entry.name.endsWith(".ini")) {
-              try {
-                const raw = fs.readFileSync(full);
-                const text = readFileGBK(raw);
-                const lines = text.split(/\r?\n/);
-                const lineOffsets = getLineOffsets(text, lines);
-                const mapCodeRanges = findMapCodeRangesInText(
-                  text,
-                  full,
-                  configuredMapCodesForFile(full),
-                  resolveIndexedCommandToken
-                );
-                const nested = analyzeNestedVariables(text, {
-                  resolveConfigValues: request => resolveNestedConfigValues(full, request),
-                  resolveTableData: request => resolveNestedTableData(full, request),
-                  resolveListData: request => resolveNestedListData(full, request),
-                });
-                const nestedByLine = new Map<number, typeof nested.references>();
-                for (const reference of nested.references) {
-                  const current = nestedByLine.get(reference.line) || [];
-                  current.push(reference);
-                  nestedByLine.set(reference.line, current);
-                }
-                const personalFlagsByLine = new Map<number, typeof nested.personalFlags>();
-                for (const reference of nested.personalFlags) {
-                  const current = personalFlagsByLine.get(reference.line) || [];
-                  current.push(reference);
-                  personalFlagsByLine.set(reference.line, current);
-                }
-                for (let li = 0; li < lines.length; li++) {
-                  const line = lines[li];
-                  if (isScriptCommentLine(line)) continue;
-
-                  for (const reference of personalFlagsByLine.get(li) || []) {
-                    for (const flag of reference.flags) {
-                      recordVariableUsage(varSet, flag, entry.name, () => ({
-                        type: '个人标识 [1-1024]',
-                        count: 0,
-                        files: new Set<string>(),
-                      }));
-                      recordOccurrence(flag, full, li);
-                    }
-                    if (reference.status !== 'resolved') {
-                      const name = normalizePersonalFlagReference(reference);
-                      recordVariableUsage(varSet, name, entry.name, () => ({
-                        type: reference.status === 'partial'
-                          ? '个人标识（部分推导）'
-                          : '个人标识（运行时确定）',
-                        count: 0,
-                        files: new Set<string>(),
-                      }));
-                      recordOccurrence(name, full, li);
-                    }
-                  }
-
-                  for (const reference of nestedByLine.get(li) || []) {
-                    for (const variable of reference.variables) {
-                      recordVariableUsage(varSet, variable, entry.name, () => ({
-                        type: sidebarVariableType(variable),
-                        count: 0,
-                        files: new Set<string>(),
-                      }));
-                      recordOccurrence(variable, full, li);
-                    }
-                    if (reference.status !== 'resolved') {
-                      const nestedName = normalizeNestedVariableReference(reference);
-                      recordVariableUsage(varSet, nestedName, entry.name, () => ({
-                        type: reference.status === 'partial'
-                          ? '嵌套变量（部分推导）'
-                          : '嵌套变量（运行时确定）',
-                        count: 0,
-                        files: new Set<string>(),
-                      }));
-                      recordOccurrence(nestedName, full, li);
-                    }
-                  }
-
-                  // 常规变量
-                  let m; varRe.lastIndex = 0;
-                  while ((m = varRe.exec(line)) !== null) {
-                    const absoluteOffset = lineOffsets[li] + m.index;
-                    if (isNestedVariableBaseOffset(absoluteOffset, nested.references)) continue;
-                    if (isOffsetInTextRanges(absoluteOffset, mapCodeRanges)) continue;
-                    const name = normalizeScriptVariableName(m[1]);
-                    recordVariableUsage(varSet, name, entry.name, () => ({
-                      type: sidebarVariableType(name),
-                      count: 0,
-                      files: new Set<string>(),
-                    }));
-                    recordOccurrence(name, full, li);
-                  }
-                }
-              } catch (e) {
-                console.warn('[BOO] 变量扫描文件读取失败:', e instanceof Error ? e.message : String(e));
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('[BOO] 变量扫描目录读取失败:', e instanceof Error ? e.message : String(e));
-        }
-      }
-      const envirBases = [path.join(wsRoot, "Mir200", "Envir"), path.join(wsRoot, "Envir")];
-      for (const envirBase of envirBases) {
-        for (const dir of scanDirs) scanDir(path.join(envirBase, dir));
-      }
-      if (varSet.size === 0) return [new BooVarItem("(未发现变量)", "", vscode.TreeItemCollapsibleState.None)];
-      const groups = new Map<string, BooVarItem[]>();
-      const varDescs: Record<string, string> = context.workspaceState.get("boo.varDescs", {});
-      for (const [name, info] of varSet) {
-        if (!groups.has(info.type)) groups.set(info.type, []);
-        const fileList = [...info.files].slice(0, 3).join(",");
-        const desc = varDescs[name] || info.count+"次 ["+fileList+(info.files.size>3?"...":"")+"]";
-        const vItem = new BooVarItem(name, desc, vscode.TreeItemCollapsibleState.None);
-        if (_varOccurrences.has(normalizeScriptVariableName(name))) {
-          vItem.command = { command: 'boo.gotoVarOccurrence', title: '跳转', arguments: [name] };
-          vItem.tooltip = (varDescs[name] || (info.count+'次')) + ' — 点击跳转，再次点击循环';
-        }
-        if (varDescs[name]) { vItem.iconPath = new vscode.ThemeIcon("bookmark"); }
-        groups.get(info.type)!.push(vItem);
-      }
-      const items: BooVarItem[] = [];
-      for (const [group, vars] of groups) {
-        vars.sort(function(a,b){return naturalCompare(String(a.label), String(b.label))});
-        const groupItem = new BooVarItem(
-          formatVariableGroupLabel(group, vars.length),
-          "",
-          vscode.TreeItemCollapsibleState.Collapsed
-        );
-        groupItem.children = vars;
-        items.push(groupItem);
-      }
-      return items;
-    }
-  }
-
-  class BooVarItem extends vscode.TreeItem {
-    children: BooVarItem[] | undefined;
-    constructor(
-      label: string, description: string,
-      collapsible: vscode.TreeItemCollapsibleState,
-      public line?: number
-    ) {
-      super(label, collapsible);
-      this.description = description;
-      if (collapsible === vscode.TreeItemCollapsibleState.None) {
-        this.iconPath = new vscode.ThemeIcon('symbol-variable');
-      } else {
-        this.iconPath = new vscode.ThemeIcon('folder');
-      }
-      if (line !== undefined) {
-        this.command = {
-          command: 'boo.gotoVarLine',
-          title: '跳转到变量',
-          arguments: [line]
-        };
-        this.tooltip = `第 ${line + 1} 行`;
-      }
-    }
-  }
-
-  const varProvider = new BooVarProvider();
+  const varProvider = new VariableListProvider({
+    engine: () => normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')),
+    workspaceState: context.workspaceState,
+    nestedOptions: file => ({
+      resolveConfigValues: request => resolveNestedConfigValues(file, request),
+      resolveTableData: request => resolveNestedTableData(file, request),
+      resolveListData: request => resolveNestedListData(file, request),
+    }),
+    mapRanges: (text, file) => findMapCodeRangesInText(
+      text, file, configuredMapCodesForFile(file), resolveIndexedCommandToken
+    ),
+    publish: snapshot => {
+      _varOccurrences.clear();
+      _varCycleIdx.clear();
+      for (const [name, positions] of snapshot.occurrences) _varOccurrences.set(name, positions);
+    },
+    log: message => outputChannel.appendLine(message),
+    invalidateDependencies: () => {
+      invalidateCandidateUsage();
+      nestedConfigCache.clear();
+      nestedTableCache.clear();
+      nestedListCache.clear();
+      mapCodeCache.clear();
+    },
+  });
+  registerVariableListRefresh(context, varProvider);
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('boo.varView', varProvider)
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('boo.refreshVariables', () => {
-      varProvider.clearCache(); varProvider.refresh();
+      varProvider.clearCache();
       vscode.window.setStatusBarMessage('变量列表已刷新', 2000);
     })
   );
@@ -3267,9 +2926,10 @@ tr:hover{background:#2a2a2a}
     })
   );
 
-  // 变量刷新函数（仅由reload.ts在M2重载时调用）
-  const refreshVarTree = () => { varProvider.clearCache(); varProvider.refresh(); };
+  // M2 重载与手动刷新共用强制失效入口，日常编辑由 Provider 防抖更新。
+  const refreshVarTree = () => varProvider.clearCache();
   _refreshVarTree = refreshVarTree;
+  context.subscriptions.push({ dispose: () => { if (_refreshVarTree === refreshVarTree) _refreshVarTree = null; } });
 
   // ---- 自动切换语言 ----
   context.subscriptions.push(
@@ -5371,6 +5031,7 @@ render('');
       if (e.affectsConfiguration('boo.engine')) {
         rebuildLanguageIndex();
         rebuildSemanticCommandIndex();
+        varProvider.clearCache();
         const engine2 = normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM'));
         const definition = getEngineDefinition(engine2);
         updateEngineStatusBar(engine2);
@@ -5497,27 +5158,6 @@ function escapeStaticHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-// 自然排序: 按数字值而非字典序比较 (P1 < P2 < P10 < P100)
-function naturalCompare(a: string, b: string): number {
-  const re = /(\d+)|(\D+)/g;
-  const aParts: (string | number)[] = [];
-  const bParts: (string | number)[] = [];
-  let m;
-  while ((m = re.exec(a)) !== null) aParts.push(m[1] ? parseInt(m[1], 10) : m[2]);
-  re.lastIndex = 0;
-  while ((m = re.exec(b)) !== null) bParts.push(m[1] ? parseInt(m[1], 10) : m[2]);
-  for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
-    const ap = aParts[i], bp = bParts[i];
-    if (typeof ap === 'number' && typeof bp === 'number') {
-      if (ap !== bp) return ap - bp;
-    } else {
-      const as = String(ap), bs = String(bp);
-      const cmp = as.toLowerCase().localeCompare(bs.toLowerCase());
-      if (cmp !== 0) return cmp;
-    }
-  }
-  return aParts.length - bParts.length;
-}
 
 function newItem(label: string, detail: string, kind: vscode.CompletionItemKind): vscode.CompletionItem {
   const item = new vscode.CompletionItem(label, kind);
