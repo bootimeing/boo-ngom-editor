@@ -2926,7 +2926,7 @@ tr:hover{background:#2a2a2a}
     })
   );
 
-  // M2 重载与手动刷新共用强制失效入口，日常编辑由 Provider 防抖更新。
+  // M2 重载与手动刷新共用强制失效入口，保存后由 Provider 合并更新。
   const refreshVarTree = () => varProvider.clearCache();
   _refreshVarTree = refreshVarTree;
   context.subscriptions.push({ dispose: () => { if (_refreshVarTree === refreshVarTree) _refreshVarTree = null; } });

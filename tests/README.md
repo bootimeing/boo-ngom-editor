@@ -12,7 +12,7 @@
 - `test:archive-verification`：按需逐槽状态持久化、新进程/并发、恢复/坏图、取消/继续、代次与源/配套SHA失效、基础设施故障，以及补丁管理实际Provider/Worker和真实Chromium DOM按钮回归。Edge未返回DOM时可用本机Chrome，日志记录实际浏览器；真实断言失败不通过换浏览器绕过。不是安装后的原生VS Code验收。
 - `test:layout`：公开目录、README 和安装包运行依赖结构。
 - `test:language` 包含 `merchant-script-reference`：NPC 第一列路径与创建目标一致、中文子目录、可选扩展名、地图前缀、同工作区多服务端隔离、既有文件回退及路径/junction 越界拒绝。该测试可通过 `BOO_SCRIPT_RUNTIME_ROOT` 指向解包候选；原生 VS Code 的链接、确认创建及 Ctrl+Q 命令测试另行记录，不把纯路径测试当作鼠标验收。
-- `test:language` 的 `variable-list` / `variable-list-provider` 覆盖中文完整变量名、小写编号、GBK/UTF-8/BOM、大小写扩展名、工作区层级/重叠/多根、未保存内容、分析缓存与外部依赖、地图编号过滤、个人标志/嵌套推导、同名文件身份、编辑/磁盘事件和过期扫描丢弃。使用真实扫描器与 Provider、隔离文件夹和 VS Code API 替身，不等同安装后的原生界面验收。
+- `test:language` 的 `variable-list` / `variable-list-provider` 覆盖中文完整变量名、小写编号、GBK/UTF-8/BOM、大小写扩展名、工作区层级/重叠/多根、扫描器文档快照、分析缓存与外部依赖、地图编号过滤、个人标志/嵌套推导、同名文件身份，以及侧栏保存触发、草稿隔离、后台更新保留旧树、重载与过期扫描丢弃。使用真实扫描器与 Provider、隔离文件夹和 VS Code API 替身，不等同安装后的原生界面验收。
 - `variable-utag-flags` 对 GOM/GEE 各3000个 UTAG 编号变量和1024个标志逐项核对计数、文件、行号及候选占用；另外覆盖 NOT CHECK、RESET、动态前缀、直接占位符、前导零、注释、越界及996PC标志边界。`variable-candidate-command` 执行实际候选命令+扫描器，检查动态提示以及读失败/空扫描不推荐空闲编号。
 - `test:ui-window`：编译后生产面板的 ready/单实例/关闭重开/过期任务/独立窗口失败回退，以及真实 Chromium 中背景锁定、普通控件移动、导入恢复和整页销毁/重建后的画布像素、动画/按钮图源、文字与代码草稿。测试还检查连续拖动合并写入和动画不写快照；窗口生命周期/状态 API 使用替身，浏览器使用合成输入。安装候选的真实辅助窗口验收另见专项报告。
 - 该组的 `ui-appearance-browser` 在 1440×960、1100×800、900×700 下检查两层工具栏、画布空间、侧栏滚动、六类素材弹窗、100项/ID定位、代码展开和键盘焦点；设置 `BOO_UI_APPEARANCE_ARTIFACTS` 可保存截图及布局结果。素材是合成夹具，键盘焦点通过 Chromium CDP 输入验证，不等同原生 VS Code 验收。

@@ -20,6 +20,7 @@
 
 ## 版本与交付
 
+- [V4.3.8 变量列表稳定刷新与发布核验](releases/V4.3.8_RELEASE_20260930.md)
 - [V4.3.7 本地发布包与源码交付核验](releases/V4.3.7_RELEASE_20260930.md)
 - [V4.3.6 项目整理与发布核验](releases/V4.3.6_RELEASE_20260927.md)
 - [V4.3.5 / V4.3.6 更新内容](releases/V4.3.5-V4.3.6_UPDATES_20260927.md)

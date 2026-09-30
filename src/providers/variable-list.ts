@@ -20,6 +20,7 @@ export class VariableListProvider implements vscode.TreeDataProvider<VariableLis
   private cached?: VariableListItem[];
   private pending?: Promise<VariableListItem[]>;
   private timer?: ReturnType<typeof setTimeout>;
+  private needsScan = true;
   private revision = 0;
   private disposed = false;
   constructor(private readonly options: VariableListProviderOptions) { this.scanner = new VariableListScanner(options); }
@@ -27,10 +28,14 @@ export class VariableListProvider implements vscode.TreeDataProvider<VariableLis
   refresh(): void { if (!this.disposed) this.emitter.fire(); }
   /** Manual refresh/M2 reload must also invalidate dependency and analysis caches. */
   clearCache(): void { this.invalidate(undefined, true); }
+  resetWorkspace(): void {
+    this.cached = undefined;
+    this.invalidate(undefined, true);
+  }
   invalidate(file?: string, immediate = false): void {
     if (this.disposed) return;
     this.revision++;
-    this.cached = undefined;
+    this.needsScan = true;
     this.scanner.invalidate(file);
     this.options.invalidateDependencies();
     if (this.timer) clearTimeout(this.timer);
@@ -41,16 +46,17 @@ export class VariableListProvider implements vscode.TreeDataProvider<VariableLis
   getChildren(item?: VariableListItem): VariableListItem[] | Promise<VariableListItem[]> {
     if (item) return item.children || [];
     if (this.disposed) return [];
-    if (this.cached) return this.cached;
-    if (this.pending) return this.pending;
+    if (this.cached && !this.needsScan) return this.cached;
+    if (this.pending) return this.cached || this.pending;
     const revision = this.revision;
+    const hadCached = !!this.cached;
     const roots = (vscode.workspace.workspaceFolders || []).filter(folder => folder.uri.scheme === 'file').map(folder => folder.uri.fsPath);
-    // Snapshot editor text before the async scan; newer edits invalidate this generation.
-    const documents = vscode.workspace.textDocuments.filter(doc => doc.uri.scheme === 'file' && isVariableListFile(doc.uri.fsPath))
+    // Refresh follows saved content. Drafts stay out even when another file is saved.
+    const documents = vscode.workspace.textDocuments.filter(doc => !doc.isDirty && doc.uri.scheme === 'file' && isVariableListFile(doc.uri.fsPath))
       .map(doc => ({ filePath: doc.uri.fsPath, text: doc.getText() }));
     this.pending = this.scanner.scan(roots, documents, () => this.disposed || revision !== this.revision)
       .then(snapshot => {
-        if (!snapshot || this.disposed || revision !== this.revision) return [];
+        if (!snapshot || this.disposed || revision !== this.revision) return this.disposed ? [] : this.cached || [];
         this.options.publish(snapshot);
         for (const error of snapshot.errors) this.options.log(`变量扫描跳过: ${error}`);
         const items = this.buildItems(snapshot);
@@ -58,17 +64,21 @@ export class VariableListProvider implements vscode.TreeDataProvider<VariableLis
         else if (!items.length) items.push(new VariableListItem(snapshot.errors.length ? '(部分文件读取失败，请查看输出)' : '(未发现变量)', vscode.TreeItemCollapsibleState.None));
         else if (snapshot.errors.length) items.push(new VariableListItem('(部分文件读取失败，请查看输出)', vscode.TreeItemCollapsibleState.None));
         this.cached = items;
+        this.needsScan = false;
         return items;
       }).catch(error => {
-        if (this.disposed || revision !== this.revision) return [];
+        if (this.disposed || revision !== this.revision) return this.disposed ? [] : this.cached || [];
         this.options.log(`变量扫描失败: ${String(error)}`);
-        return this.cached = [new VariableListItem('(变量扫描失败，请查看输出)', vscode.TreeItemCollapsibleState.None)];
+        this.needsScan = false;
+        return this.cached ||= [new VariableListItem('(变量扫描失败，请查看输出)', vscode.TreeItemCollapsibleState.None)];
       }).finally(() => {
         this.pending = undefined;
         // Never let a late result resurrect an old workspace or an old document.
         if (!this.disposed && revision !== this.revision && !this.timer) this.refresh();
+        else if (!this.disposed && revision === this.revision && hadCached) this.refresh();
       });
-    return this.pending;
+    // An existing list remains interactive until a complete replacement is ready.
+    return this.cached || this.pending;
   }
   private buildItems(snapshot: VariableListSnapshot): VariableListItem[] {
     const descriptions = this.options.workspaceState.get<Record<string, string>>('boo.varDescs', {});
@@ -77,6 +87,7 @@ export class VariableListProvider implements vscode.TreeDataProvider<VariableLis
       const files = [...info.files];
       const displayFiles = files.slice(0, 3).map(file => vscode.workspace.asRelativePath(file, true)).join(',');
       const item = new VariableListItem(name, vscode.TreeItemCollapsibleState.None);
+      item.id = `variable:${name}`;
       item.description = descriptions[name] || `${info.count}次 [${displayFiles}${files.length > 3 ? '...' : ''}]`;
       item.tooltip = `${descriptions[name] ? descriptions[name] + '\n' : ''}${info.count}次 · ${files.length}个文件\n${files.join('\n')}\n点击跳转，再次点击循环`;
       item.iconPath = new vscode.ThemeIcon(descriptions[name] ? 'bookmark' : 'symbol-variable');
@@ -88,6 +99,7 @@ export class VariableListProvider implements vscode.TreeDataProvider<VariableLis
     return [...groups].map(([type, children]) => {
       children.sort((a, b) => String(a.label).localeCompare(String(b.label), 'zh-CN', { numeric: true }));
       const group = new VariableListItem(formatVariableGroupLabel(type, children.length), vscode.TreeItemCollapsibleState.Collapsed);
+      group.id = `variable-group:${type}`;
       group.children = children;
       group.iconPath = new vscode.ThemeIcon('folder');
       return group;
@@ -102,7 +114,7 @@ export class VariableListProvider implements vscode.TreeDataProvider<VariableLis
   }
 }
 
-/** Watch disk changes as well as editor lifecycle events, without rescanning per keystroke. */
+/** Refresh after saves/explicit file operations; editor activity and disk churn keep the list visible. */
 export function registerVariableListRefresh(context: vscode.ExtensionContext, provider: VariableListProvider): void {
   const relevant = (uri: vscode.Uri) => uri.scheme === 'file' && !!vscode.workspace.getWorkspaceFolder(uri);
   const change = (uri: vscode.Uri) => {
@@ -110,16 +122,11 @@ export function registerVariableListRefresh(context: vscode.ExtensionContext, pr
     // MapInfo changes alter map-code exclusions in every script.
     provider.invalidate(/^mapinfo\.txt$/i.test(path.basename(uri.fsPath)) ? undefined : uri.fsPath);
   };
-  const watcher = vscode.workspace.createFileSystemWatcher('**/*.{[tT][xX][tT],[iI][nN][iI],[cC][sS][vV],[xX][lL][sS],[xX][lL][sS][xX]}');
-  context.subscriptions.push(provider, watcher,
-    watcher.onDidChange(change), watcher.onDidCreate(change), watcher.onDidDelete(change),
-    vscode.workspace.onDidChangeTextDocument(event => change(event.document.uri)),
+  context.subscriptions.push(provider,
     vscode.workspace.onDidSaveTextDocument(doc => change(doc.uri)),
-    vscode.workspace.onDidOpenTextDocument(doc => change(doc.uri)),
-    vscode.workspace.onDidCloseTextDocument(doc => change(doc.uri)),
     vscode.workspace.onDidCreateFiles(event => { if (event.files.some(relevant)) provider.invalidate(); }),
     vscode.workspace.onDidDeleteFiles(event => { if (event.files.some(relevant)) provider.invalidate(); }),
     vscode.workspace.onDidRenameFiles(event => { if (event.files.some(file => relevant(file.oldUri) || relevant(file.newUri))) provider.invalidate(); }),
-    vscode.workspace.onDidChangeWorkspaceFolders(() => provider.invalidate(undefined, true))
+    vscode.workspace.onDidChangeWorkspaceFolders(() => provider.resetWorkspace())
   );
 }
