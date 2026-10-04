@@ -83,6 +83,9 @@ async function main() {
         check(state.frames===3&&state.button&&state.legacy===2&&state.seconds===123&&state.progress===-4,'all dynamic source fields are reconstructed');
         check(state.background&&state.backgroundX===0,'background lock survives window movement');
         check(JSON.stringify(probe.pixel(0))==='[255,0,0,255]','blob background pixels survive destroyed origin');
+        // Image.complete can precede its queued load callback, which repaints the canvas.
+        // Observe the production draw; do not force redraw or relax the exact pixel assertion.
+        await wait(()=>JSON.stringify(probe.canvasPixel())==='[255,0,0,255]');
         check(JSON.stringify(probe.canvasPixel())==='[255,0,0,255]','restored image is actually drawn on the production canvas');
         check(JSON.stringify(state.text)===JSON.stringify({content:'跨窗文字',color:251,script:'文字触发',font:'宋体',size:14,bold:true}),'text content and style/action parameters survive');
         check(textBefore.visible>0&&JSON.stringify(probe.imageHash(6))===JSON.stringify(textBefore),'restored text is rendered with identical nonempty pixels');
