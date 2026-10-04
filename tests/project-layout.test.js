@@ -23,6 +23,7 @@ for (const relativePath of [
   'docs/plans/ARCHIVE_DIRECT_PREVIEW_PLAN.md',
   'docs/plans/PERFORMANCE_OPTIMIZATION_PLAN.md',
   'docs/reports/CODE_CLEANUP_AUDIT.md',
+  'docs/reports/PROJECT_REPORT_2026-09-05.md',
   'docs/reports/ENGINE_HELP_AUDIT.md',
   'docs/reports/NPC_DIALOG_ACT_UI_EVIDENCE_2026-08-31.md',
   'docs/reports/NPC_DIALOG_RENDERING_REPAIR_2026-09-04.md',
@@ -57,6 +58,7 @@ for (const obsoletePath of [
   'CTRL_F12_ACT_UI_EVIDENCE.md',
   'CTRL_F12_RENDERING_REPAIR_REPORT.md',
   'XIAMI1_BORROWING_AUDIT_REPORT.md',
+  'PROJECT_REPORT.md',
 ]) {
   assert.ok(!exists(obsoletePath), `Legacy project path still exists: ${obsoletePath}`);
 }

@@ -1268,7 +1268,7 @@ function updateMap(data){
     image.onerror=()=>{if(token!==state.imageToken)return;reset100()};
     image.src=data.imageUrl;
   }
-  if(state.pendingNpcReveal)switchToOriginalMap();
+  if(data.originalMap||state.pendingNpcReveal)switchToOriginalMap();
 }
 function updateStatus(){
   const layerText=state.original.active?'原始地图 100%':'预览地图';
@@ -2442,6 +2442,10 @@ window.addEventListener('message',event=>{
   }
   if(data.type==='revealMerchantNpc'){
     revealMerchantNpc(data.npc);
+    return;
+  }
+  if(data.type==='revealOriginalMap'){
+    switchToOriginalMap();
     return;
   }
   if(data.type==='originalMapProgress'){

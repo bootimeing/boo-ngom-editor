@@ -62,6 +62,9 @@ function main() {
   assert.match(script, /MerChant\.txt[^\n]*第一列[^\n]*缺失[^\n]*确认创建/i);
   assert.match(script, /第五列[^\n]*原始地图/);
   assert.match(script, /当前文档所属服务端[^\n]*取消不创建[^\n]*不覆盖/);
+  assert.match(script, /`MapInfo\.txt`[^\n]*显示名称[^\n]*Ctrl\+左键[^\n]*原始地图/);
+  assert.match(script, /`MonGen\.txt` 第一列[^\n]*原始地图[^\n]*第四列[^\n]*MonItems\/[^\n]*确认创建/);
+  assert.match(script, /`Alt\+R`[^\n]*空白爆率文本[^\n]*已有文件不覆盖[^\n]*不会自动生成爆率/);
   assert.match(script, /实时语法检查/);
   assert.match(script, /变量 `STR\(\)` 包裹/);
   assert.match(script, /代码折叠、文档结构、CodeLens 和语义高亮/);
@@ -72,6 +75,9 @@ function main() {
   const variables = feature('变量管理');
   assert.match(variables, /候选变量\/候选标识/);
   assert.match(variables, /动态编号不会导致整个候选列表不可用/);
+  assert.match(variables, /U\/T\/A\/G 四类编号变量与个人标识统计/);
+  assert.match(variables, /U3\/u3\/U003/);
+  assert.match(variables, /个人标识按引擎范围[^\n]*动态编号[^\n]*不确定性/);
 
   const ui = feature('UI 可视化编辑器');
   assert.match(ui, /#### 常规 UI 编辑器/);
@@ -82,6 +88,9 @@ function main() {
   assert.match(ui, /与原 UI 编辑器互不影响/);
   assert.match(ui, /ITEMSHOW[^\n]*IDX[^\n]*Looks/);
   assert.match(ui, /GlobalVal\.ini/);
+  assert.match(ui, /G 数值\/A 文字默认值[^\n]*不写回[^\n]*不是 M2 实时全局值/);
+  assert.match(ui, /文字链接显示为黄色下划线/);
+  assert.match(ui, /列表、字典支持增删条目/);
   assert.match(ui, /未知显示文字[^\n]*预览文字[^\n]*未知显示数值[^\n]*0/);
   assert.match(ui, /只在 Webview 内本地预览/);
   assert.match(ui, /不提交服务器/);
@@ -104,6 +113,8 @@ function main() {
   const database = feature('数据库编辑器');
   assert.match(database, /SQLite[^\n]*MDB 只读[^\n]*cfg_item\.xls/);
   assert.match(database, /MonItems[^\n]*MonIcons/);
+  assert.match(database, /保存刷新时保留当前滚动位置与选区/);
+  assert.match(database, /做好完整备份[^\n]*不直接编辑正在运行的服务端数据库/);
   const drop = feature('爆率分析');
   assert.match(drop, /基准概率/);
   assert.match(drop, /不修改或执行脚本/);
@@ -113,6 +124,7 @@ function main() {
   assert.match(maps, /GOM 地图布局[^\n]*动画[^\n]*叠加/);
   assert.doesNotMatch(maps, /完成后缩放和平移直接复用已加载内容/);
   assert.match(feature('文件、表格与多区同步'), /“快捷工具”中提供独立“脚本同步”入口/);
+  assert.doesNotMatch(feature('文件、表格与多区同步'), /merchant\.table|mongen\.table/);
   assert.doesNotMatch(readme, /最下方[^\n]*脚本同步|脚本同步[^\n]*最下方/);
   const reload = feature('M2 在线重载');
   assert.match(reload, /连续保存请求会自动合并/);
@@ -126,6 +138,9 @@ function main() {
     const command = manifest.contributes.commands.find(item => item.command === id);
     assert.ok(command && readme.includes(command.title), id);
   }
+  const dropKeybinding = manifest.contributes.keybindings.find(item => item.command === 'boo.createMonGenDropFiles');
+  assert.equal(dropKeybinding?.key, 'alt+r');
+  assert.match(readme, /\| `Alt\+R` \|[^\n]*MonGen\.txt[^\n]*不覆盖已有文件/);
   for (const [, target] of readme.matchAll(/\]\(([^)]+)\)/g)) {
     if (/^https?:\/\//.test(target)) continue;
     assert.ok(fs.existsSync(path.resolve(target)), `README 本地链接不存在：${target}`);

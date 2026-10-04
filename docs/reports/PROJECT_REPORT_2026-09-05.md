@@ -1,6 +1,6 @@
 # BOO 可视化编辑器项目报告（2026-09-05 历史快照）
 
-本文保留 2026-09-05 的原始统计与验收结果，不代表当前文件数、功能覆盖或发布版本。最新目录约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，当前功能见 [README.md](README.md)，后续增量见 [CHANGELOG.md](CHANGELOG.md)。
+本文保留 2026-09-05 的原始统计与验收结果，不代表当前文件数、功能覆盖或发布版本。最新目录约定见 [CONTRIBUTING.md](../../CONTRIBUTING.md)，当前功能见 [README.md](../../README.md)，后续增量见 [CHANGELOG.md](../../CHANGELOG.md)。本历史报告已从项目根目录整理到 `docs/reports/`。
 
 > 报告日期：2026-09-05  
 > 报告时版本：V4.3.5  

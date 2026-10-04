@@ -104,9 +104,15 @@ async function run(){
   assert.equal(session.conflict,true,'reset cannot carry old drafts into changed source');
   assert.equal(session.model,conflictedModel);
   session.conflict=false;host.onCompanionFileChanged(uri(externalPath));assert.equal(session.conflict,true,'dirty filesystem event conflicts');
-  session.dirty=false;session.conflict=false;let reloads=0;host.reloadSession=async()=>{reloads++;};
-  host.onCompanionFileChanged(uri(externalPath));assert.equal(reloads,1);
-  host.onCompanionFileChanged(uri(path.join(temp,'unrelated.txt')));assert.equal(reloads,1);
+  session.dirty=false;session.conflict=false;let reloads=0,resolveReload;
+  const refreshed=new Promise(resolve=>{resolveReload=resolve;});
+  host.reloadSession=async()=>{reloads++;resolveReload();};
+  host.onCompanionFileChanged(uri(externalPath));assert.equal(reloads,0,'dependency refresh is coalesced, not dispatched per event');
+  host.onCompanionFileChanged(uri(path.join(temp,'unrelated.txt')));assert.equal(reloads,0);
+  let reloadTimeout;
+  try{await Promise.race([refreshed,new Promise((_,reject)=>{reloadTimeout=setTimeout(()=>reject(Error('dependency refresh did not arrive')),2000);})]);}
+  finally{clearTimeout(reloadTimeout);}
+  assert.equal(reloads,1,'the relevant companion still refreshes after debounce');
   assert.equal(fs.readFileSync(primaryPath,'utf8'),source,'Apply fixture models an unsaved editor, not writing user files');
   console.log('preview-script-provider.test.js: PASS production createModel/read/locate/click/apply/conflict with VS Code stub');
  }finally{assert.ok(path.dirname(temp)===os.tmpdir()&&path.basename(temp).startsWith('boo-call-provider-'));fs.rmSync(temp,{recursive:true,force:true});}

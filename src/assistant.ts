@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { scanM2Windows } from './reload';
+import { registerMonGenDropFileCommand } from './commands/mongen-drop-files';
 import { findInvalidDynamicReferences } from './utils/dynamic-reference';
 import {
   postToSidebar,
@@ -84,6 +85,12 @@ import {
   mergeQuestDiaryTextFileCandidates,
   QUICK_FILE_DEFINITIONS,
 } from './utils/quick-files';
+import { parseMonGenLine } from './utils/map-entities';
+import {
+  isMonGenDocumentPath,
+  isMonsterDropFileTargetSafe,
+  resolveMonsterDropFileTarget,
+} from './utils/mongen-drop-files';
 import {
   buildLanguageIndex,
   commandKey,
@@ -354,6 +361,7 @@ async function scanHumanGuildDecls() {
 }
 
 export function activateAssistant(context: vscode.ExtensionContext) {
+  registerMonGenDropFileCommand(context);
   outputChannel = vscode.window.createOutputChannel('BOO脚本助手');
   outputChannel.appendLine('BOO脚本助手正在激活...');
   const log = (msg: string) => outputChannel.appendLine(msg);
@@ -1426,7 +1434,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
 
         // 4. 路径引用跳转: 定义查询必须无副作用，Ctrl 悬停也会触发这里。
         const pathReference = findScriptPathReferenceAt(line, charPos);
-        if (pathReference && path.basename(document.fileName).toLowerCase() !== 'merchant.txt') {
+        if (pathReference && !['merchant.txt', 'mapinfo.txt', 'mongen.txt'].includes(path.basename(document.fileName).toLowerCase())) {
           const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
           const wsRoot = workspaceFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
           if (!wsRoot) return null;
@@ -1472,6 +1480,8 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
         const wsRoot = workspaceFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         if (!wsRoot) return [];
+        // Table fields have dedicated links; do not treat display names or IDs as generic paths.
+        if (['mapinfo.txt', 'mongen.txt'].includes(path.basename(document.fileName).toLowerCase())) return [];
 
         const links: vscode.DocumentLink[] = [];
         for (let lineNumber = 0; lineNumber < document.lineCount; lineNumber++) {
@@ -2713,12 +2723,26 @@ tr:hover{background:#2a2a2a}
     vscode.commands.registerCommand('boo.createMissingFile', async (
       docUri: vscode.Uri,
       missingFile: string,
-      referenceKind: 'pathReference' | 'scriptCall' | 'include' | 'merchant' | undefined
+      referenceKind: 'pathReference' | 'scriptCall' | 'include' | 'merchant' | 'monGen' | undefined,
+      sourceLineNumber?: number
     ): Promise<vscode.Uri | undefined> => {
       const workspaceFolder = vscode.workspace.getWorkspaceFolder(docUri);
       const wsRoot = workspaceFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!wsRoot) { vscode.window.showErrorMessage('未打开工作区'); return; }
       const docDir = path.dirname(docUri.fsPath);
+      const monGenDocument = referenceKind === 'monGen'
+        ? vscode.workspace.textDocuments.find(document => document.uri.toString() === docUri.toString())
+          || await vscode.workspace.openTextDocument(docUri)
+        : undefined;
+      const monGenVersion = monGenDocument?.version;
+      const matchesMonGenSource = (): boolean => {
+        if (!monGenDocument || !isMonGenDocumentPath(docUri.fsPath)
+          || !Number.isInteger(sourceLineNumber) || Number(sourceLineNumber) < 1) return false;
+        const parsed = parseMonGenLine(
+          monGenDocument.getText().split(/\r?\n|\r/)[Number(sourceLineNumber) - 1] || '', Number(sourceLineNumber)
+        );
+        return monGenDocument.version === monGenVersion && parsed?.spawn.monsterName === missingFile;
+      };
       const cleanMissingFile = String(missingFile || '')
         .trim()
         .replace(/^['"]|['"]$/g, '')
@@ -2730,7 +2754,11 @@ tr:hover{background:#2a2a2a}
       // merchant.txt 引用 → 创建到 Market_Def/ 下
       const isMerchant = /merchant\.txt$/i.test(docUri.fsPath);
       let targetPath: string;
-      if (referenceKind === 'pathReference' || referenceKind === 'scriptCall' || referenceKind === 'include') {
+      if (referenceKind === 'monGen') {
+        const target = matchesMonGenSource() ? resolveMonsterDropFileTarget(docUri.fsPath, missingFile) : undefined;
+        targetPath = target?.existingPath || target?.filePath || '';
+        if (!targetPath) { vscode.window.showErrorMessage('刷怪配置已变化或怪物爆率路径无效，请重新点击怪物名'); return; }
+      } else if (referenceKind === 'pathReference' || referenceKind === 'scriptCall' || referenceKind === 'include') {
         const baseKind = referenceKind === 'scriptCall'
           ? 'questDiary'
           : referenceKind === 'include'
@@ -2770,10 +2798,22 @@ tr:hover{background:#2a2a2a}
               '创建文本'
             );
             if (choice !== '创建文本') return undefined;
+            if (referenceKind === 'monGen') {
+              const target = matchesMonGenSource() ? resolveMonsterDropFileTarget(docUri.fsPath, missingFile) : undefined;
+              if (!target || path.resolve(target.filePath).toLowerCase() !== path.resolve(finalPath).toLowerCase()) {
+                vscode.window.showErrorMessage('刷怪配置或 MonItems 路径已变化，请重新点击怪物名'); return undefined;
+              }
+            }
             if ((referenceKind === 'merchant' || isMerchant) && !isMerchantScriptTargetSafe(wsRoot, docUri.fsPath, finalPath)) {
               vscode.window.showErrorMessage('NPC 脚本路径已变化，拒绝在 Market_Def 以外创建文件'); return undefined;
             }
             fs.mkdirSync(path.dirname(finalPath), { recursive: true });
+            if (referenceKind === 'monGen') {
+              const target = matchesMonGenSource() ? resolveMonsterDropFileTarget(docUri.fsPath, missingFile) : undefined;
+              if (!target || path.resolve(target.filePath).toLowerCase() !== path.resolve(finalPath).toLowerCase()) {
+                vscode.window.showErrorMessage('MonItems 路径已变化，拒绝创建服务端外的文件'); return undefined;
+              }
+            }
             if ((referenceKind === 'merchant' || isMerchant) && !isMerchantScriptTargetSafe(wsRoot, docUri.fsPath, finalPath)) {
               vscode.window.showErrorMessage('NPC 脚本路径已变化，请重新点击引用'); return undefined;
             }
@@ -2782,6 +2822,10 @@ tr:hover{background:#2a2a2a}
             } catch (e: unknown) {
               if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
             }
+          }
+          if (referenceKind === 'monGen' && (!matchesMonGenSource()
+            || !isMonsterDropFileTargetSafe(docUri.fsPath, missingFile, finalPath))) {
+            vscode.window.showErrorMessage('刷怪配置或爆率文件路径已变化，请重新点击怪物名'); return undefined;
           }
           const uri = vscode.Uri.file(finalPath);
           const doc = await vscode.workspace.openTextDocument(uri);

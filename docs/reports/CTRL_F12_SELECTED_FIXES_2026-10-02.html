@@ -1,0 +1,150 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ctrl+F12 五项修复 · V4.3.8</title><style>
+body{margin:0;background:#f1f4f8;color:#172638;font:16px/1.8 "Microsoft YaHei",system-ui,sans-serif}main{max-width:1100px;margin:28px auto;padding:36px;background:white;border-radius:14px;box-shadow:0 8px 32px #17365012}h1{font-size:28px;line-height:1.45}h2{margin-top:32px;padding-top:16px;border-top:1px solid #dfe6ee;color:#244d71}a{color:#1266aa}table{display:block;overflow:auto;border-collapse:collapse;font-size:14px;margin:18px 0;width:100%}th,td{border:1px solid #dfe6ee;padding:10px;vertical-align:top;min-width:70px}th{background:#eaf1f7;text-align:left}pre{overflow:auto;padding:16px;background:#102337;color:#e3effa;border-radius:8px;line-height:1.6}code{font-family:Consolas,monospace}p code,li code,td code{background:#eff4f8;padding:2px 4px;border-radius:3px}li{margin:6px 0}footer{color:#64788d;font-size:13px;margin-top:30px}@media(max-width:720px){main{margin:0;padding:20px;border-radius:0}h1{font-size:23px}}@media print{main{margin:0;padding:0;box-shadow:none}table{display:table;font-size:10px}pre{white-space:pre-wrap}}
+</style><main><h1>Ctrl+F12 五项修复报告</h1>
+<p>日期：2026-10-02。当前版本：V4.3.8。基线提交：<code>6244fdc57b6cb49f07ab46cc6c6c82bcaa289095</code>。</p>
+<p>五项修复已完成；最终 Ctrl+F12 严格矩阵为 <strong>202/202 PASS</strong>，未跳过必需的浏览器检查。</p>
+<p>本报告仅记录用户指定的五项修复。生产改动位于 <code>src/ui-dialog/source-parser.ts</code> 和 <code>src/providers/npc-dialog-visual.ts</code>；未修改引擎源码、服务端脚本、数据库、GlobalVal.ini、用户补丁或缓存。未升版、打包、安装、提交、推送或发布。此前的<a href="CTRL_F12_DEEP_AUDIT_2026-10-02.md">深度审计报告</a>保持为历史基线，不能把本轮结论推广为其全部事项已完成。</p>
+<h2>修复结果</h2>
+<table>
+<thead>
+<tr>
+<th>用户反馈</th>
+<th>原因</th>
+<th>本轮实现</th>
+<th>核验结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;&amp;IMG&gt;</code> 漏掉确定变量</td>
+<td>素材静态放行分支只匹配 <code>&lt;IMG:</code></td>
+<td>相对与绝对 IMG 共用直接 STR 的源码证明；图片序号、资源序号分别证明</td>
+<td>GOM/GEE 两种坐标模式；N、F 及二者同时为变量均产生精确素材请求并加载 PNG</td>
+</tr>
+<tr>
+<td>文本变化触发重复重建</td>
+<td>revision 阻止旧结果发布，但每个事件仍启动工作</td>
+<td>自动刷新采用 80ms 合并等待、单任务执行及最新待处理状态；来源变化立即撤销旧发布资格</td>
+<td>30 次连续变化合并为一次；旧任务期间的新变化只追加一次最新重建；自动任务最大并发为 1</td>
+</tr>
+<tr>
+<td>纯文字仍扫描补丁目录</td>
+<td>hydrateAssets 无条件发现客户端目录并扫描归档</td>
+<td>经现有类型化安全门控确认有素材需求后才建立目录快照</td>
+<td>无需求时 layout、archive scan、cache snapshot 均为 0；合法需求时各一次，共用同一快照</td>
+</tr>
+<tr>
+<td>确定 PLAYIMG 帧数仍只有首帧</td>
+<td>源绑定保留 frame-count 的动态降级，没有投影已证明值</td>
+<td>仅扩展 GOM/GEE PLAYIMG 第 3 参数的直接、非本地源码证明</td>
+<td><code>MOV N0 15</code> 得到 15 个不同帧槽及 15 个 ready 帧，浏览器播放到第 14 帧并实际轮换像素</td>
+</tr>
+<tr>
+<td>颜色正确但仍有旧警告</td>
+<td>源绑定重新合并原始动态颜色解释</td>
+<td>在最终字段状态及流式源警告合并阶段归并诊断</td>
+<td>resolved-static 颜色不再带旧动态警告；未知、非法颜色及无关布局警告仍保留</td>
+</tr>
+</tbody>
+</table>
+<h2>图片与动画参数的授权边界</h2>
+<p>IMG 的参数顺序是 <code>N:F:X:Y</code>，PLAYIMG 是 <code>F:N:帧数:间隔:X:Y</code>，两者不可混用。修复保留原始表达式、源码范围与坐标模式，没有把有效预览值写回脚本。</p>
+<pre><code class="language-text">[@main]
+#ACT
+MOV N0 1060
+MOV N1 1
+MOV N2 15
+#SAY
+&lt;&amp;IMG:&lt;$STR(N0)&gt;:&lt;$STR(N1)&gt;:50:60&gt;
+&lt;&amp;PLAYIMG:1:1060:&lt;$STR(N2)&gt;:100:95:172&gt;
+</code></pre>
+<p>第一项请求 WIL 1 / 图位 1060；第二项沿当前生产帧序列规则补全 15 帧，不再因为帧数是变量而降级到 1。源码路径上的确定算术结果与已执行 GOTO 结果也已覆盖。</p>
+<p>这不是放开任意动态参数：</p>
+<ul>
+<li>图片索引和资源索引中的完整直接 <code>&lt;$STR(variable)&gt;</code> 表达式分别要求已确定、非用户本地来源、安全非负整数；任一资源字段未证明，都不能借另一个字段的证明获得请求权限。</li>
+<li>PLAYIMG 帧数另外要求大于 0。未知、用户输入、用户输入派生值、MOVR 等运行时覆盖、拼接表达式、负数、小数及超出安全整数范围的值不能请求额外帧。</li>
+<li>PLAYIMG 的资源、起始图位、间隔、绘制模式、链接及 GOM repeat 字段的既有安全限制不变；其他动态字段仍保留安全首帧播放。确定帧数不等于证明所有动画参数。</li>
+<li>996PC、PLAYIMGEX、ITEMSHOW 数据库 IDX、路径、动作及服务器调用没有获得这项新权限。超过 240 帧仍按现有上限截断并提示。</li>
+<li>本轮图片门禁正控证明加载与可命中，不宣称变量图片的选择框已达到字面量图片的固有尺寸：合成 40×24 PNG 的变量控件仍沿既有 72×72 安全选择框规则，这属于未扩大处理的布局边界。</li>
+</ul>
+<h2>自动刷新及草稿保护</h2>
+<p>Ctrl+F12 仍是实时预览，没有改为“仅保存后刷新”。80ms 是自动来源事件的短合并等待；用户手动重载仍立即启动，并消费待执行的自动队列。</p>
+<p>新来源事件到达时立即递增 revision。旧任务即使随后结束，也不能发布旧模型或旧错误。若旧自动任务正在执行，新增事件只保留最新待处理状态；旧任务结束后最多启动一次最新重建。已经启动的底层计算未被强制中止，不能称为底层任务已取消。</p>
+<p>独立审查发现并修复了额外竞态：手动重载已经发布当前模型时，一个仍未结束的旧自动任务会误判随后创建的坐标草稿为冲突。现在用 runningRevision 区分“计算锁仍占用”和“当前任务有草稿冲突权限”，旧任务不再误伤新草稿。</p>
+<p>测试还覆盖：手动重载后再次改变源码、旧任务异常结束、排队时新增草稿、运行中释放会话、主文档关闭及 companion 来源事件。已有草稿遇真实源码变化仍提示冲突，延迟刷新不会清掉草稿。</p>
+<h2>按需素材扫描</h2>
+<p>需求预检只复制素材合同，复用正式补全使用的安全 helpers；collector 不读取素材，也不修改实际模型。没有为了“探测需求”在正式补全中抛异常并重新执行。</p>
+<p>静态背景、ADDDLG、按钮状态与特效、MenuItem 默认图、ListView 滚动条、Slider/Progress 独立图层及动画、数字字库、Atlas、模型层、物品发光和数据库素材都保留正向覆盖。动态物品若另有静态框或光效，仍会按合法需求扫描，不能一概当作零需求。</p>
+<p>ITEMSHOW 的 Idx→Looks 查一次并复用；资源根、文件列表在同次请求中冻结。既有整包优先选择、逻辑空槽拒绝及所选物品包的精确 MD5 校验仍通过。这里测量的是工作次数，未进行真实大型客户端目录的耗时基准，不能据此声称具体毫秒或提速百分比。</p>
+<h2>验证记录</h2>
+<table>
+<thead>
+<tr>
+<th>检查</th>
+<th>当前结果</th>
+<th>证据层级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>preview-proofed-visual-fields.test.js</code></td>
+<td>99 项通过</td>
+<td>生产解析器、模型、Provider 补全；VS Code API 替身</td>
+</tr>
+<tr>
+<td><code>preview-demand-hydration.test.js</code></td>
+<td>39 个案例通过</td>
+<td>生产 Provider，受控目录/查询计数及安全门控</td>
+</tr>
+<tr>
+<td><code>preview-reload-coalescing.test.js</code></td>
+<td>通过</td>
+<td>生产 Provider 方法、可控时钟与可控异步模型重建</td>
+</tr>
+<tr>
+<td><code>npc-dialog-dynamic-source-safety.test.js</code></td>
+<td>14 项通过</td>
+<td>保留旧安全断言，新增源码证明正控及本地/未知/运行时负控</td>
+</tr>
+<tr>
+<td><code>all-text-surface-contract.test.js</code></td>
+<td>13 项通过</td>
+<td>文字表面、资源与数据库权限分离</td>
+</tr>
+<tr>
+<td>新增浏览器验证</td>
+<td>通过</td>
+<td>Chrome 154.0.8037.93；生产 HTML/CSS/JS；有效合成 PNG；277 个 DOM 节点</td>
+</tr>
+<tr>
+<td>完整 Ctrl+F12 严格矩阵</td>
+<td>202/202 PASS</td>
+<td>安装浏览器为必需条件，SKIP 不接受</td>
+</tr>
+<tr>
+<td><code>npc-dialog-visual.test.js</code>、<code>static-language.test.js</code>、JS 语法与 <code>git diff --check</code></td>
+<td>通过</td>
+<td>解析/目录/静态检查</td>
+</tr>
+<tr>
+<td><code>npm run lint</code></td>
+<td>退出 0；0 errors、49 warnings</td>
+<td>全项目现有 require-atomic-updates 警告保留，没有将 warnings 宣称为零</td>
+</tr>
+</tbody>
+</table>
+<p>新浏览器验证覆盖 GOM/GEE 各 16 个源码控件：PNG 加载、可见尺寸、可命中性、最终坐标、15 帧实时时间推进、至少 12 个实际帧 URL、末帧及三种 RGBA 像素轮换、Inspector 黄色与诊断。未知/本地输入/运行时写入仍保留资源或安全首帧限制。渲染与选择没有发送保存、应用、外链或服务器动作。</p>
+<p>首次完整矩阵为 199/202，三项旧测试仍要求“源码确定的绝对 IMG 必须禁止”。逐项核查后，将其迁移为精确源码证明的正控，同时保留并补充未知、本地输入及运行时覆盖负控；没有删除数据库、动作、其他动态资源字段或计时器安全断言。最终重新执行完整矩阵为 202/202 PASS。首次失败日志独立保留，未用终验日志覆盖。</p>
+<h2>证据附件与未验证边界</h2>
+<p>附件位于维护者本地 <code>artifacts/</code>，不随公开仓库提交；历史附件整理后从外部归档恢复，不是 GitHub 下载链接。</p>
+<ul>
+<li><a href="../../artifacts/ctrl-f12-selected-fixes-20261002/strict-suite.log">首次完整矩阵日志</a></li>
+<li><a href="../../artifacts/ctrl-f12-selected-fixes-20261002/strict-suite-final.log">最终完整矩阵日志</a></li>
+<li><a href="../../artifacts/ctrl-f12-selected-fixes-20261002/browser/browser-results.json">真实浏览器观察与像素记录</a></li>
+<li><a href="../../artifacts/ctrl-f12-deep-audit-20261002/reload-red.log">自动刷新原问题红测</a></li>
+<li><a href="../../artifacts/ctrl-f12-five-fixes-20261002/lazy/red.log">按需扫描红测</a>与<a href="../../artifacts/ctrl-f12-five-fixes-20261002/lazy/green.log">最终 39 个案例绿测</a></li>
+<li><a href="../../artifacts/ctrl-f12-selected-fixes-20261002/fix-manifest.json">源码、运行时、测试及证据的 SHA-256 清单</a></li>
+</ul>
+<p>本轮没有通过原生键盘 Ctrl+F12 或系统鼠标驱动用户已安装的 VS Code，没有做目标游戏客户端的逐像素对照；合成 PNG 验证不等于新验证了用户 PAK/JPK 密码或解码。生产源码与本地编译已修复，但旧已安装 VSIX 不会因此自动更新。</p>
+<p>本轮已将直接源码证明、最终诊断归并、按需扫描和自动重载竞态方法补入既有绘制审计/归档预览技能，两项技能校验通过；未改写记忆文件。</p>
+<footer>由同名 Markdown 生成。无外部脚本、遥测或网络请求；原始日志与机器可读身份附件独立保留。</footer></main></html>

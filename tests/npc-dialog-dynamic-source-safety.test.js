@@ -14,7 +14,7 @@ const {
   workspaceNpcDialogOffsets,
 } = require('../out/ui-dialog/offsets');
 
-function parse(source, engine) {
+function parse(source, engine, previewValues = {}) {
   return parseNpcDialogDocument(source, {
     uri: 'file:///D:/MirServer/Mir200/Envir/QuestDiary/dynamic-source-safety.txt',
     fileName: 'dynamic-source-safety.txt',
@@ -25,6 +25,7 @@ function parse(source, engine) {
     cursorOffset: source.indexOf('[@main]') + '[@main]'.length,
     offsets: workspaceNpcDialogOffsets(0, 0),
     catalog: buildDialogStatementCatalog(staticLanguage, engine),
+    previewValues,
   });
 }
 
@@ -214,12 +215,12 @@ function check(name, callback) {
   checks.push({ name, callback });
 }
 
-check('GOM IMG/IMGEX dynamic references', () => {
+check('GOM IMG/IMGEX direct source-proved references', () => {
   const img = statement(gom, 'img-absolute');
   const imgex = statement(gom, 'imgex-absolute');
-  assertNoImageIndexes(img, [9010], 'GOM IMG');
+  assert.deepEqual(img.assetRef, { willIndex: 37, imageIndex: 9010 }, 'proved absolute GOM IMG uses the same narrow projection as relative IMG');
+  assert.equal(img.previewAssetOrigin, 'resolved-static');
   assert.deepEqual(imgex.assetStateDiagnostics.map(state=>state.assetRef), [9010,9011,9012].map(imageIndex=>({willIndex:37,imageIndex})), 'proved GOM IMGEX state projections');
-  assertNoWillIndexes(img, [37], 'GOM IMG');
   assert.equal(imgex.previewAssetOrigin, 'resolved-static');
   assertDynamicBoundary(img, 'GOM IMG');
   assertDynamicBoundary(imgex, 'GOM IMGEX');
@@ -255,14 +256,14 @@ check('GOM MONSTER/Looks dynamic data', () => {
   assertDynamicBoundary(looks, 'GOM Looks');
 });
 
-check('GEE IMG/IMGEX/IMGNUM/IMGCOUNTDOWN dynamic references', () => {
+check('GEE IMG/IMGEX source-proved references while IMGNUM/IMGCOUNTDOWN stay dynamic', () => {
   const img = statement(gee, 'img-absolute');
   const imgex = statement(gee, 'imgex-absolute');
   const number = statement(gee, 'image-number');
   const countdown = statement(gee, 'image-countdown');
-  assertNoImageIndexes(img, [9310], 'GEE IMG');
+  assert.deepEqual(img.assetRef, { willIndex: 37, imageIndex: 9310 }, 'proved absolute GEE IMG uses the same narrow projection as relative IMG');
+  assert.equal(img.previewAssetOrigin, 'resolved-static');
   assert.deepEqual(imgex.assetStateDiagnostics.map(state=>state.assetRef), [9310,9311,9312].map(imageIndex=>({willIndex:37,imageIndex})), 'proved GEE IMGEX state projections');
-  assertNoWillIndexes(img, [37], 'GEE IMG');
   assert.equal(imgex.previewAssetOrigin, 'resolved-static');
   assertNoImageIndexes(number, [1290, 1291, 1292, 1293, 1294, 1295, 1296, 1297, 1298, 1299], 'GEE IMGNUM');
   assert.equal(number.imageTextPreview?.value, '4321');
@@ -538,6 +539,28 @@ function loadProviderInternals() {
     Module._load = originalLoad;
   }
 }
+
+check('legacy IMG projection still rejects unknown, local, runtime and invalid resources', async () => {
+  const { hydrate } = require('./helpers/preview-image-hydration');
+  for (const engine of ['GOM', 'GEE']) {
+    for (const [label, assignments, values] of [
+      ['unknown', '', {}],
+      ['local input', '', { 'N$IMG': '9010', 'N$WIL': '37' }],
+      ['one local field', 'MOV N$IMG 9010', { 'N$WIL': '37' }],
+      ['runtime overwrite', 'MOV N$IMG 9010\nMOV N$WIL 37\nMOVR N$IMG 10000', {}],
+      ['negative index', 'MOV N$IMG -1\nMOV N$WIL 37', {}],
+      ['fractional index', 'MOV N$IMG 9010.5\nMOV N$WIL 37', {}],
+      ['unsafe integer', 'MOV N$IMG 9007199254740993\nMOV N$WIL 37', {}],
+    ]) {
+      const model = parse(`[@main]\n${assignments ? `#ACT\n${assignments}\n` : ''}#SAY\n<&IMG:<$STR(N$IMG)>:<$STR(N$WIL)>:10:20>`, engine, values);
+      const img = statement(model, 'img-absolute');
+      assert.equal(img.previewAssetOrigin, undefined, `${engine} ${label} cannot gain source proof`);
+      assert.deepEqual(assetReferences(img), [], `${engine} ${label} cannot retain resolved image or archive slots`);
+      assert.deepEqual(await hydrate(model), [], `${engine} ${label} cannot issue Provider requests`);
+      assertDynamicBoundary(img, `${engine} ${label}`);
+    }
+  }
+});
 
 check('production provider never resolves dynamic-derived assets or CostItem IDX', async () => {
   const { __NpcDialogVisualEditorManager: Manager } = loadProviderInternals();

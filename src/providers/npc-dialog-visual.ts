@@ -684,6 +684,12 @@ interface StoredGeeOffset {
 }
 
 interface NpcDialogSession {
+  automaticReload?: {
+    timer?: ReturnType<typeof setTimeout>;
+    pending: boolean;
+    running: boolean;
+    runningRevision?: number;
+  };
   previewPath?: import('../ui-dialog/variable-resolver').DialogPreviewCall[];
   publishedPreview?: { model: NpcDialogDocumentModel; revision: number };
   previewCall?: import('../ui-dialog/variable-resolver').DialogPreviewCall;
@@ -840,7 +846,10 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
   }
 
   dispose(): void {
-    for (const session of [...this.sessions.values()]) session.panel.dispose();
+    for (const session of [...this.sessions.values()]) {
+      this.cancelAutomaticReload(session);
+      session.panel.dispose();
+    }
     this.sessions.clear();
     this.scriptDataResolver.dispose();
     this.disposables.splice(0).forEach(disposable => disposable.dispose());
@@ -969,6 +978,17 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
           return;
         case 'dirtyChanged':
           session.dirty = Boolean(message.dirty);
+          if (session.dirty && (session.automaticReload?.pending
+            || (session.automaticReload?.running
+              && session.automaticReload.runningRevision === session.modelRevision))) {
+            this.cancelAutomaticReload(session);
+            ++session.modelRevision;
+            session.conflict = true;
+            void session.panel.webview.postMessage({
+              type: 'conflict',
+              message: '源码已变化，当前坐标草稿需要重新载入后再继续',
+            });
+          }
           return;
         case 'reload':
           if (!(await this.confirmDiscardDrafts(session, '重新载入'))) return;
@@ -1280,8 +1300,11 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
     session: NpcDialogSession,
     userInitiated: boolean,
     preserveDrafts = false,
-    navigatePageId?: string
+    navigatePageId?: string,
+    automatic = false
   ): Promise<void> {
+    // Explicit actions stay immediate and consume any queued source refresh.
+    if (!automatic) this.cancelAutomaticReload(session);
     if (preserveDrafts && !this.previewDraftSourcesCurrent(session)) return;
     const revision = ++session.modelRevision;
     const previewConditions = { ...session.previewConditions };
@@ -1368,20 +1391,35 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
     const archiveCache = new Map<string, CachedPatchPak>();
     const assetTableCache = new Map<string, CachedPatchAssetTable>();
     const exactIdentityPreviews = new Set<DialogAssetPreview>();
+    // Database-backed item demands must be known before archive discovery.
+    // Retain the resolved references so demand detection does not query Looks
+    // twice or choose a different package after the snapshot has been taken.
+    const itemReferences = new Map<DialogElement, DialogAssetReference | undefined>();
+    for (const scene of model.scenes) {
+      for (const element of scene.elements) {
+        if (element.itemPreview) {
+          itemReferences.set(element, this.resolveItemAssetReference(element, model.engine, document));
+        }
+      }
+    }
     let resolutionSnapshot: DialogAssetResolutionSnapshot | undefined;
     // Production hydration takes one immutable view of the selected client's
     // archive files. Selecting the package before selecting its slot prevents
     // a missing ItemsN slot from being filled by another resource root/client.
-    if (this.context) {
+    // Source-gated demand detection also avoids client layout discovery for a
+    // text-only dialog. A raw/stale assetRef alone is not an asset permission.
+    if (this.context && this.hasDialogAssetDemand(model, itemReferences)) {
       const state = this.patchState(model.engine);
-      const resourceRoots = state ? clientResourceLayoutFromState(state)?.dataRoots || [] : [];
+      const resourceRoots = Object.freeze([
+        ...(state ? clientResourceLayoutFromState(state)?.dataRoots || [] : []),
+      ]);
       const archiveExtensions = uiEditorArchiveExtensions(model.engine);
       resolutionSnapshot = {
         cacheRoot: getPatchCacheRoot(this.context),
         resourceRoots,
-        archiveFiles: resourceRoots.length > 0
+        archiveFiles: Object.freeze(resourceRoots.length > 0
           ? await scanClientArchiveFiles(resourceRoots, archiveExtensions)
-          : [],
+          : []),
         previewPaks: new Map<DialogAssetPreview, CachedPatchPak>(),
       };
     }
@@ -1448,7 +1486,7 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
           : (element.assetLayers || [])
             .filter(layer => layer.role !== 'item')
             .map(layer => ({ ...layer, asset: resolve(layer.assetRef) }));
-        const itemReference = this.resolveItemAssetReference(element, model.engine, document);
+        const itemReference = itemReferences.get(element);
         const item = element.itemPreview;
         if (item) {
           delete item.lightPreview?.frames;
@@ -1562,6 +1600,98 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
       invalidateStaleDialogAssetIdentities(resolutionSnapshot);
     }
     reflowNpcDialogLayout(model);
+  }
+
+  private hasDialogAssetDemand(
+    model: NpcDialogDocumentModel,
+    itemReferences: ReadonlyMap<DialogElement, DialogAssetReference | undefined>
+  ): boolean {
+    if ([...itemReferences.values()].some(isHydratableDialogAssetReference)) return true;
+    if (model.scenes.some(scene => scene.elements.some(element => (
+      resolveGxxItemLightEffect(model.engine, element.itemPreview?.lightCode)
+    )))) return true;
+    // Most dialogs are ordinary text. Avoid allocating even the resource-only
+    // probe when no contract could request a package in the first place.
+    if (!model.scenes.some(scene => scene.background || scene.addDlgWindow?.assetRef
+      || scene.elements.some(element => element.assetRef || element.assetLayers?.length
+        || element.assetStateDiagnostics || element.addButtonPreview
+        || element.progressPreview || element.imageTextPreview || element.menuPreview?.assetDiagnostics
+        || element.containerPreview?.scrollbarDiagnostics || element.modelPreview?.layers.length))) {
+      return false;
+    }
+    // Reuse the current typed source gates instead of a second hand-maintained
+    // list of dynamic/invalid fields. Copy only resource-bearing contracts,
+    // never the source text, coordinates or already hydrated pixel/frame data.
+    // The helpers may sanitize this small probe but cannot alter the real model.
+    const copy = <T>(value: T): T => value === undefined ? value : JSON.parse(JSON.stringify(
+      value,
+      (key, candidate) => key === 'asset' || key === 'frames' ? undefined : candidate
+    ));
+    const demandModel = {
+      scenes: model.scenes.map(scene => ({
+        background: copy(scene.background),
+        addDlgWindow: scene.addDlgWindow
+          ? { id: scene.addDlgWindow.id, assetRef: copy(scene.addDlgWindow.assetRef) }
+          : undefined,
+        elements: scene.elements.map(element => ({
+          statementId: element.statementId,
+          assetRef: copy(element.assetRef),
+          assetLayers: copy(element.assetLayers),
+          assetStateDiagnostics: copy(element.assetStateDiagnostics),
+          addButtonPreview: copy(element.addButtonPreview),
+          progressPreview: copy(element.progressPreview),
+          sliderPreview: copy(element.sliderPreview),
+          imageTextPreview: copy(element.imageTextPreview),
+          menuPreview: copy(element.menuPreview),
+          containerPreview: element.containerPreview ? copy({
+            variant: element.containerPreview.variant,
+            scrollbarDiagnostics: element.containerPreview.scrollbarDiagnostics,
+          }) : undefined,
+          modelPreview: element.modelPreview ? {
+            layers: copy(element.modelPreview.layers),
+          } : undefined,
+          animationPreview: element.animationPreview ? {
+            frameCount: element.animationPreview.frameCount,
+          } : undefined,
+        })),
+      })),
+    } as NpcDialogDocumentModel;
+    let demanded = false;
+    const collect = (reference: DialogAssetReference | undefined): undefined => {
+      if (isHydratableDialogAssetReference(reference)) demanded = true;
+      return undefined;
+    };
+    hydrateAddDlgWindowAssets(demandModel, collect);
+    hydrateDialogBackgroundAssets(demandModel, collect);
+    hydrateAddButtonAssets(demandModel, collect);
+    sanitizeProgressControlAssetReferences(demandModel);
+    hydrateStatefulControlAssets(demandModel, collect);
+    hydrateTextAtlasAssets(demandModel, collect);
+    hydrateMenuItemAssets(demandModel, collect);
+    hydrateListViewAssets(demandModel, collect);
+    for (const scene of demandModel.scenes) {
+      for (const element of scene.elements) {
+        if (!element.addButtonPreview
+          && !element.assetStateDiagnostics
+          && !element.imageTextPreview?.textAtlasVariant
+          && !element.menuPreview?.assetDiagnostics
+          && !element.containerPreview?.scrollbarDiagnostics) {
+          collect(element.assetRef);
+        }
+        for (const layer of element.assetLayers || []) {
+          if (layer.role !== 'item') collect(layer.assetRef);
+        }
+        if (element.imageTextPreview && !element.imageTextPreview.textAtlasVariant) {
+          for (const glyph of [
+            ...element.imageTextPreview.glyphs,
+            ...(element.imageTextPreview.glyphBank || []),
+          ]) collect(glyph.assetRef);
+        }
+        for (const layer of element.modelPreview?.layers || []) collect(layer.assetRef);
+        if (element.animationPreview) collect(element.assetRef);
+      }
+    }
+    return demanded;
   }
 
   private resolveItemAssetReference(
@@ -1884,6 +2014,51 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
     }
   }
 
+  private cancelAutomaticReload(session: NpcDialogSession): void {
+    const queue = session.automaticReload;
+    if (!queue) return;
+    if (queue.timer !== undefined) clearTimeout(queue.timer);
+    queue.timer = undefined;
+    queue.pending = false;
+  }
+
+  private scheduleAutomaticReload(session: NpcDialogSession): void {
+    if (this.sessions.get(session.key) !== session || session.document.isClosed) return;
+    // Revoke in-flight publication now, not after debounce: old source must
+    // never gain another window in which it can replace the latest canvas.
+    ++session.modelRevision;
+    const queue = session.automaticReload ||= { pending: false, running: false };
+    queue.pending = true;
+    if (queue.timer !== undefined) clearTimeout(queue.timer);
+    queue.timer = setTimeout(() => {
+      queue.timer = undefined;
+      void this.flushAutomaticReload(session);
+    }, 80);
+  }
+
+  private async flushAutomaticReload(session: NpcDialogSession): Promise<void> {
+    const queue = session.automaticReload;
+    if (!queue?.pending || queue.running) return;
+    if (this.sessions.get(session.key) !== session || session.document.isClosed || session.dirty || session.applying) {
+      this.cancelAutomaticReload(session);
+      return;
+    }
+    queue.pending = false;
+    queue.running = true;
+    // A manual reload can supersede this flight without terminating its work.
+    // Only the active revision may conflict with newly created canvas drafts.
+    queue.runningRevision = session.modelRevision + 1;
+    try {
+      await this.reloadSession(session, false, false, undefined, true);
+    } finally {
+      queue.running = false;
+      queue.runningRevision = undefined;
+      // If debounce elapsed during an old parse, rebuild only the latest
+      // pending state. If typing has not settled, leave its timer in charge.
+      if (queue.pending && queue.timer === undefined) void this.flushAutomaticReload(session);
+    }
+  }
+
   private onDocumentChanged(event: vscode.TextDocumentChangeEvent): void {
     for (const session of this.sessions.values()) {
       const primaryChanged = session.document.uri.toString() === event.document.uri.toString();
@@ -1891,6 +2066,8 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
       if ((!primaryChanged && !companionChanged) || (session.applying && (primaryChanged
         || session.applyingSourceUris?.has(event.document.uri.toString())))) continue;
       if (session.dirty) {
+        this.cancelAutomaticReload(session);
+        ++session.modelRevision;
         session.conflict = true;
         void session.panel.webview.postMessage({
           type: 'conflict',
@@ -1899,7 +2076,7 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
             : '源码在可视化草稿期间发生变化，请重新载入后继续',
         });
       } else {
-        void this.reloadSession(session, false);
+        this.scheduleAutomaticReload(session);
       }
     }
   }
@@ -1914,13 +2091,15 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
       );
       if (action === 'ignore') continue;
       if (action === 'conflict') {
+        this.cancelAutomaticReload(session);
+        ++session.modelRevision;
         session.conflict = true;
         void session.panel.webview.postMessage({
           type: 'conflict',
           message: '外部依赖脚本文件已变化，请重新载入后继续',
         });
       } else {
-        void this.reloadSession(session, false);
+        this.scheduleAutomaticReload(session);
       }
     }
   }
@@ -1932,6 +2111,8 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
   private onDocumentClosed(document: vscode.TextDocument): void {
     for (const session of this.sessions.values()) {
       if (session.document.uri.toString() === document.uri.toString()) {
+        this.cancelAutomaticReload(session);
+        ++session.modelRevision;
         session.conflict = true;
         void session.panel.webview.postMessage({
           type: 'conflict',
@@ -1939,19 +2120,22 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
         });
       } else if (this.isCompanionSource(session, document.uri)) {
         if (session.dirty) {
+          this.cancelAutomaticReload(session);
+          ++session.modelRevision;
           session.conflict = true;
           void session.panel.webview.postMessage({
             type: 'conflict',
             message: '外部依赖脚本已关闭，当前草稿需要重新载入后再继续',
           });
         } else {
-          void this.reloadSession(session, false);
+          this.scheduleAutomaticReload(session);
         }
       }
     }
   }
 
   private disposeSession(session: NpcDialogSession): void {
+    this.cancelAutomaticReload(session);
     this.sessions.delete(session.key);
     session.disposables.splice(0).forEach(disposable => disposable.dispose());
   }

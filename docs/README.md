@@ -11,6 +11,7 @@
 
 ## 开发与维护
 
+- [全项目功能与优化报告（2026-10-04）](reports/PROJECT_OPTIMIZATION_AUDIT_2026-10-04.md) · [HTML 阅读版](reports/PROJECT_OPTIMIZATION_AUDIT_2026-10-04.html)：功能入口、隔离反例、分层优化与验收标准；本轮仅审查，未实施修复。
 - [开发与目录约定](../CONTRIBUTING.md)
 - [测试分类与验收边界](../tests/README.md)
 - [开发工具](../tools/README.md)
@@ -20,6 +21,7 @@
 
 ## 版本与交付
 
+- [V4.3.9 功能说明、项目整理与发布核验](releases/V4.3.9_RELEASE_20261004.md)
 - [V4.3.8 变量列表稳定刷新与发布核验](releases/V4.3.8_RELEASE_20260930.md)
 - [V4.3.7 本地发布包与源码交付核验](releases/V4.3.7_RELEASE_20260930.md)
 - [V4.3.6 项目整理与发布核验](releases/V4.3.6_RELEASE_20260927.md)
@@ -29,6 +31,9 @@
 
 ## 历史验收参考
 
+- [Ctrl+F12 深度审查（2026-10-02）](reports/CTRL_F12_DEEP_AUDIT_2026-10-02.md)
+- [Ctrl+F12 确定素材与刷新修复（2026-10-02）](reports/CTRL_F12_SELECTED_FIXES_2026-10-02.md)
+- [2026-09-05 项目状态历史快照](reports/PROJECT_REPORT_2026-09-05.md)
 - [素材工作台使用问题修复](reports/PAK_WORKBENCH_FIX_20260927.md)
 - [NPC 缺失脚本跳转与创建](reports/MERCHANT_SCRIPT_LINK_FIX_20260927.md)
 - [资源工作台 P6 验收与未开放边界](reports/PATCH_RESOURCE_EDITOR_P6_20260927.md)

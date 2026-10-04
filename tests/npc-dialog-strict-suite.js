@@ -45,6 +45,10 @@ function findRequiredBrowser() {
 }
 
 const tests = [
+  'preview-reload-coalescing.test.js',
+  'preview-demand-hydration.test.js',
+  'preview-proofed-visual-fields.test.js',
+  'preview-proofed-visual-fields-browser.test.js',
   'preview-inactive-write-inputs.test.js',
   'preview-indirect-write-inputs.test.js',
   'preview-indirect-write-browser.test.js',

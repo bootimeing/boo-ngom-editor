@@ -5,33 +5,34 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { spawnSync } = require('node:child_process');
 const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
+const { runChromiumDom } = require('./helpers/chromium-dom');
 
 const root = process.env.BOO_TEST_ROOT
   ? path.resolve(process.env.BOO_TEST_ROOT)
   : path.resolve(__dirname, '..');
 
-function findEdge() {
+function findBrowsers() {
   const candidates = [
+    process.env.BOO_BROWSER_EXECUTABLE,
+    path.join(process.env.PROGRAMFILES || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(process.env['PROGRAMFILES(X86)'] || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
     path.join(process.env['PROGRAMFILES(X86)'] || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
     path.join(process.env.PROGRAMFILES || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
     path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
   ];
-  return candidates.find(candidate => candidate && fs.existsSync(candidate));
+  return [...new Set(candidates.filter(candidate => candidate && fs.existsSync(candidate)).map(candidate => path.resolve(candidate)))];
 }
 
 function resourceUri(relativePath) {
   return pathToFileURL(path.join(root, relativePath)).href;
 }
 
-function main() {
-  const edge = findEdge();
-  if (!edge) {
-    console.log('database-grid-browser.test.js: SKIP (Microsoft Edge not found)');
-    return;
-  }
+async function main() {
+  const browsers = findBrowsers();
+  assert.ok(browsers.length, 'database-grid-browser.test.js requires an installed Chrome/Edge');
 
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-database-grid-'));
-  const profile = path.join(temporary, 'profile');
   const harness = path.join(temporary, 'database-grid-test.html');
   try {
     let html = fs.readFileSync(path.join(root, 'media', 'database-viewer.html'), 'utf8');
@@ -184,19 +185,19 @@ window.acquireVsCodeApi=function(){return{postMessage:function(message){
     html = html.replace('</body>', scenario + '</body>');
     fs.writeFileSync(harness, html, 'utf8');
 
-    const result = spawnSync(edge, [
-      '--headless=new', '--disable-gpu', '--disable-extensions', '--no-first-run',
-      '--allow-file-access-from-files', `--user-data-dir=${profile}`,
-      '--virtual-time-budget=12000', '--dump-dom', pathToFileURL(harness).href,
-    ], { encoding: 'utf8', timeout: 30000, maxBuffer: 20 * 1024 * 1024 });
-    if (result.error) throw result.error;
-    assert.equal(result.status, 0, result.stderr);
-    const body = result.stdout.match(/<body\b([^>]*)>/i);
-    if (!body && !result.stderr.trim()) {
-      console.log('database-grid-browser.test.js: SKIP (headless Edge returned no DOM)');
-      return;
+    const attempts = [];let dom, browser;
+    for (const [index, candidate] of browsers.entries()) {
+      try {
+        dom = await runChromiumDom(candidate, harness, path.join(temporary, 'profile-' + index));
+        browser = candidate;break;
+      } catch (error) {
+        attempts.push({ browser: candidate, error: error.stack || String(error) });
+        console.log(`database-grid-browser.test.js: candidate-failure=${candidate}: ${error.message}`);
+      }
     }
-    assert.ok(body, 'headless Edge did not return a body element');
+    assert.ok(dom, 'No installed Chromium produced completed DOM: ' + JSON.stringify(attempts));
+    const body = dom.match(/<body\b([^>]*)>/i);
+    assert.ok(body, 'real Chromium CDP did not return a body element');
     const attributes = body[1];
     const value = name => attributes.match(new RegExp(`data-${name}="([^"]*)"`))?.[1];
     assert.equal(value('test-status'), 'pass', value('test-error') || JSON.stringify({
@@ -210,13 +211,16 @@ window.acquireVsCodeApi=function(){return{postMessage:function(message){
       fillGrouped: value('fill-grouped'), dragIncrement: value('drag-increment'),
       contextIncrement: value('context-increment'), failedWriteRolledBack: value('failed-write-rolled-back'),
       appError: value('app-error'),
-      messageTypes: value('message-types'), stderr: result.stderr,
+      messageTypes: value('message-types'), browser,
     }));
     assert.ok(Number(value('rendered-rows')) < 80, 'database page did not use virtual row rendering');
-    console.log(`database-grid-browser.test.js: PASS (${value('rendered-rows')} DOM rows)`);
+    const version = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+      '(Get-Item -LiteralPath $env:BOO_DATABASE_GRID_BROWSER).VersionInfo.ProductVersion'],
+    { windowsHide: true, encoding: 'utf8', timeout: 5000, env: { ...process.env, BOO_DATABASE_GRID_BROWSER: browser } });
+    console.log(`database-grid-browser.test.js: PASS (${value('rendered-rows')} DOM rows; browser=${browser}; version=${String(version.stdout || '').trim() || '<unknown>'}; real-time CDP)`);
   } finally {
     removeTemporaryDirectory(temporary);
   }
 }
 
-main();
+main().catch(error => { console.error(error); process.exitCode = 1; });

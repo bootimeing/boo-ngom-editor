@@ -46,6 +46,8 @@ import {
   MapInfoEntry,
   MapMarkerUpdate,
   markerMatchesMap,
+  isStaticMapInfoEntry,
+  parseMapInfoLine,
   parseMapInfoText,
   parseMapMarkerText,
   readClassicMapDimensions,
@@ -57,6 +59,7 @@ import {
   readFileGBK,
 } from '../utils/text';
 import { secureWebviewHtml } from '../utils/webview-security';
+import { findEnvirRootForPath } from '../utils/quick-files';
 import {
   rememberMapMarkerFile,
   resolveSavedMapMarkerFile,
@@ -102,6 +105,7 @@ import {
   parseMerchantNameColor,
   parseMerchantText,
   parseMonGenText,
+  parseMonGenLine,
   parseStartPointText,
   resolveMerchantScriptPath,
   selectCustomNpcArchive,
@@ -358,6 +362,9 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   private originalMapTileLastPruneAt = Date.now();
   private originalMapTilePruneScheduled = false;
   private pendingNpcReveal: MerchantNpcReveal | undefined;
+  private pendingOriginalMapKey: string | undefined;
+  private sourceWorkspaceRoot: string | undefined;
+  private sourceUri: vscode.Uri | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.markerFile = '';
@@ -373,11 +380,137 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       if (!event.affectsConfiguration('boo.engine')) return;
       this.currentMap = undefined;
       this.pendingNpcReveal = undefined;
+      this.pendingOriginalMapKey = undefined;
       this.clearOriginalMapSession();
       this.panel?.dispose();
       this.reloadMaps();
       this.postSidebarState();
     }));
+  }
+
+  /** Runs only after a MapInfo display-name DocumentLink is actually clicked. */
+  async revealMapInfoOriginalMap(sourceUri: unknown, lineNumberValue: unknown): Promise<void> {
+    const uri = this.parseSourceUri(sourceUri);
+    const lineNumber = Number(lineNumberValue);
+    if (!uri || uri.scheme !== 'file' || path.basename(uri.fsPath).toLowerCase() !== 'mapinfo.txt'
+      || !Number.isInteger(lineNumber) || lineNumber < 1) {
+      void vscode.window.showWarningMessage('无法定位 MapInfo.txt 中的地图定义');
+      return;
+    }
+    const envirRoot = findEnvirRootForPath(uri.fsPath);
+    if (!envirRoot || !sameFilePath(path.dirname(uri.fsPath), envirRoot)) {
+      void vscode.window.showWarningMessage('地图定义必须来自服务端 Envir\\MapInfo.txt');
+      return;
+    }
+    if (!this.isSupported(uri)) {
+      void vscode.window.showWarningMessage('当前引擎的地图预览规则尚未完成验收。');
+      return;
+    }
+    try {
+      const opened = vscode.workspace.textDocuments.find(document => sameFilePath(document.uri.fsPath, uri.fsPath));
+      const document = opened || await vscode.workspace.openTextDocument(uri);
+      const parsed = parseMapInfoLine(document.getText().split(/\r?\n|\r/)[lineNumber - 1] || '', lineNumber);
+      if (!parsed?.nameSpan || !isStaticMapInfoEntry(parsed.entry)) {
+        void vscode.window.showWarningMessage(`MapInfo.txt 第 ${lineNumber} 行不是有效的静态地图定义`);
+        return;
+      }
+      this.bindSourceServer(uri, envirRoot);
+      this.maps = parseMapInfoText(document.getText());
+      this.revealOriginalMap(parsed.entry);
+    } catch (error) {
+      void vscode.window.showWarningMessage(
+        `无法打开原始地图：${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  async revealMonGenOriginalMap(sourceUri: unknown, lineNumberValue: unknown): Promise<void> {
+    const uri = this.parseSourceUri(sourceUri);
+    const lineNumber = Number(lineNumberValue);
+    const envirRoot = uri?.scheme === 'file' ? findEnvirRootForPath(uri.fsPath) : undefined;
+    if (!uri || path.basename(uri.fsPath).toLowerCase() !== 'mongen.txt'
+      || !envirRoot || !sameFilePath(path.dirname(uri.fsPath), envirRoot)
+      || !Number.isInteger(lineNumber) || lineNumber < 1) {
+      void vscode.window.showWarningMessage('无法定位 MonGen.txt 中的刷怪地图');
+      return;
+    }
+    if (!this.isSupported(uri)) {
+      void vscode.window.showWarningMessage('当前引擎的地图预览规则尚未完成验收。');
+      return;
+    }
+    try {
+      const opened = vscode.workspace.textDocuments.find(document => sameFilePath(document.uri.fsPath, uri.fsPath));
+      const document = opened || await vscode.workspace.openTextDocument(uri);
+      const parsed = parseMonGenLine(document.getText().split(/\r?\n|\r/)[lineNumber - 1] || '', lineNumber);
+      if (!parsed || !isStaticMapInfoEntry({
+        mapId: parsed.spawn.mapName, originalMapId: parsed.spawn.mapName,
+      })) {
+        void vscode.window.showWarningMessage(`MonGen.txt 第 ${lineNumber} 行不是有效的静态刷怪地图`);
+        return;
+      }
+      this.bindSourceServer(uri, envirRoot);
+      this.reloadMaps();
+      const normalizeId = (value: string): string => value.trim().replace(/^\$/, '').toLowerCase();
+      const mapId = normalizeId(parsed.spawn.mapName);
+      const map = this.maps.find(entry => normalizeId(entry.mapId) === mapId)
+        || this.maps.find(entry => normalizeId(entry.originalMapId) === mapId);
+      if (!map || !isStaticMapInfoEntry(map)) {
+        void vscode.window.showWarningMessage(`当前服务端 MapInfo.txt 中未找到刷怪地图：${parsed.spawn.mapName}`);
+        return;
+      }
+      this.revealOriginalMap(map);
+    } catch (error) {
+      void vscode.window.showWarningMessage(
+        `无法打开刷怪原始地图：${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  private revealOriginalMap(map: MapInfoEntry): void {
+    this.pendingNpcReveal = undefined;
+    if (this.currentMap?.key === map.key && this.currentMap.originalMapId === map.originalMapId
+      && this.currentMap.name === map.name && this.currentMap.parameters === map.parameters
+      && this.panel && this.panelReady) {
+      this.panel.reveal(vscode.ViewColumn.Active, false);
+      void this.panel.webview.postMessage({ type: 'revealOriginalMap' });
+      this.postSidebarState();
+      return;
+    }
+    this.pendingOriginalMapKey = map.key;
+    this.openMap(map, false);
+  }
+
+  private parseSourceUri(value: unknown): vscode.Uri | undefined {
+    try {
+      if (typeof value === 'string' && value) {
+        return /^(?:file:|[a-z][a-z0-9+.-]*:\/\/)/i.test(value)
+          ? vscode.Uri.parse(value) : vscode.Uri.file(value);
+      }
+      if (value && typeof value === 'object' && 'scheme' in value) return value as vscode.Uri;
+    } catch { /* An invalid command argument is not a source document. */ }
+    return undefined;
+  }
+
+  private workspaceRoot(): string | undefined {
+    return this.sourceWorkspaceRoot || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  }
+
+  private bindSourceServer(uri: vscode.Uri, envirRoot: string): void {
+    const mir200Root = path.dirname(envirRoot);
+    const ownerRoot = vscode.workspace.getWorkspaceFolder?.(uri)?.uri.fsPath;
+    const ownerMir200 = ownerRoot ? findMir200Directory(ownerRoot) : undefined;
+    const sourceRoot = ownerRoot && ownerMir200 && sameFilePath(ownerMir200, mir200Root)
+      ? ownerRoot
+      : path.basename(mir200Root).toLowerCase() === 'mir200' ? path.dirname(mir200Root) : mir200Root;
+    if (!this.sourceWorkspaceRoot || !sameFilePath(this.sourceWorkspaceRoot, sourceRoot)) {
+      this.currentMap = undefined;
+      this.pendingNpcReveal = undefined;
+      this.pendingOriginalMapKey = undefined;
+      this.clearOriginalMapSession();
+    }
+    this.sourceWorkspaceRoot = sourceRoot;
+    this.sourceUri = uri;
+    this.restoreMarkerFilePath();
   }
 
   async revealMerchantNpc(sourceUri: unknown, lineNumberValue: unknown): Promise<void> {
@@ -414,6 +547,12 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         void vscode.window.showWarningMessage(`Merchant.txt 第 ${lineNumber} 行不是有效的 NPC 配置`);
         return;
       }
+      const envirRoot = findEnvirRootForPath(uri.fsPath);
+      if (!envirRoot || !sameFilePath(path.dirname(uri.fsPath), envirRoot)) {
+        void vscode.window.showWarningMessage('NPC 地图定位必须来自服务端 Envir\\Merchant.txt');
+        return;
+      }
+      this.bindSourceServer(uri, envirRoot);
       this.reloadMaps();
       const map = this.maps.find(entry => mapEntityMatches(npc.mapName, entry));
       if (!map) {
@@ -492,14 +631,17 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       this.maps = [];
       return;
     }
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceRoot = this.workspaceRoot();
     const mapInfoPath = workspaceRoot ? findEnvirFile(workspaceRoot, 'MapInfo.txt') : undefined;
     if (!mapInfoPath) {
       this.maps = [];
       return;
     }
     try {
-      this.maps = parseMapInfoText(readFileGBK(fs.readFileSync(mapInfoPath)));
+      const opened = vscode.workspace.textDocuments.find(document => (
+        document.uri.scheme === 'file' && sameFilePath(document.uri.fsPath, mapInfoPath)
+      ));
+      this.maps = parseMapInfoText(opened ? opened.getText() : readFileGBK(fs.readFileSync(mapInfoPath)));
     } catch (error) {
       this.maps = [];
       console.warn('[BOO] 地图预览读取 MapInfo.txt 失败:', error instanceof Error ? error.message : String(error));
@@ -507,7 +649,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   }
 
   private async importMarkerFile(): Promise<void> {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceRoot = this.workspaceRoot();
     if (!workspaceRoot) {
       void vscode.window.showWarningMessage('请先打开传奇服务端工作区，再导入小地图标识文件');
       return;
@@ -527,11 +669,16 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       defaultUri: defaultDirectory ? vscode.Uri.file(defaultDirectory) : undefined,
     });
     if (!selected?.[0]) return;
+    if (this.workspaceRoot() !== workspaceRoot) {
+      void vscode.window.showWarningMessage('当前服务端已经切换，请重新导入地图标识');
+      return;
+    }
     this.markerFile = path.resolve(selected[0].fsPath);
     const savedByWorkspace = this.context.globalState.get<SavedMapMarkerFiles>(MARKER_FILE_PATHS_STATE_KEY, {});
     const updatedPaths = rememberMapMarkerFile(savedByWorkspace, workspaceRoot, this.markerFile);
     await Promise.all([
-      this.context.workspaceState.update(MARKER_FILE_STATE_KEY, this.markerFile),
+      ...(!this.sourceWorkspaceRoot
+        ? [this.context.workspaceState.update(MARKER_FILE_STATE_KEY, this.markerFile)] : []),
       this.context.globalState.update(MARKER_FILE_PATHS_STATE_KEY, updatedPaths),
     ]);
     this.postSidebarState();
@@ -539,14 +686,16 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   }
 
   private restoreMarkerFilePath(): void {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    const workspaceValue = this.context.workspaceState.get<string>(MARKER_FILE_STATE_KEY, '');
+    const workspaceRoot = this.workspaceRoot();
+    const defaultRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceValue = this.sourceWorkspaceRoot && (!defaultRoot || !sameFilePath(this.sourceWorkspaceRoot, defaultRoot))
+      ? '' : this.context.workspaceState.get<string>(MARKER_FILE_STATE_KEY, '');
     const savedByWorkspace = this.context.globalState.get<SavedMapMarkerFiles>(MARKER_FILE_PATHS_STATE_KEY, {});
     this.markerFile = resolveSavedMapMarkerFile(workspaceValue, savedByWorkspace, workspaceRoot);
   }
 
   private openMap(map: MapInfoEntry, preserveFocus = true): void {
-    if (this.currentMap?.key !== map.key) this.clearOriginalMapSession();
+    if (this.currentMap?.key !== map.key || this.currentMap.originalMapId !== map.originalMapId) this.clearOriginalMapSession();
     this.currentMap = map;
     if (!this.panel) {
       this.panelReady = false;
@@ -616,7 +765,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
 
   private postSidebarState(): void {
     if (!this.view) return;
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceRoot = this.workspaceRoot();
     const mapInfoPath = workspaceRoot ? findEnvirFile(workspaceRoot, 'MapInfo.txt') : undefined;
     void this.view.webview.postMessage({
       type: 'state',
@@ -635,14 +784,14 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private isSupported(): boolean {
-    const engine = vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM');
+  private isSupported(sourceUri = this.sourceUri): boolean {
+    const engine = vscode.workspace.getConfiguration('boo', sourceUri).get<string>('engine', 'GOM');
     return getEngineDefinition(engine).mapPreviewVerified;
   }
 
   private postCurrentMap(): void {
     if (!this.panel || !this.panelReady || !this.currentMap) return;
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceRoot = this.workspaceRoot();
     if (!workspaceRoot) return;
 
     const map = this.currentMap;
@@ -652,7 +801,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       [map.originalMapId, map.mapId]
     );
     const engine = normalizeEngineId(
-      vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+      vscode.workspace.getConfiguration('boo', this.sourceUri).get<string>('engine', 'GOM')
     );
     const dimensions = findMapDimensions(
       workspaceRoot,
@@ -672,6 +821,8 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       }
       : undefined;
     if (revealNpc) this.pendingNpcReveal = undefined;
+    const originalMap = this.pendingOriginalMapKey === map.key;
+    if (originalMap) this.pendingOriginalMapKey = undefined;
 
     let warning = '';
     if (!reference) {
@@ -731,6 +882,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       engine,
       entityWarnings: entities.warnings,
       revealNpc,
+      originalMap,
       markerFile: isFile(this.markerFile) ? path.basename(this.markerFile) : '',
       warning,
     });
@@ -1192,8 +1344,12 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   }
 
   private enqueueMarkerUpdate(message: MapPreviewMessage): void {
+    const sourceRoot = this.workspaceRoot(), markerFile = this.markerFile, mapKey = this.currentMap?.key;
     this.markerSaveQueue = this.markerSaveQueue.then(() => {
       try {
+        if (this.workspaceRoot() !== sourceRoot || this.markerFile !== markerFile || this.currentMap?.key !== mapKey) {
+          throw new Error('当前地图或地图标识文件已经切换');
+        }
         const marker = this.saveMarkerUpdate(message);
         void this.panel?.webview.postMessage({
           type: 'markerSaved',
@@ -1220,8 +1376,12 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   }
 
   private enqueueMarkerAddition(message: MapPreviewMessage): void {
+    const sourceRoot = this.workspaceRoot(), markerFile = this.markerFile, mapKey = this.currentMap?.key;
     this.markerSaveQueue = this.markerSaveQueue.then(() => {
       try {
+        if (this.workspaceRoot() !== sourceRoot || this.markerFile !== markerFile || this.currentMap?.key !== mapKey) {
+          throw new Error('当前地图或地图标识文件已经切换');
+        }
         const markers = this.saveMarkerAdditions(message);
         void this.panel?.webview.postMessage({
           type: 'markersAdded',
@@ -1249,6 +1409,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   }
 
   private async requestMarkerDeletion(message: MapPreviewMessage): Promise<void> {
+    const sourceRoot = this.workspaceRoot(), markerFile = this.markerFile;
     const lineNumber = Number(message.marker?.lineNumber);
     const currentMap = this.currentMap;
     const marker = this.readMarkers().find(item => item.lineNumber === lineNumber);
@@ -1278,7 +1439,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
       });
       return;
     }
-    if (this.currentMap?.key !== currentMap.key) {
+    if (this.currentMap?.key !== currentMap.key || this.workspaceRoot() !== sourceRoot || this.markerFile !== markerFile) {
       void this.panel?.webview.postMessage({
         type: 'markerDeleteCancelled',
         requestId: message.requestId,
@@ -1288,6 +1449,9 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
 
     this.markerSaveQueue = this.markerSaveQueue.then(() => {
       try {
+        if (this.currentMap?.key !== currentMap.key || this.workspaceRoot() !== sourceRoot || this.markerFile !== markerFile) {
+          throw new Error('当前地图或地图标识文件已经切换');
+        }
         const markers = this.saveMarkerDeletion(lineNumber, currentMap);
         void this.panel?.webview.postMessage({
           type: 'markerDeleted',
@@ -1320,10 +1484,11 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
 
   private enqueueNpcUpdate(message: MapPreviewMessage): void {
     const mapKey = this.currentMap?.key;
+    const sourceRoot = this.workspaceRoot();
     this.entitySaveQueue = this.entitySaveQueue.then(() => {
       try {
-        if (!mapKey || this.currentMap?.key !== mapKey) throw new Error('当前地图已经切换');
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!mapKey || this.currentMap?.key !== mapKey || this.workspaceRoot() !== sourceRoot) throw new Error('当前地图已经切换');
+        const workspaceRoot = this.workspaceRoot();
         const envirDirectory = workspaceRoot ? findEnvirDirectory(workspaceRoot) : undefined;
         const merchantPath = envirDirectory ? path.join(envirDirectory, 'Merchant.txt') : '';
         if (!workspaceRoot || !envirDirectory || !merchantPath || !isFile(merchantPath)) {
@@ -1337,7 +1502,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
           ? message.npc.iconText
           : undefined;
         const engine = normalizeEngineId(
-          vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+          vscode.workspace.getConfiguration('boo', this.sourceUri).get<string>('engine', 'GOM')
         );
         const decoded = decodeTextFile(fs.readFileSync(merchantPath));
         const updated = updateMerchantNpc(decoded.text, lineNumber, x, y, appearance);
@@ -1370,10 +1535,11 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
 
   private enqueueSpawnUpdate(message: MapPreviewMessage): void {
     const mapKey = this.currentMap?.key;
+    const sourceRoot = this.workspaceRoot();
     this.entitySaveQueue = this.entitySaveQueue.then(() => {
       try {
-        if (!mapKey || this.currentMap?.key !== mapKey) throw new Error('当前地图已经切换');
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!mapKey || this.currentMap?.key !== mapKey || this.workspaceRoot() !== sourceRoot) throw new Error('当前地图已经切换');
+        const workspaceRoot = this.workspaceRoot();
         const envirDirectory = workspaceRoot ? findEnvirDirectory(workspaceRoot) : undefined;
         const monGenPath = envirDirectory ? path.join(envirDirectory, 'MonGen.txt') : '';
         if (!monGenPath || !isFile(monGenPath)) throw new Error('未找到 MonGen.txt');
@@ -1397,14 +1563,15 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
 
   private enqueueNpcMove(message: MapPreviewMessage): void {
     const sourceMapKey = this.currentMap?.key;
+    const sourceRoot = this.workspaceRoot();
     this.entitySaveQueue = this.entitySaveQueue.then(() => {
       try {
-        if (!sourceMapKey || this.currentMap?.key !== sourceMapKey) throw new Error('当前地图已经切换');
+        if (!sourceMapKey || this.currentMap?.key !== sourceMapKey || this.workspaceRoot() !== sourceRoot) throw new Error('当前地图已经切换');
         const targetMapKey = String(message.npc?.targetMapKey || '');
         const targetMap = this.maps.find(map => map.key === targetMapKey);
         if (!targetMap) throw new Error('目标地图已经失效，请重新选择');
         if (targetMap.key === sourceMapKey) throw new Error('NPC 已经位于当前地图');
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const workspaceRoot = this.workspaceRoot();
         const envirDirectory = workspaceRoot ? findEnvirDirectory(workspaceRoot) : undefined;
         const merchantPath = envirDirectory ? path.join(envirDirectory, 'Merchant.txt') : '';
         if (!workspaceRoot || !envirDirectory || !merchantPath || !isFile(merchantPath)) {
@@ -1415,7 +1582,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
         let y = Number(message.npc?.y);
         const appearance = Number(message.npc?.appearance);
         const engine = normalizeEngineId(
-          vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+          vscode.workspace.getConfiguration('boo', this.sourceUri).get<string>('engine', 'GOM')
         );
         const layout = this.clientResourceLayout(engine);
         const dimensions = findMapDimensions(
@@ -1474,7 +1641,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   }
 
   private async openNpcScript(message: MapPreviewMessage): Promise<void> {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceRoot = this.workspaceRoot();
     const envirDirectory = workspaceRoot ? findEnvirDirectory(workspaceRoot) : undefined;
     const merchantPath = envirDirectory ? path.join(envirDirectory, 'Merchant.txt') : '';
     const lineNumber = Number(message.npc?.lineNumber);
@@ -1507,7 +1674,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   ): ReturnType<typeof findCachedPatchImage> {
     const patchCacheRoot = getPatchCacheRoot(this.context);
     const definition = getEngineDefinition(
-      vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+      vscode.workspace.getConfiguration('boo', this.sourceUri).get<string>('engine', 'GOM')
     );
     const resourceRoots = this.clientResourceLayout(definition.id)?.dataRoots || [];
     for (const archiveName of miniMapArchiveCandidates(reference.pakName)) {
@@ -1584,7 +1751,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
   private async loadOriginalMap(message: MapPreviewMessage): Promise<void> {
     const requestId = message.requestId;
     const map = this.currentMap;
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceRoot = this.workspaceRoot();
     if (
       !map
       || !workspaceRoot
@@ -1596,7 +1763,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     const version = ++this.originalMapVersion;
     try {
       const engineId = normalizeEngineId(
-        vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
+        vscode.workspace.getConfiguration('boo', this.sourceUri).get<string>('engine', 'GOM')
       );
       let session = this.originalMapSession?.mapKey === map.key
         && this.originalMapSession.engineId === engineId
@@ -2101,7 +2268,7 @@ export class MapPreviewProvider implements vscode.WebviewViewProvider {
     includeStaticSources = true
   ): Promise<OriginalMapData> {
     const map = this.currentMap;
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspaceRoot = this.workspaceRoot();
     if (!this.panel || !map || !workspaceRoot || session.mapKey !== map.key) {
       throw new Error('原始地图会话已失效');
     }

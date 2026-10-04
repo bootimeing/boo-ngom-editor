@@ -80,6 +80,25 @@ function scenarioScript() {
     catch(error){results.push({name:name,status:'fail',message:error&&error.stack?error.stack:String(error)})}
   }
 
+  await run('MapInfo and MonGen payloads enter original mode through the normal load protocol',async function(){
+    window.__viewportPosted.length=0;
+    var data=mapData();data.originalMap=true;updateMap(data);
+    check(state.original.active,'definition click remained on the miniature map');
+    check(window.__viewportPosted.filter(function(item){return item.type==='loadOriginalMap'}).length===1,
+      'definition payload did not issue exactly one normal original-map load request');
+    check(!state.pendingNpcReveal,'map definition click invented an NPC selection');
+  });
+
+  await run('ready-map reveal command switches layers without duplicate loads while already original',async function(){
+    var setup=await loaded(16,16);window.__viewportPosted.length=0;
+    send({type:'revealOriginalMap'});
+    check(state.original.layer===setup.layer,'reveal command discarded a valid map layer');
+    check(!window.__viewportPosted.some(function(item){return item.type==='loadOriginalMap'}),
+      'repeated original-map reveal restarted the loader');
+    switchToPreviewMap();send({type:'revealOriginalMap'});
+    check(state.original.active,'reveal command did not switch from preview back to original');
+  });
+
   await run('load-level error before Ready is visible',async function(){
     var load=reset();
     send({type:'originalMapError',requestId:load.requestId,generation:101,message:'pre-ready failure'});

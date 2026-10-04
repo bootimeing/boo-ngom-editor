@@ -9,6 +9,52 @@ export interface MapInfoEntry {
   lineNumber: number;
 }
 
+export interface ParsedMapInfoLine {
+  entry: MapInfoEntry;
+  /** Half-open span of an explicit display name inside the definition header. */
+  nameSpan?: { start: number; end: number };
+}
+
+export function parseMapInfoLine(rawLine: string, lineNumber: number): ParsedMapInfoLine | undefined {
+  const match = rawLine.match(/^(\s*)\[([^\]]+)\]\s*(.*)$/);
+  if (!match) return undefined;
+  const rawBody = match[2];
+  const body = rawBody.trim();
+  const bodyStart = match[1].length + 1 + rawBody.length - rawBody.trimStart().length;
+  const pipeIndex = body.indexOf('|');
+  const mapIdPrefix = pipeIndex >= 0 ? body.slice(0, pipeIndex).trim() : '';
+  const rawTail = pipeIndex >= 0 ? body.slice(pipeIndex + 1) : body;
+  const tail = rawTail.trim();
+  const tailStart = bodyStart + (pipeIndex >= 0 ? pipeIndex + 1 : 0)
+    + rawTail.length - rawTail.trimStart().length;
+  const tailMatch = tail.match(/^(\S+)(?:\s+(.+))?$/);
+  if (!tailMatch) return undefined;
+  const mapId = pipeIndex >= 0 ? mapIdPrefix : tailMatch[1];
+  const originalMapId = tailMatch[1];
+  const explicitName = tailMatch[2]?.trim();
+  const name = explicitName || mapId;
+  if (!mapId || !originalMapId || !name) return undefined;
+  const nameStart = explicitName ? tailStart + tail.indexOf(tailMatch[2], tailMatch[1].length) : undefined;
+  return {
+    entry: {
+      key: `${lineNumber}:${mapId}`,
+      mapId,
+      originalMapId,
+      name,
+      parameters: match[3].trim(),
+      lineNumber,
+    },
+    nameSpan: nameStart === undefined ? undefined : { start: nameStart, end: nameStart + name.length },
+  };
+}
+
+/** Map definitions can have names, but resource lookup must only accept static file stems. */
+export function isStaticMapInfoEntry(entry: Pick<MapInfoEntry, 'mapId' | 'originalMapId'>): boolean {
+  return [entry.mapId, entry.originalMapId].every(value => (
+    value !== '.' && value !== '..' && /^[^\s\\/:*?"<>|\[\];\x00-\x1f]+$/.test(value)
+  ));
+}
+
 export interface MapMarker {
   mapName: string;
   x: number;
@@ -39,48 +85,15 @@ export function parseMapInfoText(text: string): MapInfoEntry[] {
   const result: MapInfoEntry[] = [];
   const seen = new Set<string>();
 
-  for (const [index, rawLine] of text.split(/\r?\n/).entries()) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith(';')) continue;
-    const match = line.match(/^\[([^\]]+)\]\s*(.*)$/);
-    if (!match) continue;
-
-    const body = match[1].trim();
-    const parameters = match[2].trim();
-    let mapId = '';
-    let originalMapId = '';
-    let name = '';
-
-    const pipeIndex = body.indexOf('|');
-    if (pipeIndex >= 0) {
-      mapId = body.slice(0, pipeIndex).trim();
-      const aliasBody = body.slice(pipeIndex + 1).trim();
-      const aliasMatch = aliasBody.match(/^(\S+)(?:\s+(.+))?$/);
-      if (!aliasMatch) continue;
-      originalMapId = aliasMatch[1].trim();
-      name = (aliasMatch[2] || mapId).trim();
-    } else {
-      const standardMatch = body.match(/^(\S+)(?:\s+(.+))?$/);
-      if (!standardMatch) continue;
-      mapId = standardMatch[1].trim();
-      originalMapId = mapId;
-      name = (standardMatch[2] || mapId).trim();
-    }
-
-    if (!mapId || !originalMapId || !name) continue;
-    const identity = `${mapId.toLowerCase()}\u0000${originalMapId.toLowerCase()}\u0000${name.toLowerCase()}`;
+  for (const [index, rawLine] of text.split(/\r?\n|\r/).entries()) {
+    const parsed = parseMapInfoLine(rawLine, index + 1);
+    if (!parsed) continue;
+    const entry = parsed.entry;
+    const identity = `${entry.mapId.toLowerCase()}\u0000${entry.originalMapId.toLowerCase()}\u0000${entry.name.toLowerCase()}`;
     if (seen.has(identity)) continue;
     seen.add(identity);
 
-    const lineNumber = index + 1;
-    result.push({
-      key: `${lineNumber}:${mapId}`,
-      mapId,
-      originalMapId,
-      name,
-      parameters,
-      lineNumber,
-    });
+    result.push(entry);
   }
 
   return result;

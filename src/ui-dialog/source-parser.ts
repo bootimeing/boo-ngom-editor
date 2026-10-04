@@ -4290,6 +4290,12 @@ function bindResolvedPreviewToSource(
       ),
     };
   }
+  // Source binding may append the original diagnostic again for flow controls.
+  // Reconcile it with the final typed state, not with the mere presence of STR.
+  sourceBound = {
+    ...sourceBound,
+    warning: currentSourceSensitiveWarning(sourceBound.warning, sourceBound),
+  };
   if (sourceElement.coordinateMode === 'flow') {
     return {
       ...sourceBound,
@@ -4302,7 +4308,10 @@ function bindResolvedPreviewToSource(
       editable: false,
       x: undefined,
       y: undefined,
-      warning: mergeWarningClauses(sourceBound.warning, sourceElement.warning),
+      warning: mergeWarningClauses(
+        sourceBound.warning,
+        currentSourceSensitiveWarning(sourceElement.warning, sourceBound)
+      ),
     };
   }
   const hasStaticSourceCoordinates = Boolean(sourceElement.x && sourceElement.y);
@@ -5189,31 +5198,45 @@ function bindSourceSensitiveControlPreview(
       ),
     };
   }
-  if (sourceContainsRuntimeExpression && /^<IMG:/i.test(sourceElement.raw)
+  if (sourceContainsRuntimeExpression && /^<&?IMG:/i.test(sourceElement.raw)
     && preview.assetRef && !preview.itemPreview && !preview.assetLayers) {
     const slots = (sourceElement.parameters || []).filter(parameter => parameter.index === 1 || parameter.index === 2);
     const expressions = slots.filter(parameter => parameter.value.includes('<$'));
-    const proved = expressions.length > 0 && expressions.every(parameter => {
-      const projection = /^<\$STR\(([^()]+)\)>$/i.exec(parameter.value.trim());
-      const name = projection?.[1]?.trim();
-      const variable = name && variables.find(value => value.name === name
-        || (/^[A-Za-z]+\d+$/.test(name) && value.name.toUpperCase() === name.toUpperCase()));
-      return variable && variable.status === 'resolved' && !variable.localPreview
-        && /^\d+$/.test(variable.value) && Number.isSafeInteger(Number(variable.value));
-    });
+    const proved = expressions.length > 0 && expressions.every(parameter => (
+      staticallyResolvedDirectUnsignedInteger(parameter.value, variables) !== undefined
+    ));
     if (proved) bound = { ...bound, assetRef: { ...preview.assetRef }, previewAssetOrigin: 'resolved-static' };
+  }
+  // Legacy PLAYIMG count is independent of resource, timing and actions. Permit
+  // only the same direct, source-proved scalar as IMG; a local preview value or
+  // neutral display fallback cannot request extra animation slots.
+  if ((engine === 'GOM' || engine === 'GEE') && /^<&?PLAYIMG:/i.test(sourceElement.raw)
+    && bound.animationPreview && preview.animationPreview
+    && sourceElement.animationPreview?.dynamicFields?.includes('frame-count')) {
+    const expression = sourceParameterValue(sourceElement, 3) || '';
+    const count = staticallyResolvedDirectUnsignedInteger(expression, variables);
+    if (count !== undefined && count > 0 && preview.animationPreview.frameCount === count
+      && !preview.animationPreview.invalidFields?.includes('frame-count')) {
+      const animationPreview = { ...bound.animationPreview, frameCount: count };
+      const dynamicFields = (animationPreview.dynamicFields || []).filter(field => field !== 'frame-count');
+      delete animationPreview.dynamicFields;
+      if (dynamicFields.length > 0) animationPreview.dynamicFields = dynamicFields;
+      if (dynamicFields.length === 0 && !animationPreview.invalidFields?.length) {
+        delete animationPreview.staticFirstFrameOnly;
+      }
+      bound = {
+        ...bound,
+        animationPreview,
+        ...(bound.assetRef ? { assetRef: { ...bound.assetRef, frameCount: count } } : {}),
+      };
+    }
   }
   if (engine !== '996PC' && /^<(?:&)?IMGEX:/i.test(sourceElement.raw) && bound.assetStateDiagnostics && preview.assetStateDiagnostics) {
     const indexes: Record<string, number> = { normal: 2, hover: 3, pressed: 4 };
     const provedSlot = (index: number): boolean => {
       const expression = sourceElement.parameters?.find(parameter => parameter.index === index)?.value || '';
       if (!expression.includes('<$')) return true;
-      const projection = /^<\$STR\(([^()]+)\)>$/i.exec(expression.trim());
-      const name = projection?.[1]?.trim();
-      const variable = name && variables.find(value => value.name === name
-        || (/^[A-Za-z]+\d+$/.test(name) && value.name.toUpperCase() === name.toUpperCase()));
-      return !!variable && variable.status === 'resolved' && !variable.localPreview
-        && /^\d+$/.test(variable.value) && Number.isSafeInteger(Number(variable.value));
+      return staticallyResolvedDirectUnsignedInteger(expression, variables) !== undefined;
     };
     bound.assetStateDiagnostics = bound.assetStateDiagnostics.map(diagnostic => {
       const projected = preview.assetStateDiagnostics!.find(item => item.role === diagnostic.role);
@@ -12609,6 +12632,42 @@ function mergeWarningClauses(...warnings: Array<string | undefined>): string | u
     }
   }
   return clauses.size > 0 ? [...clauses].join('；') : undefined;
+}
+
+/** A direct source proof, never a local/user/placeholder display capability. */
+function staticallyResolvedDirectUnsignedInteger(
+  expression: string,
+  variables: readonly DialogResolvedVariable[]
+): number | undefined {
+  const projection = /^<\$STR\(([^()]+)\)>$/i.exec(expression.trim());
+  const name = projection?.[1]?.trim();
+  const variable = name && variables.find(value => value.name === name
+    || (/^[A-Za-z]+\d+$/.test(name) && value.name.toUpperCase() === name.toUpperCase()));
+  if (!variable || variable.status !== 'resolved' || variable.localPreview
+    || !/^\d+$/.test(variable.value)) return undefined;
+  const value = Number(variable.value);
+  return Number.isSafeInteger(value) ? value : undefined;
+}
+
+function currentSourceSensitiveWarning(
+  warning: string | undefined,
+  element: DialogElement
+): string | undefined {
+  if (!warning) return undefined;
+  const colorStatus = element.textPreview?.fieldSources?.find(field => field.field === 'color')?.status;
+  if (colorStatus === 'resolved-static' || colorStatus === 'invalid-static') {
+    warning = warning.replace(/文字颜色是动态表达式；静态预览不借用 MOV 当前值/g, '');
+  }
+  if (element.animationPreview) {
+    const dynamicFields = element.animationPreview.dynamicFields || [];
+    warning = warning.replace(
+      /动画的 [^；]* 包含动态值，静态预览使用安全首帧且不借用变量当前值/g,
+      dynamicFields.length > 0
+        ? `动画的 ${dynamicFields.join('、')} 包含动态值，静态预览使用安全首帧且不借用变量当前值`
+        : ''
+    );
+  }
+  return mergeWarningClauses(warning);
 }
 
 function appendElementWarning(element: DialogElement, message: string): void {

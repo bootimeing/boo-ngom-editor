@@ -471,6 +471,10 @@ function syncFrozenColumnOffsets(){
 function getGridViewport(){
   return document.querySelector('#table .tabulator-tableholder')||document.getElementById('tableWrap');
 }
+function captureGridViewport(){
+  var viewport=getGridViewport();
+  return{left:viewport.scrollLeft,top:viewport.scrollTop,tableId:currentTable&&currentTable.id,offset:pageIndex*pageSize};
+}
 function resetTableViewport(){
   var viewport=getGridViewport();
   viewport.scrollLeft=0;viewport.scrollTop=0;
@@ -527,7 +531,7 @@ function selectTable(tableId){
   currentTable=tables.find(function(table){return table.id===tableId})||null;
   if(!currentTable)return;
   vscode.postMessage({type:'clearDatabaseDetail',tableName:currentTable.name||'',tableLabel:currentTable.label||''});
-  pageIndex=0;totalRows=Number(currentTable.rowCount||0);sortColumn='';sortDirection='asc';selectedRow=-1;equipmentFilter=null;restoreRangeBounds=null;
+  pageIndex=0;totalRows=Number(currentTable.rowCount||0);sortColumn='';sortDirection='asc';selectedRow=-1;equipmentFilter=null;restoreTableViewport=null;restoreRangeBounds=null;pendingSelectRowId=null;
   document.getElementById('search').value='';
   populateSearchColumns(currentTable.columns||[]);
   renderTabs();renderEquipmentFilters();resetTableViewport();updateActionState();requestPage();
@@ -559,23 +563,33 @@ function columnsMatch(left,right){
 }
 function loadPage(message){
   if(Number(message.requestId)!==activeRequestId)return;
+  // A refresh's default range is not the user's selection. Keep this snapshot
+  // separate from Tabulator's data-processed/range events, including rebuilds.
+  var viewportToRestore=restoreTableViewport,boundsToRestore=restoreRangeBounds,rowIdToSelect=pendingSelectRowId;
+  restoreTableViewport=null;restoreRangeBounds=null;pendingSelectRowId=null;
+  if(viewportToRestore&&(viewportToRestore.tableId!==(currentTable&&currentTable.id)||viewportToRestore.offset!==Number(message.offset||0))){
+    viewportToRestore=null;boundsToRestore=null;rowIdToSelect=null;
+  }
   var nextColumns=message.columns||[];
   var reuseGrid=!!(databaseGrid&&currentTable&&renderedTableId===currentTable.id&&columnsMatch(renderedColumns,nextColumns));
   currentColumns=nextColumns;currentRows=message.rows||[];totalRows=Number(message.total||0);
   pageIndex=Math.floor(Number(message.offset||0)/Number(message.limit||pageSize));selectedRow=-1;
   var finish=function(){
-    document.getElementById('table').dataset.ready='true';
-    if(restoreTableViewport){
-      var viewport=getGridViewport();viewport.scrollLeft=restoreTableViewport.left;viewport.scrollTop=restoreTableViewport.top;restoreTableViewport=null;
-    }else resetTableViewport();
     updatePager();setLoading(false);updateActionState();
-    if(pendingSelectRowId!==null){
-      var selectedIndex=currentRows.findIndex(function(row){return Number(row.__booRowId)===Number(pendingSelectRowId)});
-      if(selectedIndex>=0){selectRow(selectedIndex);requestVisualDetail(currentRows[selectedIndex]);var selectedComponent=getGridRow(selectedIndex);if(selectedComponent)void selectedComponent.scrollTo('nearest',false)}
-      pendingSelectRowId=null;
+    if(!viewportToRestore)resetTableViewport();
+    if(rowIdToSelect!==null){
+      var selectedIndex=currentRows.findIndex(function(row){return Number(row.__booRowId)===Number(rowIdToSelect)});
+      if(selectedIndex>=0){selectRow(selectedIndex);requestVisualDetail(currentRows[selectedIndex]);var selectedComponent=getGridRow(selectedIndex);if(!viewportToRestore&&selectedComponent)void selectedComponent.scrollTo('nearest',false)}
     }
-    if(restoreRangeBounds){selectGridBounds(restoreRangeBounds,false);restoreRangeBounds=null}
+    var restoredBounds=resolveSavedGridBounds(boundsToRestore);
+    if(restoredBounds)selectGridBounds(restoredBounds,false);
+    // Restore last, after selection/range work. Native scroll extents clamp
+    // shortened results without trying to resurrect removed rows or fields.
+    if(viewportToRestore){
+      var viewport=getGridViewport();viewport.scrollLeft=viewportToRestore.left;viewport.scrollTop=viewportToRestore.top;
+    }
     if(pendingNotice){document.getElementById('status').textContent=pendingNotice;pendingNotice=''}
+    document.getElementById('table').dataset.ready='true';
     setTimeout(updateFillHandle,0);
   };
   if(!reuseGrid){renderTable(finish);return}
@@ -644,6 +658,7 @@ function renderTable(onReady){
     data:currentRows,columns:definitions,index:'__booRowId',placeholder:'暂无匹配记录',
     columnHeaderVertAlign:'middle',selectableRows:false,selectableRange:1,selectableRangeRows:true,
     selectableRangeColumns:true,selectableRangeClearCells:false,selectableRangeBlurEditOnNavigate:false,
+    selectableRangeAutoFocus:false,
     editTriggerEvent:'dblclick',clipboard:false,history:false,
     keybindings:{copyToClipboard:false,undo:false,redo:false},
     rowHeader:{formatter:function(){return''},headerSort:false,frozen:true,width:1,minWidth:1,maxWidth:1,resizable:false}
@@ -655,8 +670,8 @@ function renderTable(onReady){
   databaseGrid.on('cellEdited',recordGridCellEdit);
   databaseGrid.on('cellEditCancelled',function(){activeCellEdit=null;setTimeout(updateFillHandle,0)});
   databaseGrid.on('cellMouseOver',function(_event,cell){updateFillTarget(cell)});
-  databaseGrid.on('rangeAdded',function(range){restoreRangeBounds=rangeBounds(range);setTimeout(updateFillHandle,0)});
-  databaseGrid.on('rangeChanged',function(range){restoreRangeBounds=rangeBounds(range);setTimeout(updateFillHandle,0)});
+  databaseGrid.on('rangeAdded',function(){setTimeout(updateFillHandle,0)});
+  databaseGrid.on('rangeChanged',function(){setTimeout(updateFillHandle,0)});
   databaseGrid.on('rangeRemoved',updateFillHandle);
   databaseGrid.on('renderComplete',updateFillHandle);
   databaseGrid.on('scrollVertical',updateFillHandle);
@@ -694,6 +709,20 @@ function selectedGridBounds(){
   var bounds=rangeBounds(activeRange());
   if(bounds)return bounds;
   return{top:Math.max(0,selectedRow),bottom:Math.max(0,selectedRow),left:0,right:0};
+}
+function captureGridRange(bounds){
+  bounds=bounds||selectedGridBounds();
+  var startRow=currentRows[bounds.top],endRow=currentRows[bounds.bottom];
+  if(!startRow||!endRow)return null;
+  return{startRowId:startRow.__booRowId,endRowId:endRow.__booRowId,startField:currentColumns[bounds.left],endField:currentColumns[bounds.right]};
+}
+function resolveSavedGridBounds(saved){
+  if(!saved)return null;
+  var start=currentRows.findIndex(function(row){return Number(row.__booRowId)===Number(saved.startRowId)});
+  var end=currentRows.findIndex(function(row){return Number(row.__booRowId)===Number(saved.endRowId)});
+  var left=currentColumns.indexOf(saved.startField),right=currentColumns.indexOf(saved.endField);
+  if(start<0||end<0||left<0||right<0)return null;
+  return{top:Math.min(start,end),bottom:Math.max(start,end),left:Math.min(left,right),right:Math.max(left,right)};
 }
 function getGridCell(rowIndex,columnIndex){
   var row=getGridRow(rowIndex),column=currentColumns[columnIndex];return row&&column?row.getCell(column):null;
@@ -880,13 +909,13 @@ function sendCreateDatabaseRow(values){
   vscode.postMessage({type:'createDatabaseRow',requestId:activeMutationRequestId,tableId:currentTable.id,values:values});
 }
 function sendUpdateDatabaseRow(row,values,knownRollback){
-  var viewport=getGridViewport();restoreTableViewport={left:viewport.scrollLeft,top:viewport.scrollTop};pendingSelectRowId=row.__booRowId;
+  restoreTableViewport=captureGridViewport();restoreRangeBounds=captureGridRange();pendingSelectRowId=row.__booRowId;
   applyOptimisticUpdates([{rowId:row.__booRowId,values:values}],knownRollback);
   beginMutation('正在保存修改...',true);
   vscode.postMessage({type:'updateDatabaseRow',requestId:activeMutationRequestId,tableId:currentTable.id,rowId:row.__booRowId,values:values});
 }
 function sendUpdateDatabaseRows(updates,label,bounds){
-  var viewport=getGridViewport();restoreTableViewport={left:viewport.scrollLeft,top:viewport.scrollTop};restoreRangeBounds=bounds||selectedGridBounds();
+  restoreTableViewport=captureGridViewport();restoreRangeBounds=captureGridRange(bounds);
   pendingSelectRowId=updates.length?updates[0].rowId:null;
   applyOptimisticUpdates(updates);
   beginMutation('正在保存选区...',true);
@@ -905,8 +934,7 @@ function sendUpdateDatabaseSchema(columns){
 function requestDatabaseUndo(){
   if(!currentTable||mutationPending||activeCellEdit)return;
   if(!document.getElementById('schemaModal').hidden||!document.getElementById('confirmModal').hidden)return;
-  var viewport=getGridViewport();
-  restoreTableViewport={left:viewport.scrollLeft,top:viewport.scrollTop};
+  restoreTableViewport=captureGridViewport();restoreRangeBounds=captureGridRange();
   pendingSelectRowId=selectedRow>=0&&currentRows[selectedRow]?currentRows[selectedRow].__booRowId:null;
   beginMutation('正在校验并撤回上一步数据库修改...');
   vscode.postMessage({type:'undoDatabaseMutation',requestId:activeMutationRequestId});

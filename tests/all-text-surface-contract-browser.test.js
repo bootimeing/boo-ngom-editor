@@ -6,6 +6,7 @@ const { spawnSync } = require('node:child_process');
 
 const { reflowNpcDialogLayout } = require('../out/ui-dialog/source-parser');
 const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
+const { parse: parseWithValues } = require('./preview-inputs-integration.test');
 const {
   GOM_SOURCE, GEE_SOURCE, PC_SOURCE, parse,
 } = require('./all-text-surface-contract.test');
@@ -104,7 +105,7 @@ function fixtureModel() {
   const fixtures = [
     ['IMGNUM_KNOWN', findRaw(gomElements, 'N$KNOWN_NUM')],
     ['IMGNUM_UNKNOWN', findRaw(gomElements, 'N$UNKNOWN_NUM')],
-    ['GENERIC_DYNAMIC_IMG', findRaw(gomElements, 'N$DYNAMIC_IMAGE')],
+    ['GENERIC_PROVED_IMG', findRaw(gomElements, 'N$DYNAMIC_IMAGE')],
     ['IMG_TITLE_KNOWN', findRaw(gomElements, 'S$IMG_TITLE')],
     ['IMG_TITLE_UNKNOWN', findRaw(gomElements, 'S$UNKNOWN_IMG_TITLE')],
     ['ANIM_TITLE_KNOWN', findRaw(gomElements, 'S$ANIM_TITLE')],
@@ -138,6 +139,22 @@ function fixtureModel() {
     ['ADD_KNOWN', knownAction],
     ['ADD_UNKNOWN', unknownAction],
     ['ADD_DYNAMIC_GATE', dynamicAction]
+  );
+
+  // Direct source proof may authorize legacy IMG's numeric resource fields.
+  // Unknown, local input and runtime output must still be useful placeholders,
+  // even when the local display number happens to equal a valid image index.
+  const gatedImages = parseWithValues([
+    '[@main]', '#ACT', 'MOVR N$RUNTIME_IMAGE 9901', '#SAY',
+    '<&IMG:<$STR(N$UNKNOWN_IMAGE)>:37:10:570>',
+    '<&IMG:<$STR(N$LOCAL_IMAGE)>:37:90:570>',
+    '<&IMG:<$STR(N$RUNTIME_IMAGE)>:37:170:570>',
+  ].join('\n'), { 'N$LOCAL_IMAGE': '9901', 'N$RUNTIME_IMAGE': '9901' }, 'GOM');
+  const gatedElements = elementsWithoutFlow(gatedImages);
+  fixtures.push(
+    ['GENERIC_UNKNOWN_IMG', findRaw(gatedElements, 'N$UNKNOWN_IMAGE')],
+    ['GENERIC_LOCAL_IMG', findRaw(gatedElements, 'N$LOCAL_IMAGE')],
+    ['GENERIC_RUNTIME_IMG', findRaw(gatedElements, 'N$RUNTIME_IMAGE')]
   );
 
   const elements = fixtures.map(([id, element]) => {
@@ -437,14 +454,23 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
       }
     });
 
-    await check('generic dynamic fallback is typed and never leaks source', async function () {
-      var wrapper = node('GENERIC_DYNAMIC_IMG');
-      var placeholder = text(wrapper, '.element-placeholder');
-      if (!/图片|素材/.test(placeholder) || !/未确定|动态|未知|不可用/.test(placeholder)) {
-        throw new Error('generic image placeholder is not useful: ' + placeholder);
+    await check('source-proved absolute IMG loads while unresolved fallback stays typed', async function () {
+      var proven = node('GENERIC_PROVED_IMG');
+      var image = proven && proven.querySelector('img');
+      if (!image || !image.complete || image.naturalWidth <= 0
+        || image.getBoundingClientRect().width <= 0 || proven.getBoundingClientRect().height <= 0) {
+        throw new Error('source-proved absolute IMG did not load a visible image');
       }
-      if (/<\\$STR\\(|\\$STR\\(/i.test(placeholder)) {
-        throw new Error('generic image placeholder leaked expression: ' + placeholder);
+      for (var id of ['GENERIC_UNKNOWN_IMG', 'GENERIC_LOCAL_IMG', 'GENERIC_RUNTIME_IMG']) {
+        var wrapper = node(id);
+        var placeholder = text(wrapper, '.element-placeholder');
+        if (!/图片|素材/.test(placeholder) || !/未确定|动态|未知|不可用/.test(placeholder)) {
+          throw new Error(id + ' generic image placeholder is not useful: ' + placeholder);
+        }
+        if (/<\\$STR\\(|\\$STR\\(/i.test(placeholder)) {
+          throw new Error(id + ' generic image placeholder leaked expression: ' + placeholder);
+        }
+        if (wrapper.querySelector('img[src]')) throw new Error(id + ' unresolved source unlocked pixels');
       }
     });
 
@@ -526,15 +552,13 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
     });
 
     await check('dynamic asset DB and action gates remain closed in DOM', async function () {
-      var sources = Array.from(document.querySelectorAll('#dialogCanvas img')).map(function (image) {
-        return image.getAttribute('src') || image.src || '';
-      });
-      if (sources.some(function (source) { return /9901|DYNAMIC_WIL|WIL37/i.test(source); })) {
-        throw new Error('dynamic asset URL reached DOM: ' + sources.join(','));
+      for (var id of ['GENERIC_UNKNOWN_IMG', 'GENERIC_LOCAL_IMG', 'GENERIC_RUNTIME_IMG']) {
+        if (node(id).querySelector('img[src]')) throw new Error(id + ' dynamic asset URL reached DOM');
       }
       var action = node('ADD_DYNAMIC_GATE');
       if (action.dataset.addbuttonTriggerId
         || action.querySelector('.runtime-action-hitarea')
+        || action.querySelector('img[src]')
         || /ButtonClick88/.test(action.textContent || '')) {
         throw new Error('dynamic ADDBUTTON action became executable');
       }

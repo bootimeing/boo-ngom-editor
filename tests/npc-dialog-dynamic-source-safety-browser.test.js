@@ -17,7 +17,7 @@ const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
 const root = path.resolve(__dirname, '..');
 const pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzNwAAAABJRU5ErkJggg==';
 
-function parseModel(source, engine) {
+function parseModel(source, engine, previewValues = {}) {
   return parseNpcDialogDocument(source, {
     uri: 'file:///D:/MirServer/Mir200/Envir/QuestDiary/dynamic-source-safety-browser.txt',
     fileName: 'dynamic-source-safety-browser.txt',
@@ -28,14 +28,15 @@ function parseModel(source, engine) {
     cursorOffset: source.indexOf('[@main]') + '[@main]'.length,
     offsets: workspaceNpcDialogOffsets(0, 0),
     catalog: buildDialogStatementCatalog(staticLanguage, engine),
+    previewValues,
   });
 }
 
-function readyAsset(reference, role) {
+function readyAsset(reference, role, sourceProved = false) {
   const imageIndex = Number(reference?.imageIndex);
   const dynamic = Number.isFinite(imageIndex) && imageIndex >= 9800;
   const archive = reference?.archiveName || `WIL${reference?.willIndex ?? 'unknown'}`;
-  const marker = `${dynamic ? 'DYNAMIC' : 'STATIC'}_${archive}_${imageIndex}_${role}`
+  const marker = `${sourceProved ? 'PROVED' : dynamic ? 'DYNAMIC' : 'STATIC'}_${archive}_${imageIndex}_${role}`
     .replace(/[^A-Za-z0-9_-]/g, '_');
   return {
     status: 'ready',
@@ -49,7 +50,8 @@ function readyAsset(reference, role) {
 }
 
 function hydrateFixtureElement(element) {
-  if (element.assetRef) element.asset = readyAsset(element.assetRef, 'primary');
+  if (element.assetRef) element.asset = readyAsset(element.assetRef, 'primary',
+    element.statementId === 'img-absolute' && element.previewAssetOrigin === 'resolved-static');
   for (const layer of element.assetLayers || []) {
     if (layer.assetRef) layer.asset = readyAsset(layer.assetRef, layer.role);
   }
@@ -68,17 +70,30 @@ function fixtureModel() {
     'MOV N$WIL 39',
     'MOV N$IMAGE 9810',
     'MOV N$HOVER 9811',
+    'MOVR N$RUNTIME_IMAGE 9810',
     '#SAY',
     '<&IMG:<$STR(N$IMAGE)>:<$STR(N$WIL)>:20:20>',
     '<&IMGEX:5:100:<$STR(N$HOVER)>:102:20:80>',
+    '<&IMG:<$STR(N$UNKNOWN_IMAGE)>:39:20:150>',
+    '<&IMG:<$STR(N$LOCAL_IMAGE)>:39:20:220>',
+    '<&IMG:<$STR(N$RUNTIME_IMAGE)>:39:20:290>',
   ].join('\n');
-  const gom = parseModel(gomSource, 'GOM');
+  const gom = parseModel(gomSource, 'GOM', { 'N$LOCAL_IMAGE': '9810', 'N$RUNTIME_IMAGE': '9810' });
   const gomElements = gom.pages[0].elements.filter(element => element.statementId !== 'flow-text');
-  const dynamicImage = gomElements.find(element => element.statementId === 'img-absolute');
+  const provedImage = gomElements.find(element => element.statementId === 'img-absolute');
   const mixedImage = gomElements.find(element => element.statementId === 'imgex-absolute');
-  assert.ok(dynamicImage && mixedImage, 'GOM browser fixtures must parse');
-  dynamicImage.id = 'GOM_DYNAMIC_IMG';
+  assert.ok(provedImage && mixedImage, 'GOM browser fixtures must parse');
+  provedImage.id = 'GOM_PROVED_IMG';
   mixedImage.id = 'GOM_MIXED_IMGEX';
+  for (const [id, variable] of [
+    ['GOM_UNKNOWN_IMG', 'N$UNKNOWN_IMAGE'], ['GOM_LOCAL_IMG', 'N$LOCAL_IMAGE'],
+    ['GOM_RUNTIME_IMG', 'N$RUNTIME_IMAGE'],
+  ]) {
+    const element = gomElements.find(candidate => candidate.raw.includes(variable));
+    assert.ok(element, `${id} source gate fixture must parse`);
+    assert.equal(element.assetRef, undefined, `${id} source cannot unlock IMG resource`);
+    element.id = id;
+  }
 
   const pcSource = [
     '[@main]',
@@ -235,15 +250,28 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
   }
 
   async function run() {
-    for (var attempt = 0; attempt < 150 && !node('GOM_DYNAMIC_IMG'); attempt++) await wait(20);
-    if (!node('GOM_DYNAMIC_IMG')) throw new Error('fixture model did not render');
+    for (var attempt = 0; attempt < 150 && !node('GOM_PROVED_IMG'); attempt++) await wait(20);
+    if (!node('GOM_PROVED_IMG')) throw new Error('fixture model did not render');
 
-    await check('dynamic GOM and 996PC assets never reach an IMG src', async function () {
-      var ids = ['GOM_DYNAMIC_IMG', 'PC_DYNAMIC_BUTTON', 'PC_DYNAMIC_ATLAS'];
+    await check('source-proved GOM absolute IMG is a visible loaded image', async function () {
+      var wrapper = node('GOM_PROVED_IMG'), image = wrapper && wrapper.querySelector('img');
+      if (!image || !image.src.includes('#PROVED_WIL39_9810_primary')
+        || !image.complete || image.naturalWidth <= 0 || image.getBoundingClientRect().width <= 0
+        || wrapper.getBoundingClientRect().height <= 0) {
+        throw new Error('source-proved IMG did not load visible pixels');
+      }
+      var rect = wrapper.getBoundingClientRect();
+      var hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      if (!hit || (hit !== wrapper && !wrapper.contains(hit))) throw new Error('source-proved IMG is not hittable');
+    });
+
+    await check('unknown local runtime GOM and strict 996PC assets never reach an IMG src', async function () {
+      var ids = ['GOM_UNKNOWN_IMG', 'GOM_LOCAL_IMG', 'GOM_RUNTIME_IMG', 'PC_DYNAMIC_BUTTON', 'PC_DYNAMIC_ATLAS'];
       for (var id of ids) {
         var wrapper = node(id);
         if (!wrapper) throw new Error(id + ' missing');
         var sources = imageSources(wrapper);
+        if (id.startsWith('GOM_') && sources.length) throw new Error(id + ' unresolved source unlocked an IMG src');
         if (sources.some(function (source) { return source.includes('#DYNAMIC_'); })) {
           throw new Error(id + ' leaked dynamic asset URL: ' + sources.join(','));
         }
@@ -371,7 +399,7 @@ window.acquireVsCodeApi = function () { return { postMessage: function (message)
     });
 
     await check('dynamic source safety boundary is visible after selecting the control', async function () {
-      fire(node('GOM_DYNAMIC_IMG'), 'click');
+      fire(node('GOM_UNKNOWN_IMG'), 'click');
       await wait(30);
       var boundary = document.getElementById('elementWarning');
       var text = boundary ? boundary.textContent || '' : '';

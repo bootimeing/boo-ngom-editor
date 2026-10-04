@@ -31,6 +31,11 @@ export interface MonsterSpawn {
   range: number;
 }
 
+export interface ParsedMonGenLine {
+  spawn: MonsterSpawn;
+  columns: { value: string; start: number; end: number }[];
+}
+
 export type SafeZoneShape = 'area' | 'point' | 'line' | 'ellipse';
 
 export interface MapSafeZone {
@@ -199,23 +204,34 @@ export function parseMerchantLine(rawLine: string, lineNumber: number): ParsedMe
 export function parseMonGenText(text: string): MonsterSpawn[] {
   const result: MonsterSpawn[] = [];
   for (const [index, rawLine] of text.split(/\r?\n|\r/).entries()) {
-    const fields = parseFields(rawLine);
-    if (fields.length < 6) continue;
-    const x = Number(fields[1]);
-    const y = Number(fields[2]);
-    const range = Number(fields[4]);
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(range)) continue;
-    result.push({
-      lineNumber: index + 1,
+    const parsed = parseMonGenLine(rawLine, index + 1);
+    if (parsed) result.push(parsed.spawn);
+  }
+  return result;
+}
+
+export function parseMonGenLine(rawLine: string, lineNumber: number): ParsedMonGenLine | undefined {
+  const trimmed = rawLine.trim();
+  if (!trimmed || trimmed.startsWith(';') || trimmed.startsWith('//')) return undefined;
+  const columns = parseTableColumns(rawLine.replace(/^([\t ]*)\uFEFF/, '$1 '));
+  if (columns.length < 6) return undefined;
+  const fields = columns.map(column => column.value);
+  const x = Number(fields[1]);
+  const y = Number(fields[2]);
+  const range = Number(fields[4]);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(range)) return undefined;
+  return {
+    columns,
+    spawn: {
+      lineNumber,
       fields,
       mapName: fields[0],
       x,
       y,
       monsterName: fields[3],
       range,
-    });
-  }
-  return result;
+    },
+  };
 }
 
 export function parseStartPointText(text: string, engine: EngineId): MapSafeZone[] {

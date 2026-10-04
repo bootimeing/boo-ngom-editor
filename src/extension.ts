@@ -50,6 +50,8 @@ import { PatchManagerProvider } from './providers/patch-manager';
 import { ResourceEditorProvider, RESOURCE_EDITOR_OPEN_COMMAND } from './providers/resource-editor';
 import { MapPreviewProvider } from './providers/map-preview';
 import { MerchantMapLinkProvider } from './providers/merchant-map-link';
+import { MapInfoLinkProvider } from './providers/map-info-link';
+import { MonGenLinkProvider } from './providers/mongen-link';
 import { registerNpcDialogVisualEditor } from './providers/npc-dialog-visual';
 import {
   DeepSeekViewProvider,
@@ -235,6 +237,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const mapPreviewProvider = new MapPreviewProvider(context);
   const merchantMapLinkProvider = new MerchantMapLinkProvider();
+  const mapInfoLinkProvider = new MapInfoLinkProvider();
+  const monGenLinkProvider = new MonGenLinkProvider();
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('boo.mapPreviewView', mapPreviewProvider),
     vscode.languages.registerDocumentLinkProvider(
@@ -247,6 +251,28 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'boo.openMerchantNpcOnMap',
       (sourceUri: unknown, lineNumber: unknown) => mapPreviewProvider.revealMerchantNpc(sourceUri, lineNumber)
+    ),
+    vscode.languages.registerDocumentLinkProvider(
+      [
+        { language: 'gomscript', scheme: 'file' },
+        { language: 'plaintext', scheme: 'file' },
+      ],
+      mapInfoLinkProvider
+    ),
+    vscode.commands.registerCommand(
+      'boo.openMapInfoOriginalMap',
+      (sourceUri: unknown, lineNumber: unknown) => mapPreviewProvider.revealMapInfoOriginalMap(sourceUri, lineNumber)
+    ),
+    vscode.languages.registerDocumentLinkProvider(
+      [
+        { language: 'gomscript', scheme: 'file' },
+        { language: 'plaintext', scheme: 'file' },
+      ],
+      monGenLinkProvider
+    ),
+    vscode.commands.registerCommand(
+      'boo.openMonGenOriginalMap',
+      (sourceUri: unknown, lineNumber: unknown) => mapPreviewProvider.revealMonGenOriginalMap(sourceUri, lineNumber)
     )
   );
 

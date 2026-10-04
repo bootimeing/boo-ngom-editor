@@ -17,7 +17,9 @@ const { parseNpcDialogDocument } = require('../out/ui-dialog/source-parser');
  *   - an unresolved string is `预览文字`;
  *   - an unresolved display number/quantity is `0`;
  *   - source expressions remain in raw/Inspector provenance;
- *   - dynamic assets, database IDs and server actions remain blocked.
+ *   - display values alone never authorize database IDs or server actions;
+ *   - legacy IMG's exact source-proved direct STR resource fields are a narrow
+ *     exception, not a permission for unknown/local/runtime-derived resources.
  *
  * Keep this suite as an accumulating matrix. A first failure must not hide the
  * other unreadable surfaces from the repair report.
@@ -286,7 +288,7 @@ check('P1 ADDBUTTON title/tips use display values and all clicks remain local', 
   }
 });
 
-check('strict gate: dynamic generic image and ADDBUTTON assets/actions never borrow MOV', () => {
+check('strict gate: direct source-proved IMG is allowed while ADDBUTTON assets/actions stay blocked', () => {
   const image = pageElements(gom).find(element => (
     /N\$DYNAMIC_IMAGE/i.test(element.raw || '')
   ));
@@ -295,11 +297,12 @@ check('strict gate: dynamic generic image and ADDBUTTON assets/actions never bor
     /N\$DYNAMIC_BUTTON_ID/i.test(element.raw || '')
   ));
   assert.ok(dynamicButton, 'dynamic ADDBUTTON fixture must remain auditable');
-  for (const element of [image, dynamicButton]) {
-    assert.equal(assetReferences(element).some(reference => (
-      reference.willIndex === 37 || reference.imageIndex === 9901
-    )), false, 'dynamic MOV asset escaped the source gate');
-  }
+  assert.equal(image.previewAssetOrigin, 'resolved-static');
+  assert.deepEqual(assetReferences(image), [{ willIndex: 37, imageIndex: 9901 }],
+    'absolute legacy IMG must share relative IMG direct source proof');
+  assert.equal(assetReferences(dynamicButton).some(reference => (
+    reference.willIndex === 37 || reference.imageIndex === 9901
+  )), false, 'IMG source proof must not authorize ADDBUTTON resource fields');
   assert.equal(dynamicButton.addButtonPreview?.triggerId, undefined);
   assert.equal(dynamicButton.runtimeActionPreview?.link, undefined);
   assert.match(image.raw, /<\$STR\(N\$DYNAMIC_IMAGE\)>/i,
@@ -342,7 +345,7 @@ function loadProviderInternals() {
   }
 }
 
-check('strict provider gate: display values do not trigger dynamic asset or DB lookup', async () => {
+check('strict provider gate: only the exact source-proved IMG may request its resource, DB values stay gated', async () => {
   const { __NpcDialogVisualEditorManager: Manager } = loadProviderInternals();
   const manager = Object.create(Manager.prototype);
   const requests = [];
@@ -369,9 +372,11 @@ check('strict provider gate: display values do not trigger dynamic asset or DB l
     const model = parse(engine, source, suffix);
     await manager.hydrateAssets(model, {}, { fileName: `all-text-${suffix}.txt` });
   }
-  assert.equal(requests.some(reference => (
+  const proofedImg = reference => JSON.stringify(reference) === JSON.stringify({ willIndex: 37, imageIndex: 9901 });
+  assert.equal(requests.filter(proofedImg).length, 1, 'the source-proved legacy IMG must reach Provider');
+  assert.equal(requests.some(reference => !proofedImg(reference) && (
     reference.willIndex === 37 || reference.imageIndex === 9901
-  )), false, `dynamic asset request leaked: ${JSON.stringify(requests)}`);
+  )), false, `unapproved asset request leaked: ${JSON.stringify(requests)}`);
   assert.equal(databaseLookups.some(lookup => [993, 1927].includes(lookup.itemIndex)), false,
     `dynamic database lookup leaked: ${JSON.stringify(databaseLookups)}`);
 });
