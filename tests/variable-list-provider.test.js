@@ -294,8 +294,8 @@ async function main() {
           assert.ok(human.description.includes('3处'));
           assert.ok(human.tooltip.includes('<$HUMAN(Same)>'));
           assert.deepEqual(human.command.arguments, ['HUMAN(Same)']);
-          assert.equal(!!guild, engine === 'GEE');
-          if (guild) assert.deepEqual(guild.command.arguments, ['GUILD(Same)']);
+          assert.ok(guild.description.includes('2处'));
+          assert.deepEqual(guild.command.arguments, ['GUILD(Same)']);
           const start = scopeItems.find(item => item.label === 'S210');
           const last = scopeItems.find(item => item.label === 'S214');
           assert.ok(start.description.includes('1处'), 'explicit starting slot is not counted again after expansion');

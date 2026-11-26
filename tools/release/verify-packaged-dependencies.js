@@ -248,6 +248,7 @@ async function main() {
     'Project notice'
   );
   verifyRequiredPackagedFiles(packagedRoot, REQUIRED_NPC_DIALOG_RUNTIME_FILES, 'Ctrl+F12');
+  verifyRequiredPackagedFiles(packagedRoot, ['data/manual-gom.json', 'data/manual-gee.json', 'data/manual-996pc.json'], 'Script manuals');
   verifyRequiredPackagedFiles(packagedRoot, ['out/utils/access-database.js', 'tools/AccessBridge/access-bridge.ps1'], 'Access database');
   const npcDialogModuleFiles = verifyLocalModuleClosure(
     packagedRoot,
@@ -303,15 +304,22 @@ async function main() {
   for (const relative of [
     'media/csv-editor.html',
     'media/database-viewer.html',
+    'media/sidebar-detail.html',
     'media/table-editor.css',
     'media/table-editor-core.js',
     'media/table-editor.js',
     'out/utils/database-viewer-webview.js',
+    'out/utils/database-source.js',
+    'out/utils/database-detail-actions.js',
+    'out/utils/sidebar-bridge.js',
   ]) {
     assert.ok(fs.existsSync(path.join(packagedRoot, relative)), `Missing table grid runtime: ${relative}`);
   }
   for (const relative of [
     'out/utils/db-cache.js',
+    'out/providers/deepseek-view.js',
+    'out/providers/deepseek-view.js.map',
+    'resources/deepseek-icon.svg',
     'snippets/gom-snippets.code-snippets',
     'data/const.json',
     'tools/M2Reloader/runtime/net7.0-win-x64',

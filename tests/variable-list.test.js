@@ -4,11 +4,32 @@ const os = require('node:os');
 const path = require('node:path');
 const iconv = require('iconv-lite');
 const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
-const { VariableListScanner, variableListScanRoots, recordVariableListUsage, variableListSourceSummary } = require('../out/utils/variable-list');
+const { VariableListScanner, analyzeVariableListFile, isCatalogSystemField, variableListScanRoots, recordVariableListUsage, variableListSourceSummary } = require('../out/utils/variable-list');
 const { findScriptVariables } = require('../out/utils/variable-statistics');
 const { findMapCodeRangesInText } = require('../out/utils/map-code-context');
 
 async function main() {
+  const { indexes } = require('../tools/data-maintenance/runtime-audit-catalog').loadAuditCatalog();
+  const systemReads = '<$C.GameGold> <$h.hp> <$NO.HP> <$C..HP> <$CUSTJOBABIL[109]> <$CUSTJOBABIL> <$ATTR[8]> <$H.ATTR[8]> <$H.USEITEMNAME[1]> <$H.HP[1]> <$CUSTJOBABIL[]> <$CUSTJOBABIL[X]> <$CUSTJOBABIL[1]';
+  const script = ['[@main]', '#SAY', systemReads, '<$C.GameGold> <$STR(N$Quest)> <$U31> <$FLAG(32)> <$FLAG> <$HUMAN(Points)>',
+    '<$ATTR[238]> <$ATTR[239]> <$ATTR[237]> <$USEITEMNAME[1]> <$USEITEM[71]> <$USEITEMID[71]> <$FORMULATION[2+3]>', '; <$C.GameGold>'].join('\r\n');
+  for (const [engine, expected] of [
+    ['GOM', ['<$C.GAMEGOLD>', '<$H.HP>', '<$CUSTJOBABIL[109]>', '<$C.GAMEGOLD>', '<$ATTR[238]>', '<$ATTR[239]>']],
+    ['GEE', ['<$C.GAMEGOLD>', '<$C.GAMEGOLD>']],
+    ['996PC', ['<$C.GAMEGOLD>', '<$H.HP>', '<$CUSTJOBABIL[109]>', '<$ATTR[8]>', '<$H.ATTR[8]>', '<$H.USEITEMNAME[1]>', '<$C.GAMEGOLD>',
+      '<$ATTR[238]>', '<$ATTR[239]>', '<$ATTR[237]>', '<$USEITEMNAME[1]>', '<$USEITEM[71]>', '<$USEITEMID[71]>']],
+  ]) {
+    const options = { engine: () => engine, systemField: (name, indexed) => isCatalogSystemField(indexes[engine], name, indexed) };
+    const analysis = analyzeVariableListFile(script, 'field-reads.txt', options);
+    const fields = analysis.variables.filter(row => row.type === '系统字段读取');
+    assert.deepEqual(fields.map(row => row.name), expected, engine);
+    for (const row of fields) assert.equal(script.slice(row.source.start, row.source.end), row.source.expression);
+    for (const name of ['N$Quest','U31']) assert.equal(analysis.variables.filter(row => row.name === name).length, 1, engine + name);
+    if (engine === 'GOM') {
+      assert.equal(analysis.variables.filter(row => row.name === '[32]').length, 1);
+      assert.equal(analysis.variables.filter(row => row.name === 'HUMAN(Points)').length, 1);
+    }
+  }
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-variable-list-'));
   const root = path.join(temporary, 'Server');
   const envir = path.join(root, 'Mir200', 'Envir');
@@ -195,7 +216,9 @@ async function main() {
     assert.equal(gom.usages.get('HUMAN(QQQQ)').directCount, 5);
     assert.equal(gom.usages.get('HUMAN(QQQQ)').type, 'HUMAN命名变量');
     assert.equal(gom.usages.get('HUMAN(U3)').count, 2);
-    for (const name of ['QQQQ', 'GUILD(QQQQ)', 'GUILD(LOADONLY)', 'HUMAN(展示示例)', 'HUMAN(注释)', 'U3', 'S21', 'S30', 'U21']) assert.equal(gom.usages.has(name), false, name);
+    assert.equal(gom.usages.get('GUILD(QQQQ)').count, 4);
+    assert.equal(gom.usages.get('GUILD(LOADONLY)').count, 1);
+    for (const name of ['QQQQ', 'HUMAN(展示示例)', 'HUMAN(注释)', 'U3', 'S21', 'S30', 'U21']) assert.equal(gom.usages.has(name), false, name);
     for (const name of ['S0', 'S1', 'S2']) assert.equal(gom.usages.get(name).count, 1, 'CLEARVAR starting token must not be double-counted');
     for (const name of ['S3', 'S4']) assert.equal(gom.usages.get(name).count, 2, 'each command position contributes one range reference');
     assert.equal(gom.occurrences.get('S4')[0].line, 15);
@@ -211,6 +234,42 @@ async function main() {
     assert.equal([...pc.usages.keys()].some(name => /^(?:HUMAN|GUILD)\(/.test(name)), false, 'new scoped semantics never leak into 996PC');
     assert.equal(pc.usages.has('S1'), false, 'implicit ranges require engine-specific evidence');
     assert.equal(pc.usages.has('U3'), false, 'a named HUMAN variable called U3 is not an ordinary U3 token');
+    const special = 'N$荧惑·战乱〩ろ';
+    const fixtures = [
+      ['MapQuest.txt', 'N3 [99] 1 怪物 * 任务', '[99]'],
+      ['MapEvent.txt', 'N3 3 4 0 98:1 4:*:0 0 1:@通知', '[98]'],
+      ['MapInfo.txt', '[U3 地图] NEEDSET_ON(97) NEEDSET_OFF(96) NORECONNECT(T8)\nU3 1 2 -> N3 3 4', '[97]'],
+      ['GroupItemList.txt', ['U3','名','0','0','0','0','0','0',special+',1,0,0'].join('\t'), special],
+    ];
+    for (const [file, content] of fixtures) write('Mir200/Envir/' + file, content, 'utf8-bom');
+    write('Mir200/Envir/Market_Def/metadata.ini', '[配置]\nsample=SET [723] 1\nvalue=<$STR(N$模板)>', 'utf8-bom');
+    const cfg = await new VariableListScanner({ systemField: name => name === 'REALUSERNAME' }).scan([root], [{
+      filePath: path.join(scripts, 'scope-test.txt'),
+      text: '#ACT\nVAR STRING GLOBAL 排名\nMOV GD$活动 x\n#IF\nNOT CHECKVAR GLOBAL 排名 = 测试\n#SAY\n<$GLOBAL(排名)> <$REALUSERNAME>',
+    }]);
+    for (const [file, content, name] of fixtures) {
+      const occurrence = cfg.occurrences.get(name).find(o => path.basename(o.file) === file);
+      assert.ok(occurrence && content.slice(occurrence.source.start, occurrence.source.end) === occurrence.source.expression, name);
+    }
+    assert.ok([96, 97, 98, 99].every(n => cfg.candidates.personalFlags.has(n)));
+    for (const engine of ['GEE', '996PC']) {
+      const configScanner = new VariableListScanner({ engine: () => engine });
+      const config = await configScanner.scan([envir], [{
+        filePath: path.join(envir, 'MapEvent.txt'),
+        text: '3 333 333 0 800:1 4:*:0 0 1:@走路\n3 333 333 0 801:0 4:*:0 0 1:@越界\n3 333 333 0 -1:0 4:*:0 0 1:@忽略',
+      }]);
+      for (const n of [96, 97, 99, 800]) {
+        assert.ok(config.candidates.personalFlags.has(n) && config.usages.has('[' + n + ']'), engine + ' ' + n);
+      }
+      assert.ok(!config.occurrences.get('[801]')?.some(o => path.basename(o.file) === 'MapEvent.txt'));
+      assert.ok(!config.occurrences.get(special)?.some(o => path.basename(o.file) === 'GroupItemList.txt'));
+    }
+    assert.ok(!cfg.candidates.personalFlags.has(723) && cfg.usages.has('N$模板'));
+    assert.equal(cfg.occurrences.get('U3')?.some(o => path.dirname(o.file) === envir) || false, false);
+    assert.equal(cfg.usages.get('GLOBAL(排名)').count, 3);
+    assert.equal(cfg.usages.get('GD$活动').count, 1);
+    assert.equal(cfg.usages.get('<$REALUSERNAME>').type, '系统字段读取');
+    assert.deepEqual([...findScriptVariables('GD$活动', 'GEE')], []);
     assert.equal(await scanner.scan([root], [], () => true), undefined);
     assert.equal((await scanner.scan([])).usages.size, 0);
     console.log('variable-list.test.js: PASS (extraction, encodings, scope, snapshots, cache, dependencies, map exclusion, source layers, named scopes, CLEARVAR, navigation)');

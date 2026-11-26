@@ -14,6 +14,7 @@ import {
   resolvePakImage,
   resolvePakImageAsset,
 } from "./utils/sidebar-bridge";
+import { saveLanguageFiles } from './utils/language-editor-save';
 import { escapeRegex } from './utils/regex';
 import {
   findScriptCommandPathReferences,
@@ -38,6 +39,7 @@ import {
   findScriptLabelReferencesInText,
   findUndefinedScriptLabelReferences,
   isScriptCommentLine,
+  scriptCodeBeforeComment,
   normalizeScriptLabelKey,
   ScriptCommandCallbackReference,
 } from './utils/script-labels';
@@ -47,8 +49,7 @@ import {
 } from './utils/variable-statistics';
 import { VariableListProvider, registerVariableListRefresh } from './providers/variable-list';
 import {
-  analyzeVariableListFile, recordVariableListUsage, VariableListScanner,
-  VariableReferenceSource, VariableListSourceCounts, variableListSourceSummary,
+  VariableListOccurrence, VariableListOptions, VariableListScanner, VariableListUsage, isCatalogSystemField, variableListPathKey, variableListSourceSummary,
 } from './utils/variable-list';
 import {
   NestedConfigValueRequest,
@@ -67,12 +68,14 @@ import {
   EngineFunctionCatalog,
   EngineId,
   StaticLanguageData,
+  StaticLanguageVariant,
   VariablesData,
 } from './types';
 import {
   loadCommandsData,
   loadEngineConstantCatalog,
   loadEngineFunctionCatalog,
+  loadManualUpdate,
   loadStaticLanguageData,
   loadVariablesData,
 } from './data/loader';
@@ -88,6 +91,8 @@ import {
   QUICK_FILE_DEFINITIONS,
 } from './utils/quick-files';
 import { parseMonGenLine } from './utils/map-entities';
+import { findMonGenQFunctionReferenceAt } from './utils/mongen-labels';
+import { engineFileCallbacks, EngineFileCallback } from './utils/engine-callbacks';
 import {
   isMonGenDocumentPath,
   isMonsterDropFileTargetSafe,
@@ -96,6 +101,8 @@ import {
 import {
   buildLanguageIndex,
   commandKey,
+  splitTopLevelParams,
+  commandParamsForArguments,
   commandToken,
   IndexedCommand,
   LanguageIndex,
@@ -120,6 +127,7 @@ import {
   DatabaseRowUpdate,
   DatabaseSchemaColumnUpdate,
 } from './utils/database-browser';
+import { resolveWorkspaceDatabaseSource, WorkspaceDatabaseSource } from './utils/database-source';
 import {
   databaseViewerWebviewHtml,
   databaseViewerWebviewOptions,
@@ -156,8 +164,7 @@ import {
 } from './utils/static-language';
 import {
   buildSayMarkupIndex,
-  findSayMarkupParameterAt,
-  findSayMarkupTokenAt,
+  findDocumentSayHover,
   findSayMarkupTokens,
   SayMarkupParameterSpan,
   sayMarkupParameterMeanings,
@@ -192,7 +199,7 @@ import {
   unusedVariableCandidates,
 } from './utils/variable-candidates';
 import {
-  findScriptCommandArgumentAt,
+  findScriptCommandHoverAt,
   formatCommandParameterMeaning,
 } from './utils/command-arguments';
 import {
@@ -323,7 +330,7 @@ class BlockStackCache {
 let _refreshVarTree: (() => void) | null = null;
 export function refreshVariableTree() { if (_refreshVarTree) _refreshVarTree(); }
 // 变量跳转循环
-const _varOccurrences = new Map<string, {file: string, line: number}[]>();
+const _varOccurrences = new Map<string, VariableListOccurrence[]>();
 const _varCycleIdx = new Map<string, number>();
 async function gotoVarOccurrence(name: string) {
   const key = normalizeScriptVariableName(name);
@@ -337,7 +344,9 @@ async function gotoVarOccurrence(name: string) {
     const uri = vscode.Uri.file(occ.file);
     const doc = await vscode.workspace.openTextDocument(uri);
     const editor = await vscode.window.showTextDocument(doc, { preview: false });
-    const pos = new vscode.Position(occ.line, 0);
+    const source = occ.source;
+    const anchor = source?.start === undefined ? undefined : doc.positionAt(source.start);
+    const pos = anchor?.line === occ.line ? anchor : new vscode.Position(occ.line, 0);
     editor.selection = new vscode.Selection(pos, pos);
     editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
     vscode.window.setStatusBarMessage(`跳转到 ${name} (${idx+1}/${occs.length})`, 3000);
@@ -384,6 +393,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
   );
 
   const blockCache = new BlockStackCache();
+  let hoverMarkupIndex = buildSayMarkupIndex([]);
   const pendingMissingFileCreations = new Map<string, Promise<vscode.Uri | undefined>>();
   const mapCodeCache = new Map<string, { stamp: string; codes: Set<string> }>();
   let candidateUsageCache: { workspaceKey: string; usage: CandidateUsage } | undefined;
@@ -422,15 +432,23 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     return undefined;
   }
 
-  function resolveUnsupportedCommandToken(typedName: string): IndexedCommand | undefined {
+  function resolveHoverCommand(
+    typedName: string,
+    catalog: ReadonlyMap<string, IndexedCommand> = languageIndex.commandByName
+  ): IndexedCommand | undefined {
+    // Show the base command's manual for an object call. Some instructions
+    // are documented only in qualified form; keep that evidence as a fallback.
+    const base = typedName.slice(typedName.lastIndexOf('.') + 1);
+    const original = catalog.get(commandKey(base));
+    if (original) return original;
     for (const key of commandLookupKeys(typedName)) {
-      const command = languageIndex.unsupportedCommandByName.get(key);
+      const command = catalog.get(key);
       if (command) return command;
     }
     return undefined;
   }
 
-  function mapInfoPathForFile(filePath: string): string | undefined {
+  function mapInfoPathForFile(filePath: string, drafts?: ReadonlyMap<string, string>): string | undefined {
     const envirRoot = findAncestorDirectory(filePath, 'Envir');
     const candidates = envirRoot
       ? [path.join(envirRoot, 'MapInfo.txt')]
@@ -438,19 +456,19 @@ export function activateAssistant(context: vscode.ExtensionContext) {
           path.join(folder.uri.fsPath, 'Mir200', 'Envir', 'MapInfo.txt'),
           path.join(folder.uri.fsPath, 'Envir', 'MapInfo.txt'),
         ]);
-    return candidates.find(candidate => fs.existsSync(candidate));
+    return candidates.find(candidate => drafts?.has(variableListPathKey(candidate)) || fs.existsSync(candidate));
   }
 
-  function configuredMapCodesForFile(filePath: string): Set<string> {
-    const mapInfoPath = mapInfoPathForFile(filePath);
+  function configuredMapCodesForFile(filePath: string, drafts?: ReadonlyMap<string, string>): Set<string> {
+    const mapInfoPath = mapInfoPathForFile(filePath, drafts);
     if (!mapInfoPath) return new Set<string>();
     try {
-      const stat = fs.statSync(mapInfoPath);
-      const stamp = `${stat.size}:${stat.mtimeMs}`;
+      const input = statisticsFileInput(mapInfoPath, drafts);
+      const stamp = input.stamp;
       const cacheKey = path.resolve(mapInfoPath).toLowerCase();
       const cached = mapCodeCache.get(cacheKey);
       if (cached?.stamp === stamp) return cached.codes;
-      const codes = collectConfiguredMapCodes(readFileGBK(fs.readFileSync(mapInfoPath)));
+      const codes = collectConfiguredMapCodes(input.text());
       mapCodeCache.set(cacheKey, { stamp, codes });
       return codes;
     } catch {
@@ -475,6 +493,23 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     candidateUsageGeneration++;
   }
 
+  function variableScanOptions(withDrafts = false): VariableListOptions {
+    const drafts = withDrafts ? new Map(vscode.workspace.textDocuments
+      .filter(doc => doc.isDirty && doc.uri.scheme === 'file' && /\.(txt|ini|csv)$/i.test(doc.uri.fsPath))
+      .map(doc => [variableListPathKey(doc.uri.fsPath), doc.getText()])) : undefined;
+    return {
+      engine: () => normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')),
+      standaloneScripts: true,
+      systemField: (name, subscript) => isCatalogSystemField(languageIndex, name, subscript),
+      nestedOptions: file => ({
+        resolveConfigValues: request => resolveNestedConfigValues(file, request, drafts),
+        resolveTableData: request => resolveNestedTableData(file, request, drafts),
+        resolveListData: request => resolveNestedListData(file, request, drafts),
+      }),
+      mapRanges: (text, file) => findMapCodeRangesInText(text, file, configuredMapCodesForFile(file, drafts), resolveIndexedCommandToken),
+    };
+  }
+
   async function scanCandidateUsage(): Promise<CandidateUsage | undefined> {
     const folders = vscode.workspace.workspaceFolders || [];
     if (folders.length === 0) {
@@ -490,15 +525,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       title: 'BOO 正在扫描未使用变量与个人标识',
       cancellable: true,
     }, async (progress, cancellation) => {
-      const scanner = new VariableListScanner({
-        engine: () => normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')),
-        nestedOptions: file => ({
-          resolveConfigValues: request => resolveNestedConfigValues(file, request),
-          resolveTableData: request => resolveNestedTableData(file, request),
-          resolveListData: request => resolveNestedListData(file, request),
-        }),
-        mapRanges: (text, file) => findMapCodeRangesInText(text, file, configuredMapCodesForFile(file), resolveIndexedCommandToken),
-      });
+      const scanner = new VariableListScanner(variableScanOptions(true));
       const snapshot = await scanner.scan(
         folders.filter(folder => folder.uri.scheme === 'file').map(folder => folder.uri.fsPath),
         vscode.workspace.textDocuments.filter(doc => doc.uri.scheme === 'file')
@@ -558,7 +585,8 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       })),
       {
         title: (args.kind === 'variable' && family ? `选择 ${family} 类变量候选` : '选择个人标识候选') + (uncertain ? '（动态引用待核实）' : ''),
-        placeHolder: uncertain ? '有无法确定的动态编号；这些候选不能保证未使用，请核对后选择' : '基于当前脚本范围及打开文件草稿；未发现引用不等于运行时未使用',
+        placeHolder: (uncertain ? '有无法确定的动态编号；这些候选不能保证未使用，请核对后选择' : '当前脚本和打开的草稿中未发现引用')
+          + (usage.engine === 'GOM' && (family === 'U' || family === 'T') ? '。500～599 可能由引擎系统功能使用，候选仅列出 0～499。' : ''),
         matchOnDescription: true,
       }
     );
@@ -645,6 +673,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       engineConstantCatalog,
       customLanguageData
     );
+    hoverMarkupIndex = buildSayMarkupIndex(activeSayMarkupEntries(engine));
     isCurrentEngineDefaultScriptLabel = buildDefaultScriptLabelMatcher(languageIndex);
     vscode.commands.executeCommand('setContext', 'boo.currentEngine', engine);
     log(`语言索引: ${engine} ${languageIndex.commands.length} 条命令, ${languageIndex.variables.length} 个变量, ${languageIndex.triggers.length} 个触发器`);
@@ -692,6 +721,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
           ? linePrefix.slice(variableReplaceStart)
           : '';
         const isScopedSayVariable = inSay && /^[NSD]\$/i.test(variablePrefix);
+        const panelAssignment = languageIndex.engine === '996PC' && inAction && /^\s*(?:#(?:ELSE)?ACT\s+)?MOV\s+\S+\s+.*<[^<>]*$/i.test(linePrefix);
         const isAngleVariable = variablePrefix === '<' || variablePrefix.startsWith('<$');
         if (variableReplaceStart >= 0 && (isAngleVariable || isScopedSayVariable)) {
           if (languageIndex.variables.length > 0 || languageIndex.constants.length > 0) {
@@ -738,7 +768,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
             }
           }
           // 在 #SAY 中仅输入 "<" 时，同时展示界面标签模板。
-          if (!(inSay && variablePrefix === '<')) return items;
+          if (!((inSay || panelAssignment) && variablePrefix === '<')) return items;
         }
 
         // ---- 未使用变量/个人标识候选 ----
@@ -829,10 +859,11 @@ export function activateAssistant(context: vscode.ExtensionContext) {
 
         // ---- 当前单词匹配 (大小写不敏感) ----
         const wordMatch = linePrefix.match(/([A-Za-z_$][A-Za-z_0-9.$]*)$/);
-        const currentWord = wordMatch ? wordMatch[1].toUpperCase() : '';
+        const receiver = /((?:(?:[A-Za-z_][A-Za-z0-9_]*|<\$[^>\r\n]+>)\.)+)([A-Za-z_0-9]*)$/.exec(linePrefix);
+        const currentWord = (receiver?.[2] ?? wordMatch?.[1] ?? '').toUpperCase();
         const chineseCommandSearch = inSay ? null : findChineseCommandSearch(linePrefix);
         const commandReplaceStart = chineseCommandSearch?.start
-          ?? findCommandReplacementStart(linePrefix);
+          ?? (receiver ? position.character - receiver[2].length : findCommandReplacementStart(linePrefix));
         const commandReplaceRange = new vscode.Range(
           position.line,
           commandReplaceStart >= 0 ? commandReplaceStart : position.character,
@@ -854,7 +885,19 @@ export function activateAssistant(context: vscode.ExtensionContext) {
 
         // 构建命令补全的辅助函数
         function addCmdItem(cmd: IndexedCommand, prefix: string, detailPrefix: string, sortPrefix: string) {
-          const upperName = cmd.name.toUpperCase();
+          let insertName = cmd.name;
+          if (receiver) {
+            const typedReceiver = receiver[1].toUpperCase();
+            const lastDot = cmd.name.lastIndexOf('.');
+            if (lastDot >= 0) {
+              if (cmd.name.slice(0, lastDot + 1).toUpperCase() !== typedReceiver) return;
+              insertName = cmd.name.slice(lastDot + 1);
+            } else {
+              const qualified = languageIndex.commandByName.get(typedReceiver + cmd.name.toUpperCase());
+              if (qualified?.completionEnabled) cmd = qualified;
+            }
+          }
+          const upperName = insertName.toUpperCase();
           const chineseSearchScore = chineseCommandSearch && cmd.completionVerified
             ? scoreChineseCommandSearch(cmd, detailPrefix, chineseCommandSearch.query)
             : null;
@@ -863,7 +906,8 @@ export function activateAssistant(context: vscode.ExtensionContext) {
             : (!currentWord || upperName.startsWith(currentWord));
           if (matchesSearch && !addedLabels.has(prefix.toUpperCase() + upperName)) {
             addedLabels.add(prefix.toUpperCase() + upperName);
-            const item = new vscode.CompletionItem({ label: prefix + cmd.name, description: cmd.description || '' }, vscode.CompletionItemKind.Function);
+            const label = (receiver?.[1] || prefix) + insertName;
+            const item = new vscode.CompletionItem({ label, description: cmd.description || '' }, vscode.CompletionItemKind.Function);
             const engineLabel = formatIndexedCommandEngineCategory(cmd);
             const aliasLabel = cmd.aliasOf ? `，兼容别名：${cmd.aliasOf}` : '';
             const verificationLabel = cmd.completionVerified ? '' : ' [仅指令名]';
@@ -877,16 +921,16 @@ export function activateAssistant(context: vscode.ExtensionContext) {
             item.documentation = documentation;
             item.insertText = cmd.completionVerified
               ? (cmd.snippet
-                  ? new vscode.SnippetString(cmd.snippet)
-                  : buildSnippet({ ...cmd, name: prefix + cmd.name }))
-              : new vscode.SnippetString(prefix + cmd.name);
+                  ? new vscode.SnippetString(receiver && cmd.name.includes('.') ? cmd.snippet.replace(/^[\w.]+/, insertName) : cmd.snippet)
+                  : buildSnippet({ ...cmd, name: prefix + insertName }))
+              : new vscode.SnippetString(prefix + insertName);
             item.range = commandReplaceRange;
             item.sortText = chineseCommandSearch
               ? `${sortPrefix}${String(chineseSearchScore).padStart(2, '0')}${cmd.name}`
               : sortPrefix + cmd.name;
             item.filterText = chineseCommandSearch
               ? buildChineseCommandFilterText(cmd, detailPrefix, chineseCommandSearch.query)
-              : cmd.name;
+              : insertName;
             items.push(item);
           }
         }
@@ -904,10 +948,12 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         } else if (inAction) {
           // #ACT块: 优先执行命令
           for (const cmd of languageIndex.actionNameCompletions) addCmdItem(cmd, '', '[执行]', '1');
-        } else if (inSay) {
+        }
+        if (inSay || panelAssignment) {
           // #SAY块: 界面命令模板
           for (const cmd of languageIndex.sayNameCompletions) addCmdItem(cmd, '', '[界面]', '1');
           for (const entry of activeSayMarkupEntries(languageIndex.engine)) {
+            if (entry.completionEnabled === false) continue;
             const engineLabel = formatEntryEngineCategory(entry.engines);
             const kind = entry.id.endsWith('-variable')
               ? vscode.CompletionItemKind.Variable
@@ -937,7 +983,6 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         // 任何上下文：输入英文指令前缀或中文详情搜索词时，显示全部匹配命令。
         if (currentWord.length >= 1 || chineseCommandSearch) {
           for (const cmd of languageIndex.commandNameCompletions) {
-            if (!chineseCommandSearch && !cmd.name.toUpperCase().startsWith(currentWord)) continue;
             const detail = cmd.kind === 'check' ? '[检测]' : cmd.kind === 'say' ? '[界面]' : '[执行]';
             const sort = cmd.kind === 'check' ? '3' : cmd.kind === 'say' ? '4' : '5';
             addCmdItem(cmd, '', detail, sort);
@@ -945,7 +990,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         }
 
         // 无上下文时：也显示块关键字
-        if (!inCondition && !inAction && !inSay) {
+        if ((!inCondition && !inAction && !inSay) || /^\s*\[@[^\]]*$/u.test(linePrefix)) {
           if (sectionReplaceStart >= 0) {
             const sectionReplaceEnd = line.charAt(position.character) === ']'
               ? position.character + 1
@@ -1102,71 +1147,72 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         return items;
       }
     },
-    '@', '$', '<', '(', '[', '\\', '#' // 触发字符
+    '@', '$', '<', '(', '[', '\\', '#', '.' // 触发字符
   );
 
   // ---- 悬停文档 ----
   const hoverProvider = vscode.languages.registerHoverProvider(
     [
       { language: 'gomscript', scheme: 'file' },
-      { language: 'plaintext', scheme: 'file', pattern: '**/*.txt' }
+      { language: 'gomscript', scheme: 'untitled' },
+      { language: 'plaintext', scheme: 'file', pattern: '**/*.[tT][xX][tT]' },
+      { language: 'plaintext', scheme: 'untitled', pattern: '**/*.[tT][xX][tT]' }
     ],
     {
       provideHover(document, position) {
         const lineText = document.lineAt(position.line).text;
-        const sayContext = blockCache.getContext(document, position.line);
-        if (sayContext.inSay) {
-          const sayMarkupIndex = buildSayMarkupIndex(activeSayMarkupEntries(languageIndex.engine));
-          const sayParameter = findSayMarkupParameterAt(
-            lineText,
-            position.character,
-            sayMarkupIndex
-          );
-          if (sayParameter) {
-            return new vscode.Hover(
-              buildSayMarkupParameterHover(sayParameter),
-              new vscode.Range(
-                position.line,
-                sayParameter.start,
-                position.line,
-                sayParameter.end
-              )
-            );
-          }
-          const sayMarkup = findSayMarkupTokenAt(
-            lineText,
-            position.character,
-            sayMarkupIndex
-          );
-          if (sayMarkup) {
-            return new vscode.Hover(
-              buildSayMarkupHover(sayMarkup),
-              new vscode.Range(
-                position.line,
-                sayMarkup.start,
-                position.line,
-                sayMarkup.end
-              )
-            );
-          }
+        if (isScriptCommentLine(lineText)) return null;
+        if (position.character >= scriptCodeBeforeComment(lineText).length) return null;
+        const header = /^\s*\[@([^\]\s(]+)(?:[^\]]*)\]/.exec(lineText);
+        if (header && header.index <= position.character && position.character < header[0].length) {
+          const trigger = languageIndex.triggerByName.get(header[1].toUpperCase());
+          if (trigger) return new vscode.Hover(new vscode.MarkdownString(
+            '### \x60' + trigger.label + '\x60 [引擎函数]\n\n' + trigger.description + '\n\n当前引擎: **' + formatEntryEngineCategory(trigger.engines) + '**'
+          ), new vscode.Range(position.line, lineText.indexOf('@'), position.line, lineText.indexOf('@') + 1 + header[1].length));
         }
-        const argumentAtPosition = findScriptCommandArgumentAt(
+        const ui = findDocumentSayHover(document.getText(), document.offsetAt(position), hoverMarkupIndex);
+        if (ui) {
+          const range = new vscode.Range(document.positionAt(ui.start), document.positionAt(ui.end));
+          if (ui.parameter) {
+            const md = buildSayMarkupParameterHover(ui.parameter);
+            if (ui.entry) md.appendMarkdown('\n\n' + ui.entry.description);
+            return new vscode.Hover(md, range);
+          }
+          if (ui.markup) return new vscode.Hover(buildSayMarkupHover(ui.markup), range);
+        }
+        for (const field of lineText.matchAll(/<\$([A-Z_][A-Z_0-9]*(?:\.[A-Z_][A-Z_0-9]*)*)(?:\[([^\][<>\r\n]+)\]|\([^()<>\r\n]*\))?>/gi)) {
+          if (position.character < field.index! || position.character >= field.index! + field[0].length) continue;
+          const fieldName = field[1].toUpperCase();
+          const subscript = field[2];
+          if (subscript !== undefined && !isCatalogSystemField(languageIndex, fieldName, subscript.toUpperCase())) continue;
+          const exactName = subscript === undefined ? fieldName : fieldName + '[' + subscript.toUpperCase() + ']';
+          const exactConstant = languageIndex.constantByName.get(exactName);
+          const variable = languageIndex.variableByName.get(exactName) || (!exactConstant && languageIndex.variableByName.get(fieldName)) || undefined;
+          const constant = exactConstant || languageIndex.constantByName.get(fieldName);
+          if (variable || constant) return new vscode.Hover(new vscode.MarkdownString(
+            '### \x60' + field[0] + '\x60 [' + (variable ? '系统常量' : '常量') + ']\n\n' + (variable?.desc || variable?.description || constant?.description || '')
+          ), new vscode.Range(position.line, field.index!, position.line, field.index! + field[0].length));
+        }
+        const target = findScriptCommandHoverAt(
           lineText,
           position.character,
-          resolveIndexedCommandToken
+          resolveHoverCommand,
+          command => command.kind === 'check'
         );
-        if (argumentAtPosition) {
-          const command = argumentAtPosition.invocation.command;
-          const parameter = command.completionVerified
-            ? command.params[argumentAtPosition.index]
+        if (target?.kind === 'command') {
+          const { command, commandSpan } = target.invocation;
+          return new vscode.Hover(buildIndexedCommandHover(command),
+            new vscode.Range(position.line, commandSpan.start, position.line, commandSpan.end));
+        }
+        if (target?.kind === 'argument') {
+          const command = target.invocation.command;
+          const parameter = command.completionVerified || command.fromCurrentManual
+            ? commandParamsForArguments(command, target.invocation.arguments)[target.index]
             : undefined;
           if (parameter) {
-            const argument = argumentAtPosition.argument;
+            const argument = target.argument;
             return new vscode.Hover(
-              buildIndexedCommandParameterHover(
-                parameter,
-                argumentAtPosition.index
-              ),
+              buildIndexedCommandParameterHover(parameter, target.index),
               new vscode.Range(
                 position.line,
                 argument.start,
@@ -1201,11 +1247,11 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         const word = document.getText(range).toUpperCase();
         const cleanWord = word.replace(/^[HCM]\./, '');
 
-        const indexedCommand = resolveIndexedCommandToken(word);
+        const indexedCommand = resolveHoverCommand(word);
         if (indexedCommand) {
           return new vscode.Hover(buildIndexedCommandHover(indexedCommand));
         }
-        const unsupportedCommand = resolveUnsupportedCommandToken(word);
+        const unsupportedCommand = resolveHoverCommand(word, languageIndex.unsupportedCommandByName);
         if (unsupportedCommand) {
           const md = buildIndexedCommandHover(unsupportedCommand);
           md.value = `> **兼容提示：当前选择 ${formatEngineList([languageIndex.engine])}，此命令归入 ${formatIndexedCommandEngineCategory(unsupportedCommand)}。**\n\n${md.value}`;
@@ -1316,6 +1362,24 @@ export function activateAssistant(context: vscode.ExtensionContext) {
         const line = document.lineAt(position.line).text;
         const charPos = position.character;
 
+        // MonGen is a table, not an ACT/SAY script. Only its engine-specific
+        // spawn callback column may resolve to a QF definition.
+        if (isMonGenDocumentPath(document.fileName) || /^mapinfo(?:\.txt)?$/i.test(path.basename(document.fileName))) {
+          if (document.uri.scheme !== 'file' || cancellationToken?.isCancellationRequested) return null;
+          const envirRoot = findEnvirRootForPath(document.uri.fsPath);
+          if (!envirRoot || path.resolve(path.dirname(document.uri.fsPath)).toLowerCase()
+            !== path.resolve(envirRoot).toLowerCase()) return null;
+          const engine = normalizeEngineId(vscode.workspace.getConfiguration('boo', document.uri)
+            .get<string>('engine', languageIndex.engine));
+          const mon = isMonGenDocumentPath(document.fileName);
+          const reference = mon && findMonGenQFunctionReferenceAt(line, charPos, engine);
+          if (reference) return findQFunctionCallbackTargets(envirRoot, reference, cancellationToken);
+          const field = engineFileCallbacks(line, path.basename(document.fileName), engine, false)
+            .find(ref => charPos >= ref.start && charPos < ref.end);
+          if (field) return fixedCallbackLocations(envirRoot, field, cancellationToken);
+          if (mon) return null;
+        }
+
         // AutoRunRobot 中的 @函数固定定义在同目录 RobotManage.txt。
         const robotLabel = findAutoRunRobotLabelAt(document.fileName, line, charPos);
         if (robotLabel) {
@@ -1347,61 +1411,23 @@ export function activateAssistant(context: vscode.ExtensionContext) {
           ? undefined
           : findScriptCommandCallbackAt(line, charPos, callbackEngine);
         if (commandCallback) {
+          if (commandCallback.command === 'SELECTBAGITEM' || commandCallback.command === 'SETONTIMERMS') {
+            const envir = findEnvirRootForPath(document.fileName);
+            return envir ? fixedCallbackLocations(envir, {label: commandCallback.label, target: commandCallback.targetFileName}, cancellationToken) : null;
+          }
           return findScriptCommandCallbackTarget(document, commandCallback, cancellationToken);
         }
 
         const scriptLabelReferences = findScriptLabelReferences(
           line, callbackEngine, !callbackContext.inSay && !callbackContext.inCondition
         );
-        let match: RegExpExecArray | null;
-
-        // 1. 查找 <text/@label>、/@@InputStringXX 等界面引用 (同文件)
-        for (const reference of scriptLabelReferences.filter(item => item.kind === 'ui')) {
-          if (charPos >= reference.markerStart && charPos <= reference.end) {
-            const label = reference.name;
-            const allText = document.getText();
-            const labelRegex = new RegExp(`\\[@${escapeRegex(label)}\\]`, 'g');
-            const lm = labelRegex.exec(allText);
-            if (lm) {
-              const pos = document.positionAt(lm.index);
-              return new vscode.Location(document.uri, pos);
-            }
-          }
+        const fixed = engineFileCallbacks(line, path.basename(document.fileName), callbackEngine, callbackContext.inAction)
+          .find(ref => charPos >= ref.start && charPos < ref.end);
+        if (fixed) {
+          const envir = findEnvirRootForPath(document.fileName);
+          return envir ? fixedCallbackLocations(envir, fixed, cancellationToken) : null;
         }
-
-        // 1.7 查找裸 /@NNN (纯数字) → QFunction-0.txt [@dlgbuttonclickNNN]
-        const bareAtNumRegex = /\/@(\d+)/g;
-        while ((match = bareAtNumRegex.exec(line)) !== null) {
-          if (charPos >= match.index && charPos <= match.index + match[0].length) {
-            const num = match[1];
-            const wsRootB = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-            if (wsRootB) {
-              const qfPaths = [
-                path.join(wsRootB, 'Mir200', 'Envir', 'Market_Def', 'QFunction-0.txt'),
-                path.join(wsRootB, 'Envir', 'Market_Def', 'QFunction-0.txt')
-              ];
-              for (const qfp of qfPaths) {
-                try {
-                  if (fs.existsSync(qfp)) {
-                    const qfDoc = await vscode.workspace.openTextDocument(vscode.Uri.file(qfp));
-                    const qfText = qfDoc.getText();
-                    const dlgRe = new RegExp(`\\[@dlgbuttonclick${escapeRegex(num)}\\]`, 'gi');
-                    const dlm = dlgRe.exec(qfText);
-                    if (dlm) {
-                      return new vscode.Location(vscode.Uri.file(qfp), qfDoc.positionAt(dlm.index));
-                    }
-                  }
-                } catch (e) {
-                  console.warn('[BOO] 定义跳转文件查找失败:', e instanceof Error ? e.message : String(e));
-                }
-              }
-            }
-            return null;
-          }
-        }
-
-        // 2. GOTO 与有文档依据的延时命令标签 (同文件，不扫描任意 @ 文本)
-        for (const reference of scriptLabelReferences.filter(item => item.kind === 'goto')) {
+        for (const reference of scriptLabelReferences) {
           if (charPos >= reference.markerStart && charPos < reference.end) {
             const target = findScriptLabelPosition(document.getText(), reference.name);
             if (target) {
@@ -1574,13 +1600,16 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     {
       provideReferences(document, position, _context, _token) {
         const line = document.lineAt(position.line).text;
-        // 判断是否在 [@xxx] 标签上
-        const lb = line.indexOf('[@');
-        const le = lb >= 0 ? line.indexOf(']', lb) : -1;
-        let label: string | null = null;
-        if (lb >= 0 && le > lb && position.character >= lb && position.character <= le) {
-          label = line.substring(lb + 2, le);
-        }
+        if (isScriptCommentLine(line)) return null;
+        const engine = normalizeEngineId(vscode.workspace.getConfiguration('boo', document.uri).get<string>('engine', languageIndex.engine));
+        const context = blockCache.getContext(document, position.line);
+        const basename = path.basename(document.fileName);
+        const fixed = engineFileCallbacks(line, basename, engine, !context.inSay && !context.inCondition)
+          .find(ref => position.character >= ref.start && position.character < ref.end);
+        const definition = findScriptLabelDefinitions([line]).find(def => position.character >= def.start && position.character < def.end);
+        const local = findScriptLabelReferences(line, engine, !context.inSay && !context.inCondition)
+          .find(ref => position.character >= ref.markerStart && position.character < ref.end);
+        let label: string | null = fixed?.label || definition?.name || local?.name || null;
         // 判断是否在 N$/S$ 变量上
         const varMatch = line.match(/\b([NSLDnsld]\$[A-Za-z0-9_\u4e00-\u9fff]*|[Gg][Ll]\$[A-Za-z0-9_\u4e00-\u9fff]*|[PDMNSIGAUTJZpdmnigautjz]\d+)\b/g);
         if (!label && varMatch) {
@@ -1606,20 +1635,24 @@ export function activateAssistant(context: vscode.ExtensionContext) {
           }
         } else {
           // 标签引用：搜索 /@label、@label、GOTO @label
-          const escaped = escapeRegex(label);
           const labelKey = normalizeScriptLabelKey(label);
-          const referenceEngine = normalizeEngineId(vscode.workspace.getConfiguration('boo', document.uri)
-            .get<string>('engine', languageIndex.engine));
-          for (const reference of findScriptLabelReferencesInText(allText, referenceEngine)) {
+          for (const reference of findScriptLabelReferencesInText(allText, engine)) {
             if (normalizeScriptLabelKey(reference.name) === labelKey) {
               refs.push(new vscode.Location(document.uri, document.positionAt(reference.markerStart)));
             }
           }
-          // 也包含定义本身
-          const defRe = new RegExp(`\\[@${escaped}\\]`, 'g');
-          let dm;
-          while ((dm = defRe.exec(allText)) !== null) {
-            refs.push(new vscode.Location(document.uri, document.positionAt(dm.index)));
+          if (_context.includeDeclaration !== false && !fixed) {
+            for (const def of findScriptLabelDefinitions(allText.split(/\r\n|\r|\n/))) if (def.key === labelKey) {
+              refs.push(new vscode.Location(document.uri, new vscode.Position(def.line, def.start)));
+            }
+          }
+          const envir = findEnvirRootForPath(document.fileName);
+          const fixedTarget = (['QFunction-0.txt','QManage.txt','QMapEvent-0.txt'] as const)
+            .find(name => name.toLowerCase() === basename.toLowerCase());
+          if (envir && (fixed || (fixedTarget && definition &&
+              fixedCallbackPaths(envir, fixedTarget).some(file => scriptDefinitionPathKey(file) === scriptDefinitionPathKey(document.fileName))))) {
+            const cross = fixed || {target: fixedTarget!, label: label!};
+            return findFixedCallbackReferences(envir, cross, engine, fixed ? [] : refs, document, _context.includeDeclaration !== false, _token);
           }
         }
         return refs.length > 0 ? refs : null;
@@ -1870,9 +1903,10 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     const hostLabelKeys = docUri && workspaceRoot
       ? findHostScriptLabelKeys(workspaceRoot, docUri.fsPath)
       : new Set<string>();
+    const labelEngine = docUri ? normalizeEngineId(vscode.workspace.getConfiguration('boo', docUri)
+      .get<string>('engine', languageIndex.engine)) : languageIndex.engine;
     for (const reference of findUndefinedScriptLabelReferences(lines, definedLabels, {
-      engine: docUri ? normalizeEngineId(vscode.workspace.getConfiguration('boo', docUri)
-        .get<string>('engine', languageIndex.engine)) : languageIndex.engine,
+      engine: labelEngine,
       additionalDefinedLabelKeys: hostLabelKeys,
       skipSectionedDataDocuments: true,
       isAdditionalDefinedLabel: isCurrentEngineDefaultScriptLabel,
@@ -1880,6 +1914,53 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       const range = new vscode.Range(reference.line, reference.markerStart, reference.line, reference.end);
       diagnostics.push(new vscode.Diagnostic(range,
         `引用了未定义的标签 @${reference.name}`, vscode.DiagnosticSeverity.Warning));
+    }
+    if (docUri?.scheme === 'file') {
+      const envir = findEnvirRootForPath(docUri.fsPath);
+      const available = new Map<string, Set<string> | undefined>();
+      if (envir) for (const ref of documentFixedCallbacks(lines, path.basename(docUri.fsPath), labelEngine)) {
+        if (!ref.strict) continue;
+        if (!available.has(ref.target)) {
+          let known: Set<string> | undefined;
+          for (const file of fixedCallbackPaths(envir,ref.target)) {
+            const key = scriptDefinitionPathKey(file);
+            const opened = vscode.workspace.textDocuments.find(doc => doc.uri.scheme === 'file' && scriptDefinitionPathKey(doc.fileName) === key);
+            try {
+              const source = opened ? opened.getText() : decodeTextFile(fs.readFileSync(file)).text;
+              known ||= new Set();
+              for (const def of findScriptLabelDefinitions(source.split(/\r\n|\r|\n/))) known.add(def.key);
+            } catch { /* An unavailable target cannot prove that a label is missing. */ }
+          }
+          available.set(ref.target, known);
+        }
+        const known = available.get(ref.target);
+        if (known && !known.has(normalizeScriptLabelKey(ref.label))) {
+          diagnostics.push(new vscode.Diagnostic(new vscode.Range(ref.line,ref.start,ref.line,ref.end),
+            `${ref.target} 中未定义标签 @${ref.label}`, vscode.DiagnosticSeverity.Warning));
+        }
+      }
+    }
+
+    // Limit arity checks to reviewed positional signatures. Other manual entries can have free text or overloads.
+    let block = '';
+    for (let i = 0; i < lines.length; i++) {
+      const content = scriptCodeBeforeComment(lines[i]);
+      if (/^\s*\[@/.test(content)) block = '';
+      const directive = /^\s*#(IF|OR|AND|ACT|ELSEACT|SAY|ELSESAY)\b/i.exec(content);
+      if (directive) block = directive[1].toUpperCase();
+      if (!block || block.endsWith('SAY')) continue;
+      const head = /^\s*(?:#(?:IF|OR|AND|ACT|ELSEACT)\s*\(?\s*)?(?:NOT\s+)*(?:(?:[A-Z_0-9]+|<\$[^>]+>)\.)*(SETMONBURSTITEMS|SETSWORDCOUNT|SETONTIMERMS|CHECKGROUPITEM)\b/i.exec(content);
+      if (!head) continue;
+      const target = findScriptCommandHoverAt(content, head[0].length - 1, resolveHoverCommand, command => command.kind === 'check');
+      if (target?.kind !== 'command') continue;
+      const { command, arguments: args, commandSpan } = target.invocation;
+      if (!command.completionVerified || command.minArgs === undefined || command.maxArgs === undefined ||
+        (command.kind === 'check') !== /^(IF|OR|AND)$/.test(block)) continue;
+      if (args.length < command.minArgs || args.length > command.maxArgs) {
+        const expected = command.minArgs === command.maxArgs ? String(command.minArgs) : command.minArgs + '～' + command.maxArgs;
+        diagnostics.push(new vscode.Diagnostic(new vscode.Range(i, commandSpan.start, i, content.length),
+          command.name + ' 需要 ' + expected + ' 个参数，实际 ' + args.length + ' 个', vscode.DiagnosticSeverity.Warning));
+      }
     }
 
     // 2.5 检查动态引用 <$XXX(content)> 中的 content 是否为有效变量
@@ -1954,7 +2035,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     if (docUri) {
       const wsFolders2 = vscode.workspace.workspaceFolders;
       if (wsFolders2 && wsFolders2.length > 0) {
-        const wsRoot2 = wsFolders2[0].uri.fsPath;
+        const wsRoot2 = workspaceRoot || wsFolders2[0].uri.fsPath;
         for (let lineNum = 0; lineNum < lines.length; lineNum++) {
           if (isComment(lines[lineNum])) continue;
           const callReferences = findScriptCommandPathReferences(lines[lineNum])
@@ -2196,8 +2277,9 @@ export function activateAssistant(context: vscode.ExtensionContext) {
   function reportVariableCategory(name: string): string | undefined {
     const numeric = /^([PDMNSIGAUTJZ])\d+$/i.exec(name);
     if (numeric) return numeric[1].toUpperCase() + '类变量';
-    if (/^GL\$[A-Za-z0-9_\u3400-\u9fff]+$/i.test(name)) return 'GL$ 全局列表';
-    const custom = /^([NSLD])\$[A-Za-z0-9_\u3400-\u9fff]+$/i.exec(name);
+    if (/^GD\$/i.test(name)) return 'GD$ 全局字典';
+    if (/^GL\$/i.test(name)) return 'GL$ 全局列表';
+    const custom = /^([NSLD])\$/i.exec(name);
     if (custom) return custom[1].toUpperCase() + '$ 自定义变量';
     return undefined;
   }
@@ -2213,33 +2295,35 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     result: NestedListDataResult | undefined;
   }>();
 
+  function statisticsFileInput(file: string, drafts?: ReadonlyMap<string, string>) {
+    const draft = drafts?.get(variableListPathKey(file));
+    if (draft !== undefined) return {
+      stamp: 'draft:' + draft, size: Buffer.byteLength(draft, 'utf8'),
+      text: () => draft, bytes: () => Buffer.from(draft, 'utf8'),
+    };
+    const stat = fs.statSync(file);
+    return {
+      stamp: `${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`, size: stat.size,
+      text: () => decodeTextFile(fs.readFileSync(file)).text, bytes: () => fs.readFileSync(file),
+    };
+  }
+
   function resolveNestedConfigValues(
     sourceFile: string,
     request: NestedConfigValueRequest,
+    drafts?: ReadonlyMap<string, string>,
   ): NestedConfigValueResult | undefined {
     if (!request.path || /<\$/i.test(request.path)) return undefined;
-    const envirRoot = findAncestorDirectory(sourceFile, 'Envir');
-    if (!envirRoot) return undefined;
-    const relativePath = request.path.replace(/^['"]|['"]$/g, '');
-    const withoutParentPrefix = relativePath.replace(/^(?:\.\.[\\/])+/, '');
-    const candidates = [
-      path.resolve(path.dirname(sourceFile), relativePath),
-      path.resolve(envirRoot, 'Market_Def', relativePath),
-      path.resolve(envirRoot, relativePath),
-      path.resolve(envirRoot, withoutParentPrefix),
-    ];
-    const configPath = candidates.find(candidate => {
-      try { return fs.statSync(candidate).isFile(); } catch { return false; }
-    });
+    const configPath = resolveNestedDataFile(sourceFile, request.path, drafts);
     if (!configPath) return undefined;
 
-    let stat: fs.Stats;
-    try { stat = fs.statSync(configPath); } catch { return undefined; }
-    const stamp = `${stat.size}:${stat.mtimeMs}`;
+    let input: ReturnType<typeof statisticsFileInput>;
+    try { input = statisticsFileInput(configPath, drafts); } catch { return undefined; }
+    const stamp = input.stamp;
     let cached = nestedConfigCache.get(configPath);
     if (!cached || cached.stamp !== stamp) {
       try {
-        cached = { stamp, sections: parseIniSections(decodeTextFile(fs.readFileSync(configPath)).text) };
+        cached = { stamp, sections: parseIniSections(input.text()) };
         nestedConfigCache.set(configPath, cached);
       } catch {
         return undefined;
@@ -2266,22 +2350,23 @@ export function activateAssistant(context: vscode.ExtensionContext) {
   function resolveNestedTableData(
     sourceFile: string,
     request: NestedTableDataRequest,
+    drafts?: ReadonlyMap<string, string>,
   ): NestedTableDataResult | undefined {
     if (!request.path || /<\$/i.test(request.path)) return undefined;
-    const tablePath = resolveNestedDataFile(sourceFile, request.path);
+    const tablePath = resolveNestedDataFile(sourceFile, request.path, drafts);
     if (!tablePath) return undefined;
 
-    let stat: fs.Stats;
-    try { stat = fs.statSync(tablePath); } catch { return undefined; }
-    const stamp = `${stat.size}:${stat.mtimeMs}`;
+    let input: ReturnType<typeof statisticsFileInput>;
+    try { input = statisticsFileInput(tablePath, drafts); } catch { return undefined; }
+    const stamp = input.stamp;
     const cacheKey = `${request.format}:${tablePath}`;
     const cached = nestedTableCache.get(cacheKey);
     if (cached?.stamp === stamp) return cached.result;
 
     let result: NestedTableDataResult | undefined;
     try {
-      if (stat.size <= MAX_STATISTICS_TABLE_BYTES) {
-        result = readStatisticsTableData(fs.readFileSync(tablePath), request.format,
+      if (input.size <= MAX_STATISTICS_TABLE_BYTES) {
+        result = readStatisticsTableData(input.bytes(), request.format,
           reason => log(`变量统计表格读取未完成：${tablePath}；${reason}`));
       } else log(`变量统计表格读取未完成：${tablePath}；超过 16 MiB 读取上限`);
     } catch {
@@ -2294,21 +2379,22 @@ export function activateAssistant(context: vscode.ExtensionContext) {
   function resolveNestedListData(
     sourceFile: string,
     request: NestedListDataRequest,
+    drafts?: ReadonlyMap<string, string>,
   ): NestedListDataResult | undefined {
     if (!request.path || /<\$/i.test(request.path)) return undefined;
-    const listPath = resolveNestedDataFile(sourceFile, request.path);
+    const listPath = resolveNestedDataFile(sourceFile, request.path, drafts);
     if (!listPath) return undefined;
 
-    let stat: fs.Stats;
-    try { stat = fs.statSync(listPath); } catch { return undefined; }
-    const stamp = `${stat.size}:${stat.mtimeMs}`;
+    let input: ReturnType<typeof statisticsFileInput>;
+    try { input = statisticsFileInput(listPath, drafts); } catch { return undefined; }
+    const stamp = input.stamp;
     const cached = nestedListCache.get(listPath);
     if (cached?.stamp === stamp) return cached.result;
 
     let result: NestedListDataResult | undefined;
     try {
       result = {
-        lines: decodeTextFile(fs.readFileSync(listPath)).text.split(/\r\n|\n|\r/),
+        lines: input.text().split(/\r\n|\n|\r/),
         complete: true,
       };
     } catch {
@@ -2318,7 +2404,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
     return result;
   }
 
-  function resolveNestedDataFile(sourceFile: string, rawPath: string): string | undefined {
+  function resolveNestedDataFile(sourceFile: string, rawPath: string, drafts?: ReadonlyMap<string, string>): string | undefined {
     const envirRoot = findAncestorDirectory(sourceFile, 'Envir');
     if (!envirRoot) return undefined;
     const relativePath = rawPath.replace(/^['"]|['"]$/g, '');
@@ -2330,6 +2416,7 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       path.resolve(envirRoot, withoutParentPrefix),
     ];
     return candidates.find(candidate => {
+      if (drafts?.has(variableListPathKey(candidate))) return true;
       try { return fs.statSync(candidate).isFile(); } catch { return false; }
     });
   }
@@ -2380,55 +2467,28 @@ export function activateAssistant(context: vscode.ExtensionContext) {
       title: 'BOO 变量统计',
       cancellable: true
     }, async (progress, token) => {
-      const files = await vscode.workspace.findFiles('**/*.[tT][xX][tT]', '**/node_modules/**');
-      const total = files.length;
-      let done = 0;
-      let failed = 0;
-      const engine = normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM'));
+      const options = variableScanOptions(true);
+      const engine = options.engine!();
       const flagRange = personalFlagRangeForEngine(engine);
       const flagCategory = `个人标识 [${flagRange.min}-${flagRange.max}]`;
-
-      // 按类别聚合: 类别名 -> { 变量名 -> { count: 使用次数, files: Set<文件路径> } }
-      type VarInfo = VariableListSourceCounts & { count: number; files: Set<string> };
-      const categories: Map<string, Map<string, VarInfo>> = new Map();
-
-      function addVar(cat: string, name: string, filePath: string, source?: VariableReferenceSource) {
-        if (!categories.has(cat)) categories.set(cat, new Map());
-        const catMap = categories.get(cat)!;
-        recordVariableListUsage(catMap, name, filePath, () => ({
-          count: 0,
-          files: new Set<string>(),
-        }), source);
+      const scanner = new VariableListScanner(options);
+      const snapshot = await scanner.scan(
+        wsFolders.filter(folder => folder.uri.scheme === 'file').map(folder => folder.uri.fsPath),
+        vscode.workspace.textDocuments.filter(doc => doc.uri.scheme === 'file').map(doc => ({ filePath: doc.uri.fsPath, text: doc.getText() })),
+        () => token.isCancellationRequested,
+      );
+      if (!snapshot) return;
+      const done = snapshot.scannedFiles;
+      const failed = snapshot.errors.length;
+      progress.report({ increment: 100, message: done + ' 个文件' });
+      for (const error of snapshot.errors) log('变量统计读取失败 ' + error);
+      const categories = new Map<string, Map<string, VariableListUsage>>();
+      for (const [name, usage] of snapshot.usages) {
+        const cat = reportVariableCategory(name) || usage.type;
+        const group = categories.get(cat) || new Map<string, VariableListUsage>();
+        group.set(name, usage);
+        categories.set(cat, group);
       }
-
-      for (const file of files) {
-        if (token.isCancellationRequested) break;
-        done++;
-        progress.report({ increment: 100 / total, message: `${done}/${total}` });
-
-        try {
-          const openDocument = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === file.toString());
-          const text = openDocument?.getText() ?? decodeTextFile(await vscode.workspace.fs.readFile(file)).text;
-          const analysis = analyzeVariableListFile(text, file.fsPath, {
-            engine: () => engine,
-            nestedOptions: sourceFile => ({
-              resolveConfigValues: request => resolveNestedConfigValues(sourceFile, request),
-              resolveTableData: request => resolveNestedTableData(sourceFile, request),
-              resolveListData: request => resolveNestedListData(sourceFile, request),
-            }),
-            mapRanges: (content, sourceFile) => findMapCodeRangesInText(content, sourceFile, configuredMapCodesForFile(sourceFile), resolveIndexedCommandToken),
-          });
-          for (const variable of analysis.variables) {
-            addVar(reportVariableCategory(variable.name) || variable.type, variable.name, file.fsPath, variable.source);
-          }
-
-        } catch (e) {
-          failed++;
-          console.warn('[BOO] 变量统计文件读取失败:', e instanceof Error ? e.message : String(e));
-        }
-      }
-
-      if (token.isCancellationRequested) return;
 
       // ---- 构建 Webview HTML ----
       let html = `<!DOCTYPE html>
@@ -2454,7 +2514,7 @@ tr:hover{background:#2a2a2a}
 <body>
 <h1>BOO 变量统计报告</h1>
 <div class="summary">扫描文件: ${done} 个 &nbsp;|&nbsp; 读取失败: ${failed} 个${failed ? '（统计不完整）' : ''} &nbsp;|&nbsp; 变量种类: <span id="totalTypes">-</span></div>
-<div class="summary">引擎: ${escapeHtml(engine)} · 范围: 当前工作区 TXT · 内容: 打开文件取当前草稿，其余读取磁盘。计数为源码引用处数，不是运行次数；确定推导不表示线上已执行。</div>`;
+<div class="summary">引擎: ${escapeHtml(engine)} · 范围: 当前工作区的活动脚本、脚本 INI 和支持的配置字段 · 内容: 打开文件取当前草稿，其余读取磁盘。计数为源码引用处数，不是运行次数；确定推导不表示线上已执行。</div>`;
 
       const catOrder = [
         'A类变量', 'G类变量', 'U类变量', 'T类变量',
@@ -2468,7 +2528,7 @@ tr:hover{background:#2a2a2a}
       ];
 
       let totalTypes = 0;
-      for (const cat of catOrder) {
+      for (const cat of new Set([...catOrder, ...categories.keys()])) {
         const catMap = categories.get(cat);
         if (!catMap || catMap.size === 0) continue;
         totalTypes++;
@@ -2542,6 +2602,7 @@ tr:hover{background:#2a2a2a}
   );
   context.subscriptions.push(
     vscode.workspace.onDidCloseTextDocument(doc => {
+      invalidateCandidateUsage();
       const timeoutKey = doc.uri.toString();
       const existingTimeout = diagnosticTimeouts.get(timeoutKey);
       if (existingTimeout) {
@@ -2925,16 +2986,8 @@ tr:hover{background:#2a2a2a}
 
   // ---- 变量侧边栏 ----
   const varProvider = new VariableListProvider({
-    engine: () => normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')),
+    ...variableScanOptions(),
     workspaceState: context.workspaceState,
-    nestedOptions: file => ({
-      resolveConfigValues: request => resolveNestedConfigValues(file, request),
-      resolveTableData: request => resolveNestedTableData(file, request),
-      resolveListData: request => resolveNestedListData(file, request),
-    }),
-    mapRanges: (text, file) => findMapCodeRangesInText(
-      text, file, configuredMapCodesForFile(file), resolveIndexedCommandToken
-    ),
     publish: snapshot => {
       _varOccurrences.clear();
       _varCycleIdx.clear();
@@ -3780,6 +3833,7 @@ el.textContent=e.data.text||'扫描完成';
       let databaseMutationPending = false;
       let databasePanelDisposed = false;
       let selectedDatabaseFile: string | undefined;
+      let workspaceDatabaseSource: WorkspaceDatabaseSource | undefined;
       panel.onDidDispose(() => {
         databasePanelDisposed = true;
         databaseRequestVersion++;
@@ -3808,6 +3862,7 @@ el.textContent=e.data.text||'扫描完成';
           databaseSession?.dispose();
           databaseSession = undefined;
           selectedDatabaseFile = selected[0].fsPath;
+          workspaceDatabaseSource = undefined;
           postToSidebar({ type: 'clearDatabaseDetail', detailKind: 'other' });
           // Reuse the same ready branch; the selected path comes only from the native picker.
           msg = { type: 'ready' };
@@ -3941,6 +3996,7 @@ el.textContent=e.data.text||'扫描完成';
           return;
         }
         if (msg.type === 'ready') {
+          const sourceRequestVersion = databaseRequestVersion;
           try {
             const wsFolders = vscode.workspace.workspaceFolders;
             if ((!wsFolders || wsFolders.length === 0) && !selectedDatabaseFile) {
@@ -3950,13 +4006,25 @@ el.textContent=e.data.text||'扫描完成';
             const wsRoot = wsFolders?.[0]?.uri.fsPath || path.dirname(selectedDatabaseFile!);
             const engineRoot = resolveEngineRoot(wsRoot);
             const databaseProfile = !selectedDatabaseFile && activeEngine.id === '996PC' ? '996pc' : 'legacy';
-            const dbDir = selectedDatabaseFile || (databaseProfile === '996pc'
-              ? path.join(engineRoot, 'Mir200', 'Envir', 'Data')
-              : path.join(engineRoot, 'MUD2', 'db'));
-            const initializingSession = databaseSession ||= new DatabaseBrowserSession(dbDir, databaseProfile);
+            if (!selectedDatabaseFile && !databaseSession) {
+              workspaceDatabaseSource = resolveWorkspaceDatabaseSource(engineRoot, databaseProfile);
+            }
+            const dbPath = selectedDatabaseFile || workspaceDatabaseSource!.path;
+            const initializingSession = databaseSession ||= new DatabaseBrowserSession(dbPath, databaseProfile);
             const catalog = await initializingSession.initialize();
-            if (!databasePanelDisposed && databaseSession === initializingSession) panel.webview.postMessage({ type: 'databaseCatalog', ...catalog });
+            if (!databasePanelDisposed && sourceRequestVersion === databaseRequestVersion
+              && databaseSession === initializingSession) panel.webview.postMessage({
+              type: 'databaseCatalog', ...catalog,
+              sourcePath: dbPath,
+              sourceDescription: selectedDatabaseFile ? '手动选择数据库' : workspaceDatabaseSource!.description,
+            });
           } catch (e: unknown) {
+            if (databasePanelDisposed || sourceRequestVersion !== databaseRequestVersion) return;
+            databaseSession?.dispose();
+            databaseSession = undefined;
+            workspaceDatabaseSource = undefined;
+            postToSidebar({ type: 'clearDatabaseDetail', detailKind: 'other' });
+            panel.webview.postMessage({ type: 'databaseCatalog', tables: [], dbType: '数据库来源不可用', totalCount: 0 });
             panel.webview.postMessage({ type: 'databaseError', error: e instanceof Error ? e.message : String(e) });
           }
           return;
@@ -4290,9 +4358,35 @@ el.textContent=e.data.text||'扫描完成';
 
       // 加载所有数据
       const extPath = context.extensionPath;
-      const loadJson = (f: string) => { try { return JSON.parse(fs.readFileSync(path.join(extPath, 'data', f), 'utf-8')); } catch { return null; } };
+      let customBaseline = customLanguageData;
+      const baseline = new Map<string, string>();
+      const comparable = (file: string, data: any) => {
+        if (file.startsWith('manual-') && Array.isArray(data.saySnippets)) {
+          return JSON.stringify({ ...data, saySnippets: [...data.saySnippets].sort((a, b) => a.id.localeCompare(b.id)) });
+        }
+        return JSON.stringify(data);
+      };
+      const loadJson = (file: string) => {
+        try {
+          const data = JSON.parse(fs.readFileSync(path.join(extPath, 'data', file), 'utf8'));
+          baseline.set(file, comparable(file, data));
+          return data;
+        } catch { return null; }
+      };
+      for (const { id } of ENGINE_DEFINITIONS) loadJson('manual-' + id.toLowerCase() + '.json');
       const commandsAll = loadJson('commands.json');
       const varsAll = loadJson('variables.json');
+      const baseSayEntries: StaticLanguageData['saySnippets'] = loadJson('static-language.json')?.saySnippets || [];
+      const editorManualCatalog = new Map(ENGINE_DEFINITIONS.map(({ id }) => [
+        id, loadManualUpdate(extPath, id, line => outputChannel.appendLine(line)),
+      ]));
+      const manualFunctionNames = new Map(ENGINE_DEFINITIONS.map(({ id }) => [
+        id, Object.keys(editorManualCatalog.get(id)?.functions || {}),
+      ]));
+      const supersededCommands = new Map(ENGINE_DEFINITIONS.map(({ id }) => {
+        const update = editorManualCatalog.get(id);
+        return [id, new Set([...Object.keys(update?.functions || {}), ...(update?.removedFunctions || [])].map(commandKey))];
+      }));
       const editorFunctionCatalog = new Map(
         ENGINE_DEFINITIONS.map(definition => [
           definition.id,
@@ -4310,9 +4404,11 @@ el.textContent=e.data.text||'扫描完成';
         | 'command-exec'
         | 'variable'
         | 'function'
+        | 'manual-function'
         | 'trigger'
         | 'constant'
-        | 'static-say';
+        | 'static-say'
+        | 'manual-say';
       type CompletionEditorRow = {
         name: string;
         engineId: EngineId;
@@ -4320,6 +4416,7 @@ el.textContent=e.data.text||'扫描完成';
         syntax: string;
         desc: string;
         params: string;
+        partialFormat?: boolean;
         sourceIndex?: number;
         customId?: string;
         isCustom?: boolean;
@@ -4332,15 +4429,15 @@ el.textContent=e.data.text||'扫描完成';
         entries.flatMap<CompletionEditorRow>((entry, sourceIndex) => {
           const variant = entry.engineVariants?.[engine];
           if (!entry.engines?.includes(engine) || !variant?.name) return [];
+          if (supersededCommands.get(engine)?.has(commandKey(variant.name))) return [];
           const verified = variant.completionVerified === true;
           return [{
             name: commandToken(variant.name),
             engineId: engine,
             storage,
             syntax: verified ? variant.syntax || variant.name : variant.name,
-            desc: verified
-              ? variant.description || ''
-              : `${variant.description || ''}（完整参数格式未核验，仅保留名称）`,
+            desc: variant.description || '',
+            partialFormat: !verified,
             params: verified ? (variant.params || []).join(' ') : '',
             sourceIndex,
           }];
@@ -4365,9 +4462,11 @@ el.textContent=e.data.text||'扫描完成';
       const functionRows = (
         functions: Record<string, any>,
         engine: EngineId,
-        includeChecks: boolean
+        includeChecks: boolean,
+        storage: 'function' | 'manual-function' = 'function'
       ): CompletionEditorRow[] => (
         Object.entries(functions || {}).flatMap(([name, value]: [string, any], sourceIndex) => {
+          if (storage === 'function' && supersededCommands.get(engine)?.has(commandKey(name))) return [];
           const isCheck = value.kind === 'check'
             || (Array.isArray(value.contexts) && value.contexts.includes('IF'));
           if (isCheck !== includeChecks) return [];
@@ -4375,14 +4474,15 @@ el.textContent=e.data.text||'扫描完成';
           return [{
             name: commandToken(name),
             engineId: engine,
-            storage: 'function',
-            syntax: verified
+            storage,
+            syntax: verified || storage === 'manual-function'
               ? value.syntax || (value.params ? `${name} ${value.params}` : name)
               : name,
-            desc: verified
-              ? value.details || ''
-              : `${value.details || ''}（完整参数格式未核验，仅保留名称）`,
-            params: verified ? value.params || '' : '',
+            desc: value.details || '',
+            partialFormat: !verified,
+            params: storage === 'manual-function'
+              ? (value.paramList || []).join('\n')
+              : verified ? value.params || '' : '',
             sourceIndex,
           }];
         })
@@ -4417,7 +4517,8 @@ el.textContent=e.data.text||'扫描完成';
       }));
       const sayRows = (
         entries: StaticLanguageData['saySnippets'],
-        engine: EngineId
+        engine: EngineId,
+        storage: 'static-say' | 'manual-say' = 'static-say'
       ): CompletionEditorRow[] => entries.flatMap((entry, sourceIndex) => {
         const variant = entry.engineVariants?.[engine];
         if (!variant?.label) return [];
@@ -4430,13 +4531,26 @@ el.textContent=e.data.text||'扫描完成';
         return [{
           name: variant.label,
           engineId: engine,
-          storage: 'static-say',
+          storage,
           syntax: variant.snippet || variant.label,
           desc: variant.description || '',
-          params: params.join('；'),
+          params: params.join('\n'),
           sourceIndex,
         }];
       });
+      const editorSayRows = (engine: EngineId): CompletionEditorRow[] => {
+        const manualEntries = editorManualCatalog.get(engine)?.saySnippets || [];
+        const manualIds = new Set(manualEntries.map(entry => entry.id));
+        // Generate indices against each physical file, before removing overridden rows.
+        const baseRows = sayRows(baseSayEntries, engine).filter(row =>
+          !manualIds.has(baseSayEntries[row.sourceIndex!].id)
+        );
+        const manualRows = sayRows(manualEntries.map(entry => ({
+          id: entry.id, engineVariants: { [engine]: entry },
+        })), engine, 'manual-say');
+        return [...baseRows, ...manualRows];
+      };
+
       const customRows = (
         category: CustomLanguageCategory,
         engine: EngineId,
@@ -4469,6 +4583,7 @@ el.textContent=e.data.text||'扫描完成';
           label: '检测命令',
           data: ENGINE_DEFINITIONS.flatMap(definition => [
             ...mergeRows(
+              functionRows(editorManualCatalog.get(definition.id)?.functions || {}, definition.id, true, 'manual-function'),
               commandRows(commandsAll?.commands || [], definition.id, 'command-check'),
               functionRows(editorFunctionCatalog.get(definition.id) || {}, definition.id, true)
             ),
@@ -4480,6 +4595,7 @@ el.textContent=e.data.text||'扫描完成';
           label: '执行命令',
           data: ENGINE_DEFINITIONS.flatMap(definition => [
             ...mergeRows(
+              functionRows(editorManualCatalog.get(definition.id)?.functions || {}, definition.id, false, 'manual-function'),
               commandRows(commandsAll?.execCommands || [], definition.id, 'command-exec'),
               functionRows(editorFunctionCatalog.get(definition.id) || {}, definition.id, false)
             ),
@@ -4490,7 +4606,7 @@ el.textContent=e.data.text||'扫描完成';
           id: 'say',
           label: '界面语句',
           data: ENGINE_DEFINITIONS.flatMap(definition => [
-            ...sayRows(staticLanguageData.saySnippets, definition.id),
+            ...editorSayRows(definition.id),
             ...customRows('say', definition.id, 'static-say'),
           ]),
         },
@@ -4557,7 +4673,8 @@ th{background:#2a2a2a;color:#ff8c00;padding:8px 10px;text-align:left;border-bott
 th.col-name{width:170px} th.col-syntax{width:280px} th.col-desc{width:auto} th.col-params{width:210px} th.col-actions{width:52px;text-align:center}
 td{padding:6px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top}
 td.name{color:#9cdcfe;font-weight:600}
-td.syntax{color:#ceb194} td.desc{color:#aaa} td.params{color:#8b9dbb}
+td.syntax{color:#ceb194} td.desc{color:#aaa} td.params{color:#8b9dbb;white-space:pre-wrap}
+td.desc[data-partial]::after{display:block;content:attr(data-partial);color:#c6ab7c;font-size:11px}
 tr:hover td{background:#2a2d35}
 tr.editing td{background:#1a3a5c}
 td[contenteditable]{outline:none;border-radius:2px}
@@ -4598,10 +4715,11 @@ let activeEngine = '${initialEngine}';
 let activeTab = '${tabs[0].id}';
 let dirty = {};
 let customDirty = {};
+let pendingSave;
 
 function escHtml(s) { var d=document.createElement('div'); d.textContent=(s||''); return d.innerHTML; }
 function customScopeKey() { return activeEngine+':'+activeTab; }
-function markCustomDirty() { customDirty[customScopeKey()] = true; }
+function markCustomDirty() { var key=customScopeKey(); customDirty[key]=(customDirty[key]||0)+1; }
 function customStorageForTab() {
   if (activeTab==='check') return 'command-check';
   if (activeTab==='exec') return 'command-exec';
@@ -4636,8 +4754,9 @@ function render(filter) {
     html+='<tr '+rowAttributes+(r.isCustom?' class="custom-row"':'')+'><td class="row-num">'+(i+1)+(r.isCustom?'<span class="custom-badge">自定义</span>':'')+'</td>';
     html+='<td class="name" contenteditable="true" data-field="name" data-key="'+dkey+'">'+escHtml(r.name)+'</td>';
     html+='<td class="syntax" contenteditable="true" data-field="syntax" data-key="'+dkey+'">'+escHtml(r.syntax)+'</td>';
-    html+='<td class="desc" contenteditable="true" data-field="desc" data-key="'+dkey+'">'+escHtml(r.desc)+'</td>';
-    html+='<td class="params" contenteditable="true" data-field="params" data-key="'+dkey+'">'+escHtml(r.params)+'</td>';
+    html+='<td class="desc" contenteditable="true" data-field="desc" data-key="'+dkey+'"'+(r.partialFormat?' data-partial="完整参数格式未核验"':'')+'>'+escHtml(r.desc)+'</td>';
+    var parameterTitle = storage==='manual-function' || storage==='manual-say' ? ' title="每行一项参数说明"' : '';
+    html+='<td class="params" contenteditable="plaintext-only" data-field="params" data-key="'+dkey+'"'+parameterTitle+'>'+escHtml(r.params)+'</td>';
     html+='<td class="row-action">'+(r.isCustom?'<button class="icon-btn" data-action="delete-custom" title="删除自定义项目">×</button>':'')+'</td>';
     html+='</tr>';
   }
@@ -4704,9 +4823,14 @@ document.getElementById('tbody').addEventListener('input', function(e){
     if (item.engineId!==activeEngine || item.storage!==storage) return false;
     return customId ? item.customId===customId : item.sourceIndex===sourceIndex;
   });
-  if (row) row[td.dataset.field] = td.textContent || '';
-  if (row && row.isCustom) markCustomDirty();
-  else dirty[td.dataset.key] = true;
+  if (!row) return;
+  var field = td.dataset.field;
+  row[field] = (field==='params' ? td.innerText : td.textContent) || '';
+  if (row.isCustom) markCustomDirty();
+  else {
+    var fields = dirty[td.dataset.key] || (dirty[td.dataset.key] = {});
+    fields[field] = row[field];
+  }
   td.classList.add('dirty');
 });
 
@@ -4740,6 +4864,7 @@ document.addEventListener('keydown', function(e){
 });
 
 function saveCurrent() {
+  if (pendingSave) return;
   var tab = allData.find(function(t){return t.id===activeTab});
   if (!tab) return;
   var engineRows = tab.data.filter(function(row){return row.engineId===activeEngine});
@@ -4751,9 +4876,8 @@ function saveCurrent() {
       changes.push({
         storage: row.storage,
         sourceIndex: row.sourceIndex,
-        obj: { name: row.name, syntax: row.syntax, desc: row.desc, params: row.params }
+        obj: Object.assign({}, dirty[key])
       });
-      dirty[key] = false;
     }
   });
   var customChanged = !!customDirty[customScopeKey()];
@@ -4767,22 +4891,38 @@ function saveCurrent() {
     };
   });
   if (changes.length===0 && !customChanged) { alert('没有修改'); return; }
-  document.querySelectorAll('#tbody td.dirty').forEach(function(td){td.classList.remove('dirty')});
+  pendingSave = { engine: activeEngine, scope: customScopeKey(), customRevision: customDirty[customScopeKey()], changes: changes };
   vscode.postMessage({
     type: 'save',
     tabId: activeTab,
     engine: activeEngine,
     changes: changes,
     customChanged: customChanged,
-    customEntries: customEntries,
-    allData: engineRows
+    customEntries: customEntries
   });
 }
 
 var vscode = acquireVsCodeApi();
 window.addEventListener('message', function(e){
   if (e.data.type==='saved') {
-    if (e.data.ok) customDirty[e.data.engine+':'+e.data.tabId] = false;
+    if (e.data.ok && pendingSave) {
+      var saved = pendingSave;
+      saved.changes.forEach(function(change) {
+        var key = saved.engine+':'+change.storage+':'+change.sourceIndex;
+        var fields = dirty[key];
+        if (!fields) return;
+        Object.keys(change.obj).forEach(function(field) {
+          if (fields[field]===change.obj[field]) delete fields[field];
+        });
+        if (!Object.keys(fields).length) delete dirty[key];
+      });
+      if (customDirty[saved.scope]===saved.customRevision) delete customDirty[saved.scope];
+      document.querySelectorAll('#tbody td.dirty').forEach(function(td){
+        var fields=dirty[td.dataset.key];
+        if (!customDirty[customScopeKey()] && (!fields || !(td.dataset.field in fields))) td.classList.remove('dirty');
+      });
+    }
+    pendingSave = undefined;
     alert(e.data.ok?'保存成功！已写入 '+e.data.file:'保存失败: '+e.data.error);
   }
   if (e.data.type==='activeEngineChanged') {
@@ -4837,16 +4977,37 @@ render('');
 
           try {
             const changedFiles = new Map<string, any>();
+            const originals = new Map<string, string>();
+            const manualFile = `manual-${engine.toLowerCase()}.json`;
+            const manualRenames = new Map<number, string>();
             const readForUpdate = (fileName: string): any => {
               const filePath = path.join(extPath, 'data', fileName);
               if (!changedFiles.has(filePath)) {
-                changedFiles.set(filePath, JSON.parse(fs.readFileSync(filePath, 'utf-8')));
+                const before = fs.readFileSync(filePath, 'utf8');
+                const data = JSON.parse(before);
+                if (comparable(fileName, data) !== baseline.get(fileName)) throw new Error('文件已改变，请重新打开补全编辑器 ' + fileName);
+                originals.set(filePath, before);
+                if (fileName === manualFile && data.engine !== engine) throw new Error('手册文件的引擎已改变，请重新打开补全编辑器');
+                changedFiles.set(filePath, data);
               }
               return changedFiles.get(filePath);
             };
             const changesFor = (storage: CompletionEditorStorage) => (
               changes.filter(change => change.storage === storage)
             );
+            const commandStorages = ['command-check', 'command-exec', 'function', 'manual-function'];
+            for (const change of changes) {
+              if (change.obj.name === undefined) continue;
+              const name = change.obj.name.trim();
+              if (!name) throw new Error('名称不能为空');
+              change.obj.name = name;
+              if (!commandStorages.includes(change.storage)) continue;
+              if (!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(name) || ['__proto__', 'prototype', 'constructor'].includes(name.toLowerCase())) throw new Error('命令名称无效');
+              for (const tab of tabs.filter(t => t.id === 'check' || t.id === 'exec')) {
+                if (tab.data.some(r => r.engineId === engine && commandKey(r.name) === commandKey(name) &&
+                  (r.storage !== change.storage || r.sourceIndex !== change.sourceIndex || r.isCustom))) throw new Error('命令名称已存在 ' + name);
+              }
+            }
             const updateCommandRows = (
               entries: CommandEntry[],
               rowChanges: typeof changes,
@@ -4938,21 +5099,89 @@ render('');
                   const [previousName, previousValue] = previousEntries[index];
                   const change = changesByIndex.get(index);
                   const name = change?.name || previousName;
-                  nextData[name] = change
-                    ? {
-                        ...(previousValue as object),
-                        details: change.desc ?? (previousValue as any).details,
-                        params: change.params ?? (previousValue as any).params,
-                        syntax: change.syntax ?? (previousValue as any).syntax,
-                        completionVerified: true,
-                        completionEnabled: true,
-                      }
-                    : previousValue;
+                  const entry = previousValue as Record<string, unknown>;
+                  if (change?.desc !== undefined) entry.details = change.desc;
+                  if (change?.params !== undefined) {
+                    entry.params = change.params;
+                    delete entry.paramList; // The command index derives slots from the edited syntax parameters.
+                  }
+                  if (change?.syntax !== undefined) entry.syntax = change.syntax;
+                  if (change?.syntax !== undefined || change?.params !== undefined) {
+                    entry.completionVerified = true;
+                    entry.completionEnabled = true;
+                  }
+                  if (change?.name && change.name !== previousName) {
+                    if (previousEntries.some(([other]) => other !== previousName && commandKey(other) === commandKey(name)) ||
+                      Object.keys(nextData).some(other => commandKey(other) === commandKey(name))) throw new Error('命令名称已存在 ' + name);
+                    for (const field of ['syntax', 'snippet']) if (typeof entry[field] === 'string') {
+                      entry[field] = (entry[field] as string).replace(new RegExp('^' + escapeRegex(previousName) + '(?=\\s|$)', 'gim'), name);
+                    }
+                  }
+                  nextData[name] = entry;
                 }
                 changedFiles.set(
                   path.join(extPath, 'data', definition.functionFile),
                   nextData
                 );
+            }
+
+            const manualFunctionChanges = changesFor('manual-function');
+            if (manualFunctionChanges.length) {
+              const manual = readForUpdate(manualFile);
+              const names = manualFunctionNames.get(engine)!;
+              const baseNames = new Set([
+                ...Object.keys(editorFunctionCatalog.get(engine) || {}),
+                ...[...(commandsAll?.commands || []), ...(commandsAll?.execCommands || [])]
+                  .map((entry: CommandEntry) => entry.engineVariants?.[engine]?.name || ''),
+              ].map(commandKey));
+              for (const { sourceIndex, obj } of manualFunctionChanges) {
+                const previousName = names[sourceIndex];
+                if (!previousName || !Object.prototype.hasOwnProperty.call(manual.functions, previousName)) {
+                  throw new Error('手册命令已改变，请重新打开补全编辑器');
+                }
+                const entry = manual.functions[previousName];
+                if (obj.name !== undefined && obj.name !== previousName) {
+                  const name = obj.name.trim();
+                  if (!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(name) || ['__proto__', 'prototype', 'constructor'].includes(name)) {
+                    throw new Error('命令名称无效');
+                  }
+                  const oldKey = commandKey(previousName), newKey = commandKey(name);
+                  if (oldKey !== newKey && ((baseNames.has(newKey) && commandKey(entry.renamedFrom || '') !== newKey) || Object.keys(manual.functions).some(key => commandKey(key) === newKey))) {
+                    throw new Error(`命令名称已存在：${name}`);
+                  }
+                  if (oldKey !== newKey && baseNames.has(oldKey)) {
+                    entry.renamedFrom ||= previousName;
+                    manual.removedFunctions = [...new Set([...(manual.removedFunctions || []), previousName])];
+                  }
+                  delete manual.functions[previousName];
+                  manual.functions[name] = entry;
+                  manualRenames.set(sourceIndex, name);
+                  if (entry.renamedFrom && commandKey(entry.renamedFrom) === newKey) {
+                    manual.removedFunctions = (manual.removedFunctions || []).filter((key: string) => commandKey(key) !== newKey);
+                    delete entry.renamedFrom;
+                  }
+                  for (const field of ['syntax', 'snippet']) if (typeof entry[field] === 'string') {
+                    entry[field] = entry[field].replace(new RegExp('^' + escapeRegex(previousName) + '(?=\\s|$)', 'gim'), name);
+                  }
+                }
+                if (obj.syntax !== undefined) entry.syntax = obj.syntax;
+                if (obj.desc !== undefined) entry.details = obj.desc;
+                if (obj.params !== undefined) {
+                  const descriptions = obj.params.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+                  if (descriptions.length !== entry.paramList?.length) {
+                    const signature = String(entry.syntax || '').trim();
+                    if (signature.includes('\n') || entry.parameterForms?.length) throw new Error('多种格式的参数数量须分别核对');
+                    const labels = splitTopLevelParams(signature.replace(/^\S+\s*/, ''));
+                    const updated = descriptions.map((_value, index) => labels[index] || '参数' + (index + 1));
+                    entry.params = updated.join(' ');
+                    entry.syntax = [signature.split(/\s+/)[0], ...updated].join(' ');
+                    entry.maxArgs = updated.length;
+                    entry.minArgs = updated.filter((label: string) => !label.startsWith('[')).length;
+                    delete entry.snippet;
+                  }
+                  entry.paramList = descriptions;
+                }
+              }
             }
 
             const constantChanges = changesFor('constant');
@@ -4972,39 +5201,42 @@ render('');
                 constantData.generated = new Date().toISOString();
             }
 
-            const staticSayChanges = changesFor('static-say');
-            if (staticSayChanges.length > 0) {
-              const staticData = readForUpdate('static-language.json');
-              for (const change of staticSayChanges) {
-                const entry = staticData.saySnippets?.[change.sourceIndex];
-                const previous = entry?.engineVariants?.[engine];
-                if (!entry || !previous) continue;
-                const target = { ...previous };
-                if (change.obj.name !== undefined) target.label = change.obj.name;
-                if (change.obj.syntax !== undefined) target.snippet = change.obj.syntax;
-                if (change.obj.desc !== undefined) target.description = change.obj.desc;
-                if (change.obj.params !== undefined) {
-                  const values = change.obj.params
-                    .split(/\s*(?:\||[;；]|\r?\n)\s*/)
-                    .map(value => value.trim())
-                    .filter(Boolean);
-                  target.parameters = values.map((value, index) => {
-                    const explicit = /^([A-Za-z_][A-Za-z0-9_]*)\s*(?:=|:|：)\s*(.+)$/.exec(value);
-                    const oldParameter = previous.parameters?.[index];
-                    return {
-                      ...(oldParameter?.aliases?.length ? { aliases: oldParameter.aliases } : {}),
-                      ...(explicit?.[1] || oldParameter?.key
-                        ? { key: explicit?.[1] || oldParameter.key }
-                        : {}),
-                      description: (explicit?.[2] || value).trim(),
-                    };
-                  });
-                }
-                entry.engineVariants = {
-                  ...(entry.engineVariants || {}),
-                  [engine]: target,
-                };
+            const updateSayVariant = (previous: StaticLanguageVariant, change: typeof changes[number]) => {
+              const target = { ...previous };
+              if (change.obj.name !== undefined) target.label = change.obj.name;
+              if (change.obj.syntax !== undefined) target.snippet = change.obj.syntax;
+              if (change.obj.desc !== undefined) target.description = change.obj.desc;
+              if (change.obj.params !== undefined) {
+                const separator = /\r?\n/;
+                const values = change.obj.params.split(separator).map(value => value.trim()).filter(Boolean);
+                target.parameters = values.map((value, index) => {
+                  const explicit = /^([A-Za-z_][A-Za-z0-9_]*)\s*(?:=|:|：)\s*(.+)$/.exec(value);
+                  const oldParameter = explicit
+                    ? previous.parameters?.find(parameter => parameter.key?.toLowerCase() === explicit[1].toLowerCase())
+                    : previous.parameters?.[index];
+                  return {
+                    ...oldParameter,
+                    ...(explicit ? { key: explicit[1] } : {}),
+                    description: (explicit?.[2] || value).trim(),
+                  };
+                });
               }
+              return target;
+            };
+            for (const change of changesFor('static-say')) {
+              const originalId = baseSayEntries[change.sourceIndex]?.id;
+              const data = readForUpdate('static-language.json') as StaticLanguageData;
+              const entry = originalId && data.saySnippets.find(row => row.id === originalId);
+              const previous = entry && entry.engineVariants[engine];
+              if (!entry || !previous) throw new Error('界面语句已改变，请重新打开补全编辑器');
+              entry.engineVariants[engine] = updateSayVariant(previous, change);
+            }
+            for (const change of changesFor('manual-say')) {
+              const originalId = editorManualCatalog.get(engine)?.saySnippets[change.sourceIndex]?.id;
+              const manual = readForUpdate(manualFile);
+              const entry = originalId && manual.saySnippets.find((row: { id: string }) => row.id === originalId);
+              if (!entry) throw new Error('手册界面语句已改变，请重新打开补全编辑器');
+              Object.assign(entry, updateSayVariant(entry, change));
             }
 
             const customCategoryByTab: Record<string, CustomLanguageCategory> = {
@@ -5019,25 +5251,35 @@ render('');
             if (customChanged && !customCategory) {
               throw new Error('无法识别自定义补全类型');
             }
+            const currentCustom = customChanged
+              ? sanitizeCustomLanguageData(context.globalState.get(CUSTOM_LANGUAGE_STATE_KEY, customLanguageData))
+              : customLanguageData;
+            if (customChanged && JSON.stringify(customLanguageEntries(customBaseline, engine, customCategory)) !==
+              JSON.stringify(customLanguageEntries(currentCustom, engine, customCategory))) throw new Error('自定义目录已改变，请重新打开补全编辑器');
             const nextCustomLanguageData = customChanged
               ? replaceCustomLanguageEntries(
-                  customLanguageData,
+                  currentCustom,
                   engine,
                   customCategory,
                   msg.customEntries
                 )
               : customLanguageData;
 
-            const writtenFiles: string[] = [];
-            for (const [filePath, jsonData] of changedFiles) {
-              fs.writeFileSync(filePath, `${JSON.stringify(jsonData, null, 2)}\n`, 'utf-8');
-              writtenFiles.push(path.basename(filePath));
+            const files = [...changedFiles].map(([file, data]) => ({
+              path: file, before: originals.get(file)!, after: JSON.stringify(data, null, 2) + '\n',
+            }));
+            await saveLanguageFiles(files, customChanged ? () => context.globalState.update(CUSTOM_LANGUAGE_STATE_KEY, nextCustomLanguageData) : undefined);
+            for (const [file, data] of changedFiles) baseline.set(path.basename(file), comparable(path.basename(file), data));
+            for (const [index, name] of manualRenames) manualFunctionNames.get(engine)![index] = name;
+            for (const change of changes) if (change.obj.name) {
+              for (const tab of tabs) {
+                const row = tab.data.find(r => !r.isCustom && r.engineId === engine && r.storage === change.storage && r.sourceIndex === change.sourceIndex);
+                if (row) row.name = change.obj.name;
+              }
             }
+            const writtenFiles = files.map(file => path.basename(file.path));
             if (customChanged) {
-              await context.globalState.update(
-                CUSTOM_LANGUAGE_STATE_KEY,
-                nextCustomLanguageData
-              );
+              customBaseline = replaceCustomLanguageEntries(customBaseline, engine, customCategory, msg.customEntries);
               replaceActiveCustomLanguageData(nextCustomLanguageData);
               writtenFiles.push('用户自定义目录');
             }
@@ -5050,6 +5292,7 @@ render('');
                 || EMPTY_STATIC_LANGUAGE_DATA;
               rebuildLanguageIndex();
               rebuildSemanticCommandIndex();
+              varProvider.clearCache();
               panel.webview.postMessage({
                 type: 'saved',
                 ok: true,
@@ -5171,12 +5414,15 @@ function buildIndexedCommandHover(command: IndexedCommand): vscode.MarkdownStrin
   const md = new vscode.MarkdownString();
   md.isTrusted = false;
   md.appendMarkdown(`### \`${escapeInlineCode(command.name)}\`\n\n`);
+  const showParameters = command.completionVerified || command.fromCurrentManual;
+  if (showParameters && command.syntax !== command.name) md.appendCodeblock(command.syntax);
   if (command.description) md.appendMarkdown(`${command.description}\n\n`);
-  if (command.completionVerified && command.params.length > 0) {
+  if (showParameters && command.params.length > 0) {
     command.params.forEach((parameter, index) => {
       md.appendMarkdown(`**参数${index + 1}：** \`${escapeInlineCode(formatCommandParameterMeaning(parameter))}\`\n\n`);
     });
   }
+  if (command.fromCurrentManual && command.source?.title) md.appendMarkdown(`手册：${command.source.title}`);
   return md;
 }
 
@@ -5195,16 +5441,27 @@ function buildSayMarkupHover(markup: SayMarkupToken): vscode.MarkdownString {
   md.isTrusted = false;
   md.appendMarkdown(`### \`${escapeInlineCode(markup.text.toUpperCase())}\`\n\n`);
   if (markup.entry.description) md.appendMarkdown(`${markup.entry.description}\n\n`);
-  sayMarkupParameterMeanings(markup.entry).forEach((parameter, index) => {
-    md.appendMarkdown(`**参数${index + 1}：** \`${escapeInlineCode(parameter)}\`\n\n`);
+  const signature = markup.entry.hoverSnippet?.replace(/\$\{\d+:([^}]+)\}/g, '$1') || markup.entry.label;
+  md.appendCodeblock(signature);
+  const meanings = sayMarkupParameterMeanings(markup.entry);
+  meanings.forEach((meaning, index) => {
+    const key = markup.entry.parameters?.[index]?.key;
+    const label = key || `参数${index + 1}`;
+    md.appendMarkdown(`**${label}：** \`${escapeInlineCode(meaning)}\`\n\n`);
   });
+  if (markup.entry.styleParameters?.length) {
+    const keys = markup.entry.styleParameters.map(parameter => `\`${parameter.key}\``).join('、');
+    md.appendMarkdown(`可用文字样式：${keys}\n\n`);
+  }
+  if (markup.entry.source.title) md.appendMarkdown(`手册：${markup.entry.source.title}`);
   return md;
 }
 
 function buildSayMarkupParameterHover(parameter: SayMarkupParameterSpan): vscode.MarkdownString {
   const md = new vscode.MarkdownString();
   md.isTrusted = false;
-  md.appendMarkdown(`**参数${parameter.index}：** \`${escapeInlineCode(parameter.meaning)}\``);
+  const label = parameter.key || `参数${parameter.index}`;
+  md.appendMarkdown(`**${label}：** \`${escapeInlineCode(parameter.meaning)}\``);
   return md;
 }
 
@@ -5265,13 +5522,78 @@ function buildSnippet(cmd: { name: string; syntax?: string; params?: string[] })
 }
 
 function extractDocLabels(text: string): string[] {
-  const labels: string[] = [];
-  const regex = /\[@([^\]]+)\]/g;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    if (!labels.includes(match[1])) labels.push(match[1]);
+  return [...new Set(findScriptLabelDefinitions(text.split(/\r\n|\r|\n/)).map(def => def.name))];
+}
+
+function fixedCallbackPaths(envir: string, target: EngineFileCallback['target']): string[] {
+  if (target === 'QMapEvent-0.txt') return ['Market_Def','MapQuest_Def'].map(dir => path.join(envir, dir, target));
+  return [path.join(envir, target === 'QManage.txt' ? 'MapQuest_Def' : 'Market_Def', target)];
+}
+
+async function fixedCallbackLocations(envir: string, callback: Pick<EngineFileCallback,'target' | 'label'>,
+  token?: vscode.CancellationToken): Promise<vscode.Location | vscode.Location[] | null> {
+  const locations: vscode.Location[] = [];
+  for (const file of fixedCallbackPaths(envir, callback.target)) {
+    if (token?.isCancellationRequested) return null;
+    const uri = vscode.Uri.file(file), key = scriptDefinitionPathKey(file);
+    const opened = vscode.workspace.textDocuments.find(doc => doc.uri.scheme === 'file' && scriptDefinitionPathKey(doc.fileName) === key);
+    let text = opened?.getText();
+    if (text === undefined) {
+      try { text = decodeTextFile(await vscode.workspace.fs.readFile(uri)).text; }
+      catch {
+        try { text = decodeTextFile(await fs.promises.readFile(file)).text; } catch { continue; }
+      }
+    }
+    const pos = findScriptLabelPosition(text, callback.label);
+    if (pos) locations.push(new vscode.Location(uri, new vscode.Position(pos.line,pos.character)));
   }
-  return labels;
+  return token?.isCancellationRequested || !locations.length ? null : locations.length === 1 ? locations[0] : locations;
+}
+
+function documentFixedCallbacks(lines: string[], basename: string, engine: EngineId) {
+  let action = true;
+  const found: Array<EngineFileCallback & {line: number}> = [];
+  for (let line = 0; line < lines.length; line++) {
+    if (/^\s*\[@/.test(lines[line])) action = true;
+    const directive = /^\s*#(ACT|ELSEACT|SAY|ELSESAY|IF|AND|OR)\b/i.exec(lines[line]);
+    if (directive) action = /^(?:ACT|ELSEACT)$/i.test(directive[1]);
+    if (!/\b(?:TIMEMAP|SETONTIMER(?:MS)?|ADDBUTTON|ADDDLG|SELECTBAGITEM)\b|@/i.test(lines[line])) continue;
+    for (const ref of engineFileCallbacks(lines[line], basename, engine, action)) found.push({...ref, line});
+  }
+  return found;
+}
+
+async function findFixedCallbackReferences(envir: string, callback: Pick<EngineFileCallback,'target' | 'label'>, engine: EngineId,
+  refs: vscode.Location[], source: vscode.TextDocument, declarations: boolean, token?: vscode.CancellationToken) {
+  const files = new Map<string, vscode.Uri>(), open = new Map<string, vscode.TextDocument>();
+  const accept = (uri: vscode.Uri) => {
+    if (uri.scheme !== 'file') return false;
+    const relative = path.relative(envir, uri.fsPath);
+    return /^(?:(?:Market_Def|MapQuest_Def|QuestDiary|Robot_def|Npc_Def)[\\/].+\.txt|MapInfo\.txt|MonGen\.txt)$/i.test(relative);
+  };
+  try {
+    const pattern = new vscode.RelativePattern(vscode.Uri.file(envir), '**/*.[tT][xX][tT]');
+    for (const uri of await vscode.workspace.findFiles(pattern, null, undefined, token)) if (accept(uri)) files.set(scriptDefinitionPathKey(uri.fsPath),uri);
+  } catch { /* Open scripts remain available in virtual or partially indexed workspaces. */ }
+  for (const doc of [...vscode.workspace.textDocuments, source]) if (accept(doc.uri)) {
+    const key = scriptDefinitionPathKey(doc.fileName); files.set(key,doc.uri); open.set(key,doc);
+  }
+  for (const [key,uri] of files) {
+    if (token?.isCancellationRequested) return [];
+    const doc = open.get(key);
+    let text: string;
+    try { text = doc ? doc.getText() : decodeTextFile(await vscode.workspace.fs.readFile(uri)).text; } catch { continue; }
+    for (const ref of documentFixedCallbacks(text.split(/\r\n|\r|\n/),path.basename(uri.fsPath),engine)) {
+      if (ref.target === callback.target && normalizeScriptLabelKey(ref.label) === normalizeScriptLabelKey(callback.label)) {
+        refs.push(new vscode.Location(uri, new vscode.Position(ref.line,ref.start)));
+      }
+    }
+  }
+  if (declarations) {
+    const locations = await fixedCallbackLocations(envir,callback,token);
+    if (locations) refs.push(...(Array.isArray(locations) ? locations : [locations]));
+  }
+  return [...new Map(refs.map(loc => [loc.uri.toString() + ':' + loc.range.start.line + ':' + loc.range.start.character,loc])).values()];
 }
 
 /**
@@ -5347,13 +5669,13 @@ async function findScriptCommandCallbackTarget(
 }
 
 /**
- * AddButton 与新 GOM AddDlg 的回调定义既可能直接位于 QFunction-0，也可能
+ * AddButton、新 GOM AddDlg 与 MonGen 的 QF 回调定义既可能直接位于 QFunction-0，也可能
  * 由 QFunction 通过 #CALL 拆到 QuestDiary。QFunction 中存在目标标签时拥有绝对优先级；
  * 只有缺文件或当前文本缺标签时才建立并扫描 QuestDiary 候选清单。
  */
 async function findQFunctionCallbackTargets(
   envirRoot: string,
-  callback: ScriptCommandCallbackReference,
+  callback: Pick<ScriptCommandCallbackReference, 'label'>,
   cancellationToken?: vscode.CancellationToken
 ): Promise<vscode.Location | vscode.Location[] | null> {
   const qFunctionPath = path.join(envirRoot, 'Market_Def', 'QFunction-0.txt');
@@ -5450,14 +5772,8 @@ async function findLabelInFile(filePath: string, label: string): Promise<vscode.
   try {
     const uri = vscode.Uri.file(filePath);
     const doc = await vscode.workspace.openTextDocument(uri);
-    const allText = doc.getText();
-    const escaped = escapeRegex(label);
-    const labelRegex = new RegExp(`\\[@${escaped}\\]`, 'g');
-    const lm = labelRegex.exec(allText);
-    if (lm) {
-      const pos = doc.positionAt(lm.index);
-      return new vscode.Location(uri, pos);
-    }
+    const pos = findScriptLabelPosition(doc.getText(), label);
+    if (pos) return new vscode.Location(uri, new vscode.Position(pos.line, pos.character));
   } catch (e) {
     console.warn('[BOO] 标签定义查找失败:', e instanceof Error ? e.message : String(e));
   }

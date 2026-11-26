@@ -17,6 +17,7 @@ import {
 import { decodeTextFile, encodeTextFile } from './text';
 import { isBinarySpreadsheet, parseScriptTableData } from './table-data';
 import { openXlsTable } from './xls-table';
+import { resolveWorkspaceDatabaseSource } from './database-source';
 
 type IniSections = Map<string, Map<string, string[]>>;
 
@@ -503,6 +504,21 @@ function databaseCandidates(envirRoot: string, engine?: EngineId): string[] {
   const legacyDirectory = path.join(serverRoot, 'MUD2', 'db');
   const dataDirectory = path.join(envirRoot, 'Data');
   const result: string[] = [];
+  const mirDirectory = path.dirname(envirRoot);
+  const hasSetup = isDirectory(mirDirectory) && fs.readdirSync(mirDirectory)
+    .some(name => name.toLowerCase() === '!setup.txt');
+  if (engine !== '996PC' && hasSetup) {
+    try {
+      // Re-read the authoritative source for every prepareFor(). The candidate
+      // path participates in fileSetStamp, so changing !Setup (including a
+      // same-stat edit) switches or invalidates the cached item database.
+      return [resolveWorkspaceDatabaseSource(serverRoot, 'legacy').path];
+    } catch {
+      // Invalid/missing configured sources must stay unresolved. Falling back
+      // to a sibling backup or a residual cfg_item.xls could draw wrong items.
+      return [];
+    }
+  }
   if (engine !== '996PC' && isDirectory(legacyDirectory)) {
     for (const name of fs.readdirSync(legacyDirectory)) {
       if (/\.(?:db|mdb)$/i.test(name)) result.push(path.join(legacyDirectory, name));

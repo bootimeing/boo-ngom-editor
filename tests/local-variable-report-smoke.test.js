@@ -36,7 +36,12 @@ function enumerate(directory) {
   }
 }
 enumerate(root);
-const reportFiles = enumerated.filter(file => /\.txt$/i.test(file)).sort();
+const { variableListScanRoots } = require('../out/utils/variable-list');
+const roots = variableListScanRoots([root]);
+const reportFiles = enumerated.filter(file => roots.some(selected => {
+  const relative = path.relative(selected, file);
+  return !path.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + path.sep);
+})).sort();
 assert.ok(reportFiles.length, 'no real TXT files found in selected Envir');
 
 const before = new Map(reportFiles.map(file => [pathKey(file), { file, hash: sha256(fs.readFileSync(file)) }]));
@@ -71,9 +76,9 @@ async function main() {
   const assistantSource = fs.readFileSync(assistantPath, 'utf8');
   const assistantHash = sha256(assistantSource);
   const required = new Set([
-    'analyzeVariables', 'escapeHtml', 'reportVariableCategory',
+    'variableScanOptions', 'analyzeVariables', 'escapeHtml', 'reportVariableCategory',
     'resolveNestedConfigValues', 'resolveNestedTableData', 'resolveNestedListData',
-    'resolveNestedDataFile', 'findAncestorDirectory', 'parseIniSections',
+    'resolveNestedDataFile', 'statisticsFileInput', 'findAncestorDirectory', 'parseIniSections',
     'commandLookupKeys', 'resolveIndexedCommandToken', 'mapInfoPathForFile', 'configuredMapCodesForFile',
   ]);
   const extracted = [];
@@ -103,7 +108,7 @@ async function main() {
   const warnings = [];
   const consoleWarnings = [];
   const sourceCounts = { direct: 0, inferred: 0, possible: 0, unknown: 0 };
-  const analyzedFiles = [];
+
   const uri = target => ({ scheme: 'file', fsPath: target, toString: () => target });
   const context = {
     ...variableList,
@@ -114,16 +119,20 @@ async function main() {
     ...require('../out/utils/statistics-table-data'),
     ...require('../out/utils/map-code-context'),
     ...commandIndex,
-    fs: { statSync: fs.statSync, existsSync: fs.existsSync, readFileSync: readFile }, path,
+    fs: { statSync: fs.statSync, existsSync: fs.existsSync, readFileSync: readFile }, path, Buffer,
     languageIndex,
     nestedConfigCache: new Map(), nestedTableCache: new Map(), nestedListCache: new Map(), mapCodeCache: new Map(),
     console: { warn: (...items) => consoleWarnings.push(items.map(String).join(' ')) },
     log: message => logs.push(message),
-    analyzeVariableListFile: (text, file, options) => {
-      const result = variableList.analyzeVariableListFile(text, file, options);
-      analyzedFiles.push(file);
-      for (const variable of result.variables) sourceCounts[variable.source?.kind || 'direct']++;
-      return result;
+    VariableListScanner: class extends variableList.VariableListScanner {
+      async scan(...args) {
+        const result = await super.scan(...args);
+        assert.ok(result && !result.errors.length);
+        for (const occurrences of result.occurrences.values()) {
+          for (const item of occurrences) sourceCounts[item.source?.kind || 'direct']++;
+        }
+        return result;
+      }
     },
     vscode: {
       ProgressLocation: { Notification: 15 }, ViewColumn: { Active: -1 },
@@ -189,7 +198,7 @@ async function main() {
   assert.ok(summary, 'actual report summary missing');
   assert.equal(Number(summary[1]), reportFiles.length);
   assert.equal(Number(summary[2]), 0, 'actual report must not swallow an integration exception');
-  assert.equal(analyzedFiles.length, reportFiles.length);
+
   assert.equal(consoleWarnings.length, 0);
   assert.equal(warnings.length, 0);
 
@@ -216,7 +225,7 @@ async function main() {
   }
   assert.ok(categories.length && rowCount && referenceCount, 'real server report unexpectedly empty');
   assert.deepEqual(renderedSourceCounts, sourceCounts, 'actual analysis results must all survive report categorization/rendering');
-  const roots = variableList.variableListScanRoots([root]);
+  for (const file of reportFiles) readPaths.add(file);
   const sidebarFiles = enumerated.filter(file => roots.some(scriptRoot => {
     const relative = path.relative(scriptRoot, file);
     return relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative);
@@ -236,15 +245,17 @@ async function main() {
   }
   const serverFingerprint = sha256([...before.values()].sort((a, b) => a.file.localeCompare(b.file))
     .map(item => path.relative(root, item.file) + '\0' + item.hash).join('\n'));
+  const scannedPaths = new Set(reportFiles.map(pathKey));
+  const extraDependencies = new Set([...readPaths].map(pathKey).filter(file => !scannedPaths.has(file)));
   console.log(JSON.stringify({
     result: 'passed', boundary: 'actual assistant analyzeVariables + real disk IO + actual resolvers; minimal VS Code UI adapter, not native host/server execution',
     root, engine, engineConfidence: engineDetails.confidence, diskOnly: true,
-    reportFiles: reportFiles.length, analyzedFiles: analyzedFiles.length, failedFiles: 0,
+    reportFiles: reportFiles.length, analyzedFiles: Number(summary[1]), failedFiles: 0,
     sidebarScopeFiles: sidebarFiles.length, sidebarIniFiles: sidebarFiles.filter(file => /\.ini$/i.test(file)).length,
     reportOnlyFiles: reportOnly.length, directoryCounts,
     categories, distinctReportRows: rowCount, sourceReferences: referenceCount, sourceCounts,
     resolverCounts,
-    readFilesTotal: readPaths.size, extraDependencyFiles: readPaths.size - reportFiles.length,
+    readFilesTotal: scannedPaths.size + extraDependencies.size, extraDependencyFiles: extraDependencies.size,
     blockedOutsideDependencies: blockedDependencies.size,
     skippedLinks: skippedLinks.length, tableDiagnosticCount: logs.length,
     verifiedServerFilesUnchanged: before.size, serverFingerprintSha256: serverFingerprint,

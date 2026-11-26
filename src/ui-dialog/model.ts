@@ -185,7 +185,8 @@ export interface DialogItemPreview {
   displayTarget?: 'self' | 'viewed-character';
   showTips?: boolean;
   showStar?: boolean;
-  effectShow?: 0 | 1 | 2;
+  effectShow?: 0 | 1 | 2 | 3;
+  allowItemDrag?: boolean;
   boxIndex?: number;
   allowedStdModes?: number[];
   acceptsAnyStdMode?: boolean;
@@ -1104,6 +1105,8 @@ export interface DialogCoordinateBinding {
 }
 
 export interface DialogElement {
+  /** 996PC new-panel ADDBUTTON uses a window/icon pair for replacement and deletion. */
+  panelButton?: { windowId?: number; iconId?: number };
   /** Read-only execution composition; not a source-layout/action capability. */
   executionPreview?: boolean;
   executionSourceLabel?: string;

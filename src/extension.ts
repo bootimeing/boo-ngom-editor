@@ -1,3 +1,4 @@
+import { registerServerReferenceAudit } from './providers/server-reference-audit';
 /**
  * BOO 可视化编辑器 — 基于v1.1.7稳定架构
  */
@@ -10,20 +11,15 @@ import {
   postToSidebar,
   replaySidebarMessage,
   resolveCachedPatchPakImageAsset,
-  resolvePakImage,
   resolvePakImageAsset,
   setExtContext,
   setLoadedPakAssets,
   setPakFolder,
   setSidebarView,
 } from "./utils/sidebar-bridge";
-import {
-  buildMonsterIconPreviews,
-  describeMonsterBodyAppearance,
-  loadMonsterDatabaseDetail,
-  saveMonsterDatabaseDetailText,
-} from './utils/database-detail';
+import { handleDatabaseDetailMutation } from './utils/database-detail-actions';
 import { resolveEngineRoot } from './utils/engine-detect';
+import { variableListScanRoots } from './utils/variable-list';
 import { EngineId, WebviewMessage } from './types';
 import { activateReload, deactivateReload } from './reload';
 import { cleanAllLogs } from './utils/log-cleaner';
@@ -53,12 +49,6 @@ import { MerchantMapLinkProvider } from './providers/merchant-map-link';
 import { MapInfoLinkProvider } from './providers/map-info-link';
 import { MonGenLinkProvider } from './providers/mongen-link';
 import { registerNpcDialogVisualEditor } from './providers/npc-dialog-visual';
-import {
-  DeepSeekViewProvider,
-  openDeepSeekInBrowser,
-  openDeepSeekPanelCommand,
-  startDeepSeekServerCommand,
-} from './providers/deepseek-view';
 import {
   findPasswordInPakTxt as findPasswordInNearbyPakTxt,
   isConfirmedPakPasswordError,
@@ -143,7 +133,7 @@ interface QuickImportData extends QuickImportAssetData {
   offsetY?: number;
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   extensionContext = context;
   loadedPakEngine = normalizeEngineId(
     vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
@@ -196,23 +186,6 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // 工作区自动设置 GB2312 编码（传奇脚本默认编码）
-  const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (wsRoot) {
-    const vscodeDir = path.join(wsRoot, '.vscode');
-    const settingsFile = path.join(vscodeDir, 'settings.json');
-    let settings: Record<string, unknown> = {};
-    if (fs.existsSync(settingsFile)) {
-      try { settings = JSON.parse(fs.readFileSync(settingsFile, 'utf-8')); } catch { /* ignore */ }
-    }
-    if (settings['files.encoding'] !== 'gb2312') {
-      settings['files.encoding'] = 'gb2312';
-      try {
-        fs.mkdirSync(vscodeDir, { recursive: true });
-        fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
-      } catch { /* ignore */ }
-    }
-  }
   try { activateReload(context); } catch (e) { console.warn('[BOO] M2重载激活失败:', e instanceof Error ? e.message : String(e)); }
 
   resourceRootsSet.add(context.extensionPath);
@@ -235,6 +208,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider('boo.toolsView', new ToolsViewProvider())
   );
 
+  registerServerReferenceAudit(context);
   const mapPreviewProvider = new MapPreviewProvider(context);
   const merchantMapLinkProvider = new MerchantMapLinkProvider();
   const mapInfoLinkProvider = new MapInfoLinkProvider();
@@ -277,18 +251,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      DeepSeekViewProvider.viewType,
-      new DeepSeekViewProvider(context)
-    )
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand('boo.deepseek.openPanel', () => openDeepSeekPanelCommand()),
-    vscode.commands.registerCommand('boo.deepseek.openInBrowser', () => void openDeepSeekInBrowser()),
-    vscode.commands.registerCommand('boo.deepseek.startServer', () => void startDeepSeekServerCommand())
-  );
-
-  context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("boo.dbView", new class implements vscode.WebviewViewProvider {
       resolveWebviewView(webviewView: vscode.WebviewView) {
         webviewView.webview.options = { enableScripts: true };
@@ -298,145 +260,21 @@ export function activate(context: vscode.ExtensionContext) {
         webviewView.webview.html = secureWebviewHtml(
           webviewView.webview,
           fs.readFileSync(htmlPath, "utf-8"),
-          { allowInlineEventHandlers: true }
+          { allowInlineEventHandlers: false }
         );
         webviewView.webview.onDidReceiveMessage(async (msg: WebviewMessage) => {
           if (msg.type === 'sidebarReady') {
             replaySidebarMessage();
             return;
           }
-          if (msg.type === 'saveMonsterDetail') {
-            const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-            const name = String(msg.name || '').trim();
-            const key = msg.key === 'dropRateText' || msg.key === 'iconText' ? msg.key : undefined;
-            const fields = msg.fields && typeof msg.fields === 'object' && !Array.isArray(msg.fields)
-              ? msg.fields as Record<string, unknown>
-              : {};
-            const columnLabels = msg.columnLabels && typeof msg.columnLabels === 'object' && !Array.isArray(msg.columnLabels)
-              ? msg.columnLabels as Record<string, unknown>
-              : {};
-            const columnDescriptions = msg.columnDescriptions && typeof msg.columnDescriptions === 'object' && !Array.isArray(msg.columnDescriptions)
-              ? msg.columnDescriptions as Record<string, unknown>
-              : {};
-            if (!wsRoot || !key) {
-              void webviewView.webview.postMessage({
-                type: 'monsterDetailSaveResult',
-                key: key || String(msg.key || ''),
-                ok: false,
-                message: wsRoot ? '不支持的怪物配置类型' : '请先打开服务端工作区',
-              });
-              return;
-            }
-            try {
-              const envirDir = path.join(resolveEngineRoot(wsRoot), 'Mir200', 'Envir');
-              const saved = saveMonsterDatabaseDetailText(envirDir, name, key, msg.text);
-              const detail = loadMonsterDatabaseDetail(envirDir, name);
-              const preview = buildMonsterIconPreviews(detail.icons, resolvePakImageAsset);
-              const activeEngine = normalizeEngineId(
-                vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')
-              );
-              const body = describeMonsterBodyAppearance(envirDir, name, fields, activeEngine);
-              const bodyAsset = body.source === 'archive' && body.pakName
-                ? resolveCachedPatchPakImageAsset(body.pakName, body.imageIndex)
-                : body.source === 'will' && body.willIndex !== undefined
-                  ? resolvePakImageAsset(body.willIndex, body.imageIndex)
-                  : { url: '' };
-              postToSidebar({
-                type: 'showDatabaseDetail',
-                detailKind: 'monster',
-                name,
-                fields,
-                columnLabels,
-                columnDescriptions,
-                dropRateText: detail.dropRateText,
-                dropRateFileName: detail.dropRateFileName,
-                iconText: detail.iconText,
-                iconFileName: detail.iconFileName,
-                monsterIcons: preview.icons,
-                iconConfigTruncated: preview.iconConfigTruncated,
-                monsterBody: { ...body, ...bodyAsset },
-                saveResult: {
-                  key,
-                  ok: true,
-                  message: `已保存 ${saved.fileName}`,
-                },
-              });
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              console.warn('[BOO] 保存怪物配置失败:', message);
-              void webviewView.webview.postMessage({
-                type: 'monsterDetailSaveResult',
-                key,
-                ok: false,
-                message,
-              });
-            }
-            return;
-          }
-          if (msg.type === 'saveItemDesc') {
-            const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-            if (!wsRoot) return;
-            const envirDir = path.join(wsRoot, 'Mir200', 'Envir');
-            const fileName = msg.key === 'topDesc' ? 'ItemDescTopList.txt' : 'ItemDescList.txt';
-            const filePath = path.join(envirDir, fileName);
-            try {
-              const iconv = require('iconv-lite');
-              let content = '';
-              if (fs.existsSync(filePath)) {
-                const buf = fs.readFileSync(filePath);
-                content = iconv.decode(buf, 'gbk');
-              }
-              const lines = content.split(String.fromCharCode(10));
-              let found = false;
-              for (let i = 0; i < lines.length; i++) {
-                const eq = lines[i].indexOf('=');
-                if (eq > 0 && lines[i].substring(0, eq).trim() === msg.name) {
-                  lines[i] = msg.name + '=' + msg.text;
-                  found = true; break;
-                }
-              }
-              if (!found) lines.push(msg.name + '=' + msg.text);
-              const gbkBuf = iconv.encode(lines.join(String.fromCharCode(10)), 'gbk');
-              fs.writeFileSync(filePath, Buffer.from(gbkBuf));
-              // Re-read and push update
-              const topPath = path.join(envirDir, 'ItemDescTopList.txt');
-              const descPath2 = path.join(envirDir, 'ItemDescList.txt');
-              let newTop = '', newDesc = '';
-              const readLine = (fp2: string) => {
-                if (!fs.existsSync(fp2)) return '';
-                const b2 = fs.readFileSync(fp2);
-                for (const l of iconv.decode(b2, 'gbk').split(String.fromCharCode(10))) {
-                  const eq2 = l.indexOf('=');
-                  if (eq2 > 0 && l.substring(0, eq2).trim() === msg.name) return l.substring(eq2 + 1).trim();
-                }
-                return '';
-              };
-              newTop = readLine(topPath);
-              newDesc = readLine(descPath2);
-              const imgMap: Record<string,string> = {};
-              const imgRe3 = /<&?img:(\d+):(-?\d+):(-?\d+):(-?\d+)>/gi;
-              let im3; const allText2 = newTop + String.fromCharCode(10) + newDesc;
-              while ((im3 = imgRe3.exec(allText2)) !== null) {
-                const key3 = im3[0];
-                if (!imgMap[key3]) {
-                  const url3 = resolvePakImage(parseInt(im3[2]), parseInt(im3[1]));
-                  if (url3) imgMap[key3] = url3;
-                }
-              }
-              postToSidebar({
-                type: 'showDatabaseDetail',
-                detailKind: 'item',
-                name: msg.name,
-                topDesc: newTop,
-                itemDesc: newDesc,
-                fields: {},
-                images: imgMap,
-                preserveSelectionVisuals: true,
-              });
-            } catch (e) {
-              console.warn('[BOO] 保存物品描述失败:', e instanceof Error ? e.message : String(e));
-            }
-          }
+          const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          handleDatabaseDetailMutation(msg, {
+            envirDirectory: wsRoot ? path.join(resolveEngineRoot(wsRoot), 'Mir200', 'Envir') : undefined,
+            engine: normalizeEngineId(vscode.workspace.getConfiguration('boo').get<string>('engine', 'GOM')),
+            postMessage: postToSidebar,
+            resolveImage: resolvePakImageAsset,
+            resolveArchiveImage: resolveCachedPatchPakImageAsset,
+          });
         });
         webviewView.onDidChangeVisibility(() => {
           if (webviewView.visible) vscode.commands.executeCommand("boo.openDatabase");
@@ -552,6 +390,21 @@ export function activate(context: vscode.ExtensionContext) {
       else vscode.window.showInformationMessage(msg);
     })
   );
+
+  // Use the VS Code settings service so explicit encodings and JSONC comments survive activation.
+  for (const folder of vscode.workspace.workspaceFolders || []) {
+    if (folder.uri.scheme !== 'file' || !variableListScanRoots([folder.uri.fsPath]).some(root => fs.existsSync(root))) continue;
+    const settings = vscode.workspace.getConfiguration('files', { uri: folder.uri, languageId: 'gomscript' });
+    const encoding = settings.inspect<string>('encoding');
+    if (!encoding || [encoding.globalValue, encoding.workspaceValue, encoding.workspaceFolderValue,
+      encoding.globalLanguageValue, encoding.workspaceLanguageValue, encoding.workspaceFolderLanguageValue].some(value => value !== undefined)) continue;
+    try {
+      await settings.update('encoding', 'gb2312', vscode.workspace.workspaceFile
+        ? vscode.ConfigurationTarget.WorkspaceFolder : vscode.ConfigurationTarget.Workspace, false);
+    } catch (error) {
+      console.warn('[BOO] 工作区默认脚本编码设置失败', error);
+    }
+  }
 }
 
 export async function deactivate() {

@@ -12,6 +12,95 @@ function reference(result, raw, occurrence = 0) {
   return found;
 }
 const slot = 'U<$STR(N$新变量)>';
+{
+  const lines = ['MOV N$编号 24', 'MOV U24 9',
+    'INC S$组装 <&LAYOUT:#L1~#L<$STR(N$编号)>:1:2:3:4><IMG:#U<$STR(N$编号)>~#U60:1:1:2:3>',
+    '#SAY', '<&TEXT:#T99~#L<$STR(U<$STR(N$编号)>)>:U<$STR(N$编号)>:3:4>',
+    '<IMG:~#U70:1:1:2:3><NewLine:#U80~>', '<TEXT:普通字段:#U<$STR(N$编号)>~:1>',
+    '<TEXT:#U<$STR(N$编号)>:1:2>', '<TEXT:#U<$STR(N$编号)>~坏字段:1:2>'];
+  const text = lines.join('\r\n');
+  const result = analyzeNestedVariables(text, {engine: 'GOM'});
+  assert.deepEqual(result.references.map(ref => ref.line), [4, 4, 6, 7, 8]);
+  for (const ref of result.references) assert.deepEqual(ref.variables, ['U24']);
+  const list = analyzeVariableListFile(text, 'D:/audit/Envir/Market_Def/ui.txt', {engine: () => 'GOM'});
+  assert.deepEqual(list.variables.filter(row => row.line === 2 && row.name === 'N$编号').map(row =>
+    text.slice(row.source.start, row.source.end)), ['N$编号', 'N$编号']);
+  for (const name of ['T99', 'U60', 'U70', 'U80']) assert.ok(!list.variables.some(row => row.name === name));
+  assert.deepEqual([...list.candidates.variables.U], [24]);
+  for (const engine of ['GEE', '996PC']) {
+    assert.ok(analyzeNestedVariables(lines[2], {engine}).references.some(ref => ref.base === 'U'));
+  }
+}
+{
+  const staticRead = 'U<$STR(N$idx1)>', nestedRead = 'U<$STR(N$idx<$STR(N$i)>)>';
+  function checkSlot(lines, raw, expected, engine = '996PC') {
+    const text = lines.join('\n');
+    const ref = reference(analyze(lines, {engine}), raw);
+    assert.deepEqual(ref.variables, [expected], raw);
+    assert.equal(ref.status, 'resolved');
+    const aggregate = analyzeVariableListFile(text, 'D:/audit/Envir/Market_Def/test.txt', {engine: () => engine});
+    assert.deepEqual(aggregate.variables.filter(row => row.line === ref.line && row.source?.start === ref.start)
+      .map(row => row.name), [expected]);
+    assert.ok(!unusedVariableCandidates('U', collectCandidateUsage(text, {engine})).includes(Number(expected.slice(1))));
+  }
+  const addr = 'N$idx<$STR(N$i)>';
+  for (const engine of ['996PC', 'GOM', 'GEE']) {
+    checkSlot(['MOV N$idx1 20', 'MOV N$i 1', 'GOTO @helper(|' + addr + ')', 'EQUAL ' + staticRead + ' 0',
+      '[@helper]', 'MOV N$i 2', 'RETURN 30'], staticRead, 'U30', engine);
+    checkSlot(['MOV N$i 1', 'MOV S$data 30', 'EXTRACTSTRING , <$STR(S$data)> ' + addr,
+      'MOV ' + addr + ' 40', 'EQUAL ' + nestedRead + ' 0'], nestedRead, 'U40', engine);
+    checkSlot(['MOV N$i 1', 'MOV N$j 1', 'MOV S$data 30', 'EXTRACTSTRING , <$STR(S$data)> ' + addr,
+      'MOV N$idx<$STR(N$j)> 40', 'EQUAL ' + nestedRead + ' 0'], nestedRead, 'U40', engine);
+    checkSlot(['MOV N$idx1 20', 'MOV N$i 1', 'MOV S$data 30', 'EXTRACTSTRING , <$STR(S$data)> ' + addr,
+      'EQUAL ' + staticRead + ' 0'], staticRead, 'U30', engine);
+  }
+  const runtimeMutation = analyze(['MOV N$i 1', 'MOV S$data 30', 'EXTRACTSTRING , <$STR(S$data)> ' + addr,
+    'MOV ' + addr + ' 40', '#CALL [unknown.txt] @change', 'EQUAL ' + nestedRead + ' 0']);
+  assert.equal(reference(runtimeMutation, nestedRead).status, 'partial');
+  const unknown = analyze(['MOV N$idx1 20', 'GOTO @return(|' + addr + ')', 'EQUAL ' + staticRead + ' 0',
+    '[@return]', 'RETURN 30'], {engine: '996PC'});
+  assert.equal(reference(unknown, staticRead).status, 'partial');
+  assert.deepEqual(reference(unknown, staticRead).variables, ['U20', 'U30']);
+  const conflicting = analyze(['MOV N$idx1 20', 'MOV N$i 1', 'GOTO @return(|N$idx1,' + addr + ')',
+    'EQUAL ' + staticRead + ' 0', '[@return]', 'RETURN 30 40'], {engine: '996PC'});
+  assert.notEqual(reference(conflicting, staticRead).status, 'resolved');
+  const menu = ['[@main]', '#ACT', 'GOTO @prepare', '#SAY', '<炼魂/@炼魂>', '[@prepare]', '#ACT',
+    'READCONFIGFILEITEM foo.ini section key S$data FAST', 'EXTRACTSTRING | <$STR(S$data)> N$idx1 S$name',
+    '[@炼魂]', '#IF', 'EQUAL ' + staticRead + ' 0'];
+  const click = reference(analyze(menu, {engine: 'GOM',
+    resolveConfigValues: () => ({values: ['30|名字'], complete: true})}), staticRead);
+  assert.deepEqual(click.variables, ['U30']);
+  assert.equal(click.status, 'partial');
+  assert.ok(click.trace.some(step => step.line === 8));
+}
+{
+  const target = 'N$甲·〩ろ', use = 'EQUAL U<$STR(' + target + ')> 0';
+  assert.deepEqual(analyze(['MOV ' + target + ' 20', 'INC ' + target + ' 10 ; 行尾注释', use]).references[0].variables, ['U30']);
+  assert.deepEqual(analyze(['MOVR ' + target + ' 1 4', use]).references[0].variables, ['U1','U2','U3']);
+  assert.deepEqual(analyze(['MOVR ' + target + ' 2', use]).references[0].variables, ['U0','U1']);
+  for (const engine of ['GOM','GEE','996PC']) {
+    const call = ['[@main]','#ACT','GOTO @取值(20|' + target + ')',use,'[@取值]','#ACT',
+      'MOV N$tmp <$SCRIPTPARAM(1)>','INC N$tmp 10','RETURN <$STR(N$tmp)>','RETURN 999'];
+    assert.deepEqual(analyze(call,{engine}).references[0].variables,['U30']);
+    assert.deepEqual(analyze(call.map(line => line === 'RETURN <$STR(N$tmp)>' ? 'BREAK' : line),{engine}).references[0].variables,[]);
+    const reads = analyze(['#ACT','MOV ' + target + ' 9','#SAY','SET [77] 1','<$FLAG(<$STR(' + target + ')>)>',
+      '#ACT','RESET [720]'],{engine}).personalFlags;
+    assert.deepEqual(reads.map(r => r.flags),[['[9]']]);
+  }
+  assert.deepEqual(analyze(['#SAY','<$FLAG(0)>'],{engine:'996PC'}).personalFlags[0].flags,['[0]']);
+  for (const cmd of ['GetCamp ' + target,'GetRankLevelByNo 1 5 ' + target]) {
+    assert.deepEqual(analyze(['MOV ' + target + ' 20',cmd,use],{engine:'996PC'}).references[0].variables,[]);
+  }
+  const returned = analyze(['[@main]','#ACT','READCONFIGFILEITEM test.ini section key S$data FAST',
+    'EXTRACTSTRING | <$STR(S$data)> S$name ' + target,'MESSAGEBOX 确认 @确定','BREAK','[@确定]','#ACT',use],
+    {resolveConfigValues: request => { assert.equal(request.key,'key'); return {values:['例子|30'],complete:true}; }});
+  assert.deepEqual(returned.references[0].variables,['U30']);
+  const alias = analyze(['MOV N$i 1','GETLISTSTRING test.txt 0 S$data','EXTRACTSTRING , <$STR(S$data)> S$名字<$STR(N$i)> N$槽<$STR(N$i)>',
+    'EQUAL T<$STR(N$槽<$STR(N$i)>)> 0','MOV N$i 2','EQUAL T<$STR(N$槽<$STR(N$i)>)> 0'],
+    {resolveListData: () => ({lines:['名字,51'],complete:true})}).references.filter(ref => ref.base === 'T');
+  assert.deepEqual(alias[0].variables,['T51']);
+  assert.deepEqual(alias[1].variables,[], 'changing the subscript invalidates the same-expression alias');
+}
 const original = ['MOV N$原变量 20', 'MOV N$新变量 <$STR(N$原变量)>', 'INC N$新变量 10', `EQUAL ${slot} 0`];
 let result = analyze(original);
 assert.deepEqual(reference(result, slot).variables, ['U30'], '20 + 10 must propagate into U30, not stale U20');

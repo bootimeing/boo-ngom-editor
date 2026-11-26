@@ -46,7 +46,7 @@ export function classifySemanticCommand(
   let key = name.toUpperCase();
   // Only documented object selectors may fall back to a base command.
   // Exact engine-specific entries always take precedence.
-  const prefixes = index.engine === 'GOM' ? /^(?:H|O|M|P|L|PET|BB|CO|[NS]\d+)\./
+  const prefixes = index.engine === 'GOM' ? /^(?:H|O|M|P|L|FS|PET|BB|CO|[NS]\d+)\./
     : index.engine === 'GEE' ? /^(?:H|O|M|P|L|HM|HL|CO|PET|BB)\./
       : index.engine === '996PC' ? /^(?:H|O|M|P|HM|HH|HP|PEX|HPEX)\./ : null;
   while (!index.checks.has(key) && !index.actions.has(key) && prefixes?.test(key)) {

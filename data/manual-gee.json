@@ -1,0 +1,1976 @@
+{
+  "engine": "GEE",
+  "sha256": "489a5beaafc14a2396b50d3bdefbe5d8de0aec865e80b37592aae830b50995cc",
+  "functions": {
+    "OpenSword": {
+      "syntax": "OpenSword [秒数]",
+      "details": "开启或关闭人物飞剑，可限定生效时长。",
+      "params": "[秒数]",
+      "paramList": [
+        "持续时间（秒）。-1 关闭，0 或省略表示在线期间一直有效，1–65535 指定持续秒数。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 0,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/飞剑功能操作命令.html",
+        "title": "飞剑功能操作命令",
+        "evidenceLine": 3
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SetSwordCount": {
+      "syntax": "SetSwordCount 数量",
+      "details": "设置飞剑数量。",
+      "params": "数量",
+      "paramList": [
+        "飞剑数量，1–10 枚。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/飞剑功能操作命令.html",
+        "title": "飞剑功能操作命令",
+        "evidenceLine": 21
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SetSwordRange": {
+      "syntax": "SetSwordRange 半径",
+      "details": "设置飞剑攻击半径。",
+      "params": "半径",
+      "paramList": [
+        "攻击半径，1–12 个地图格。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/飞剑功能操作命令.html",
+        "title": "飞剑功能操作命令",
+        "evidenceLine": 31
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SetSwordInterval": {
+      "syntax": "SetSwordInterval 间隔毫秒",
+      "details": "设置飞剑两次攻击之间的间隔。",
+      "params": "间隔毫秒",
+      "paramList": [
+        "攻击间隔，500–60000 毫秒。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/飞剑功能操作命令.html",
+        "title": "飞剑功能操作命令",
+        "evidenceLine": 41
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SetSwordPower": {
+      "syntax": "SetSwordPower 攻击倍数",
+      "details": "设置飞剑的攻击倍率。",
+      "params": "攻击倍数",
+      "paramList": [
+        "以 100 为基准。100 是 1 倍，110 是 1.1 倍。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/飞剑功能操作命令.html",
+        "title": "飞剑功能操作命令",
+        "evidenceLine": 51
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "CheckSwordCount": {
+      "syntax": "CheckSwordCount 比较符 数量",
+      "details": "比较人物飞剑数量。关闭飞剑不会清零数量。",
+      "params": "比较符 数量",
+      "paramList": [
+        "比较符，支持 <、=、>。",
+        "用于比较的飞剑数量，0–10 枚。"
+      ],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/飞剑功能操作命令.html",
+        "title": "飞剑功能操作命令",
+        "evidenceLine": 61
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "CloseHumDlg": {
+      "syntax": "CloseHumDlg 页面",
+      "details": "关闭指定的人物页面。",
+      "params": "页面",
+      "paramList": [
+        "0 装备，1 状态，2 属性，3 技能，4 时装，5 称号，6 出战，7 包裹，8 首饰盒，9 神佑，10 时装首饰盒，11 时装神佑。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC命令打开装备栏及其他页面.htm",
+        "title": "NPC命令打开装备栏及其他页面[!]",
+        "evidenceLine": 9
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "CloseHeroDlg": {
+      "syntax": "CloseHeroDlg 页面",
+      "details": "关闭指定的英雄页面。",
+      "params": "页面",
+      "paramList": [
+        "0 装备，1 状态，2 属性，3 技能，4 时装，5 称号，6 英雄包裹，8 首饰盒，9 神佑，10 时装首饰盒，11 时装神佑。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC命令打开装备栏及其他页面.htm",
+        "title": "NPC命令打开装备栏及其他页面[!]",
+        "evidenceLine": 10
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SendCenterMsg": {
+      "syntax": "SendCenterMsg 前景色 背景色 消息 模式 [显示时间] [倒计时标签] [替换模式] [X坐标] [Y坐标]",
+      "details": "在屏幕中央显示公告，可安排倒计时回调和指定坐标。",
+      "params": "前景色 背景色 消息 模式 [显示时间] [倒计时标签] [替换模式] [X坐标] [Y坐标]",
+      "paramList": [
+        "文字前景色。",
+        "文字背景色。",
+        "公告内容，使用倒计时回调时应包含 %d。",
+        "0 自己，1 全服，2 行会，4 当前地图。国家命令页将 3 列为国家模式。",
+        "显示时间（秒）。",
+        "倒计时结束后执行的脚本标签。",
+        "0 或空表示不替换，非 0 表示替换模式。",
+        "公告 X 坐标。",
+        "公告 Y 坐标。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 4,
+      "maxArgs": 9,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/发送屏幕中间大字体信息[!].htm",
+        "title": "发送屏幕中间大字体信息",
+        "evidenceLine": 3
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SuperMoveMsg": {
+      "syntax": "SuperMoveMsg 类型 字体颜色 背景色 字号 Y坐标 滚动次数 内容 [范围] [X坐标] [顶层显示]",
+      "details": "在屏幕上方显示向上滚动并渐隐的公告。",
+      "params": "类型 字体颜色 背景色 字号 Y坐标 滚动次数 内容 [范围] [X坐标] [顶层显示]",
+      "paramList": [
+        "接收范围。0 全服，1 自己，2–4 队伍、行会、同地图（包含自己），5–7 对应范围（不含自己），8 同一国家。",
+        "字体颜色，0–255。",
+        "背景颜色，0–255。",
+        "字体大小。",
+        "公告 Y 坐标。",
+        "滚动次数。",
+        "公告内容，用 || 换行。",
+        "发送范围，用于按附近队友、行会成员或地图角色过滤。",
+        "公告 X 坐标。",
+        "是否在顶层显示公告。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 7,
+      "maxArgs": 10,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/发送屏幕中间大字体信息[!].htm",
+        "title": "发送屏幕中间大字体信息",
+        "evidenceLine": 34
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SendNewLineMsg": {
+      "syntax": "SendNewLineMsg 类型 字体颜色 背景色 字号 Y坐标 显示时间 绘制方式 内容 [范围] [X坐标] [顶层显示]",
+      "details": "按指定绘制方式显示屏幕公告。",
+      "params": "类型 字体颜色 背景色 字号 Y坐标 显示时间 绘制方式 内容 [范围] [X坐标] [顶层显示]",
+      "paramList": [
+        "接收范围。0 全服，1 自己，2–4 队伍、行会、同地图（包含自己），5–7 对应范围（不含自己），8 同一国家。",
+        "字体颜色，0–255。",
+        "背景颜色，0–255。",
+        "字体大小。",
+        "公告 Y 坐标。",
+        "显示时间。",
+        "0 带透明框，1 淡入淡出，2 无透明框。",
+        "公告内容，用 || 换行。",
+        "发送范围，用于按附近队友、行会成员或地图角色过滤。",
+        "公告 X 坐标。",
+        "是否在顶层显示公告。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 8,
+      "maxArgs": 11,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/发送屏幕中间大字体信息[!].htm",
+        "title": "发送屏幕中间大字体信息",
+        "evidenceLine": 53
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SetItemFrom": {
+      "syntax": "SetItemFrom 装备位置 类型 值1 [值2]",
+      "details": "修改指定装备的来源记录。",
+      "params": "装备位置 类型 值1 [值2]",
+      "paramList": [
+        "装备所在位置。",
+        "来源字段。0 来源代码，1 地图，2 击杀的怪物，3 经手人，4 时间。",
+        "要写入的值。类型为 0 时，来源代码 10 表示自定义来源。类型为 4 时填日期。",
+        "类型为 4 时填时间，其他类型留空。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 3,
+      "maxArgs": 4,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品来源相关文档.htm",
+        "title": "物品来源相关",
+        "evidenceLine": 13
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "GetItemFrom": {
+      "syntax": "GetItemFrom 装备位置 类型 变量名",
+      "details": "读取指定装备的来源记录。",
+      "params": "装备位置 类型 变量名",
+      "paramList": [
+        "装备所在位置。",
+        "来源字段。0 来源代码，1 地图，2 击杀的怪物，3 经手人，4 时间。",
+        "保存结果的脚本变量。来源代码 10 表示自定义来源。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/物品来源相关文档.htm",
+        "title": "物品来源相关",
+        "evidenceLine": 5
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "Map": {
+      "syntax": "Map 地图名",
+      "details": "将人物移动到指定地图的随机坐标。",
+      "params": "地图名",
+      "paramList": [
+        "目标地图编号或可求值为地图编号的变量。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]",
+        "evidenceLine": 10
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "HairColor": {
+      "syntax": "HairColor 红值 绿值 蓝值",
+      "details": "设置人物的头发颜色。",
+      "params": "红值 绿值 蓝值",
+      "paramList": [
+        "红色分量，0–255。",
+        "绿色分量，0–255。",
+        "蓝色分量，0–255。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]",
+        "evidenceLine": 17
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "Reset": {
+      "syntax": "Reset [起始标志] 数量",
+      "details": "从指定的个人标志开始，连续将给定数量的标志置为 0。",
+      "params": "[起始标志] 数量",
+      "paramList": [
+        "起始标志编号。保留方括号，可使用变量。",
+        "要连续清除的标志数量。示例 Reset [100] 7 清除 100–106。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]",
+        "evidenceLine": 49
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "Gender": {
+      "syntax": "Gender [MAN]",
+      "details": "检测人物性别。结婚脚本示例同时使用带 MAN 和省略参数两种形式。",
+      "params": "[MAN]",
+      "paramList": [
+        "MAN 表示检测男性。手册示例另有省略该参数的写法，未说明省略时的含义。"
+      ],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "minArgs": 0,
+      "maxArgs": 1,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/结婚脚本.htm",
+        "title": "结婚脚本",
+        "evidenceLine": 33
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "GenderMan": {
+      "syntax": "GenderMan",
+      "details": "基础命令页将检测男性写作 genderman；同手册的结婚脚本使用 GENDER MAN。连写形式仅见于说明，未在脚本示例中核实。",
+      "params": "",
+      "paramList": [],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/传奇基础脚本命令详解[!].htm",
+        "title": "传奇脚本命令详解[!]",
+        "evidenceLine": 83
+      },
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    "CHECKGAMEGOLD": {
+      "syntax": "CHECKGAMEGOLD 比较符 数量",
+      "details": "检查当前人物的游戏币余额。NOT CHECKGAMEGOLD > 50 表示余额不大于 50。",
+      "params": "比较符 数量",
+      "paramList": [
+        "比较符，支持 <、>、=。",
+        "要与当前人物游戏币余额比较的数量。"
+      ],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/脚本检测命令/检查人物的游戏点数.htm",
+        "title": "检查人物的游戏点数",
+        "evidenceLine": 18
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "CHECKLEVELEX": {
+      "syntax": "CHECKLEVELEX 比较符 等级",
+      "details": "比较当前人物的等级。使用 H.CHECKLEVELEX 时比较英雄的等级。NOT H.CHECKLEVELEX > 80 表示英雄等级不大于 80。",
+      "params": "比较符 等级",
+      "paramList": [
+        "等级比较符，支持 =、>、<。",
+        "要比较的等级数，范围 1～65535。"
+      ],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/脚本检测命令/检查玩家等级.htm",
+        "title": "检查玩家等级",
+        "evidenceLine": 4
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "HttpGet": {
+      "syntax": "HttpGet 请求地址 NPC触发标签 返回变量",
+      "details": "向指定网络地址发送 GET，返回内容写入变量并触发指定标签。",
+      "params": "请求地址 NPC触发标签 返回变量",
+      "paramList": [
+        "请求地址 URL",
+        "返回结果后执行的当前NPC标签",
+        "接收返回内容的变量"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/向指定网络地址提交数据.html",
+        "title": "向指定网络地址提交数据",
+        "evidenceLine": 5
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "StopItemDrop": {
+      "syntax": "StopItemDrop",
+      "details": "中止本次人物物品丢弃，在对应丢弃前触发内执行。",
+      "params": "",
+      "paramList": [],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/丢弃背包物品前触发.html",
+        "title": "丢弃背包物品前触发",
+        "evidenceLine": 4
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 0,
+      "maxArgs": 0
+    },
+    "H.StopItemDrop": {
+      "syntax": "H.StopItemDrop",
+      "details": "中止本次英雄物品丢弃，在对应丢弃前触发内执行。",
+      "params": "",
+      "paramList": [],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/丢弃背包物品前触发.html",
+        "title": "丢弃背包物品前触发",
+        "evidenceLine": 5
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 0,
+      "maxArgs": 0
+    },
+    "CheckAutoPlayGame": {
+      "syntax": "CheckAutoPlayGame",
+      "details": "检测当前人物是否正在内挂挂机。",
+      "params": "",
+      "paramList": [],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/内挂挂机设置.htm",
+        "title": "内挂挂机设置",
+        "evidenceLine": 31
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 0,
+      "maxArgs": 0
+    },
+    "CheckStateValue": {
+      "syntax": "CheckStateValue 状态值",
+      "details": "检测指定状态。",
+      "params": "状态值",
+      "paramList": [
+        "0绿毒、1红毒、2麻痹、3冰冻、4永恒冰冻、5蛛网、6禁锢、7定身、8瘫痪、9零防御、10零魔御、11隐身、12连击锁定、13护盾（14/15无效）、16神圣战甲术、17幽灵盾"
+      ],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/脚本检测命令/检测对象状态.htm",
+        "title": "检测对象状态",
+        "evidenceLine": 3
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "SetItemState": {
+      "syntax": "SetItemState 装备位置 项目 开关",
+      "details": "设置或检测装备流转限制；项目7以本引擎当前手册为准。",
+      "params": "装备位置 项目 开关",
+      "paramList": [
+        "装备位置，-1 为 OK 框",
+        "项目 0禁扔、1禁交易、2禁存、3禁修、4禁售、5禁爆、6丢弃消失、7禁止取下",
+        "开关，0正常、1设置限制"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/功能操作命令/设置装备绑定状态.htm",
+        "title": "设置装备绑定状态",
+        "evidenceLine": 2
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "CheckItemState": {
+      "syntax": "CheckItemState 装备位置 项目",
+      "details": "设置或检测装备流转限制；项目7以本引擎当前手册为准。",
+      "params": "装备位置 项目",
+      "paramList": [
+        "装备位置，-1 为 OK 框",
+        "项目 0禁扔、1禁交易、2禁存、3禁修、4禁售、5禁爆、6丢弃消失、7禁止取下"
+      ],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/功能操作命令/设置装备绑定状态.htm",
+        "title": "设置装备绑定状态",
+        "evidenceLine": 6
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "MAKEPOSION": {
+      "syntax": "MAKEPOSION 类型 秒数 威力 [防御处理] [千分比]",
+      "details": "改变人物毒或麻痹状态。",
+      "params": "类型 秒数 威力 [防御处理] [千分比]",
+      "paramList": [
+        "状态类型：0绿毒、1红毒、5麻痹",
+        "持续时间（秒）",
+        "威力",
+        "是否无视目标对应的状态防御属性（0/1）",
+        "是否按千分比计算毒威力（0/1），50千分比为5%"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/改变人物状态.html",
+        "title": "改变人物状态",
+        "evidenceLine": 1
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 3,
+      "maxArgs": 5
+    },
+    "MoveMonToPos": {
+      "syntax": "MoveMonToPos 怪物或宝宝 地图 原X 原Y 新X 新Y",
+      "details": "将指定怪物或宝宝移动到目标坐标。",
+      "params": "怪物或宝宝 地图 原X 原Y 新X 新Y",
+      "paramList": [
+        "怪物或宝宝名称",
+        "地图编号",
+        "原坐标X",
+        "原坐标Y",
+        "新坐标X",
+        "新坐标Y"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/功能操作命令/移动怪物到新坐标.htm",
+        "title": "移动怪物到新坐标",
+        "evidenceLine": 2
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 6,
+      "maxArgs": 6
+    }
+  },
+  "saySnippets": [
+    {
+      "id": "img-relative",
+      "label": "<IMG:N:F:X:Y>",
+      "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}>",
+      "description": "显示静态图片",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 6
+      },
+      "parameters": [
+        {
+          "description": "图片在资源文件中的序号。"
+        },
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        }
+      ]
+    },
+    {
+      "id": "img-absolute",
+      "label": "<&IMG:N:F:X:Y>",
+      "snippet": "<&IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}>",
+      "description": "使用绝对坐标显示静态图片",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 6
+      },
+      "parameters": [
+        {
+          "description": "图片在资源文件中的序号。"
+        },
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        }
+      ]
+    },
+    {
+      "id": "img-hover",
+      "label": "<IMG:N:F:X:Y|备注>",
+      "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}|${5:悬停备注}>",
+      "description": "显示带鼠标悬停备注的静态图片",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/npc标签功能.htm",
+        "title": "NPC标签备注功能[!]",
+        "evidenceLine": 7
+      },
+      "parameters": [
+        {
+          "description": "图片在资源文件中的序号。"
+        },
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        }
+      ],
+      "markupAliases": [
+        "<&IMG"
+      ]
+    },
+    {
+      "id": "gee-img-submit",
+      "label": "<IMG:N:F:X:Y:输入框ID/@标签>",
+      "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}:${5:输入框ID}/@${6:标签}>",
+      "description": "点击图片执行脚本，并提交指定输入框。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 6
+      },
+      "parameters": [
+        {
+          "description": "图片在资源文件中的序号。"
+        },
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "要提交的输入框 ID。多个 ID 以逗号分隔，* 表示全部输入框。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ],
+      "markupAliases": [
+        "<&IMG"
+      ]
+    },
+    {
+      "id": "gee-img-submit-hint",
+      "label": "<IMG:N:F:X:Y:输入框ID|提示/@标签>",
+      "snippet": "<IMG:${1:图片序号}:${2:WIL序号}:${3:X}:${4:Y}:${5:输入框ID}|${6:提示}/@${7:标签}>",
+      "description": "带悬停提示的图片，点击时提交指定输入框。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/NPC对话框内默认输入框.htm",
+        "title": "NPC对话框内默认输入框",
+        "evidenceLine": 17
+      },
+      "parameters": [
+        {
+          "description": "图片在资源文件中的序号。"
+        },
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "要提交的输入框 ID。多个 ID 以逗号分隔，* 表示全部输入框。"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ],
+      "markupAliases": [
+        "<&IMG"
+      ]
+    },
+    {
+      "id": "imgex-absolute",
+      "label": "<&IMGEX:F:U:H:D:X:Y>",
+      "snippet": "<&IMGEX:${1:WIL序号}:${2:默认图片}:${3:移入图片}:${4:按下图片}:${5:X}:${6:Y}>",
+      "description": "使用绝对坐标显示三态按钮图片",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 13
+      },
+      "parameters": [
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "默认状态的图片序号。"
+        },
+        {
+          "description": "鼠标移入时的图片序号。"
+        },
+        {
+          "description": "鼠标按下时的图片序号。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        }
+      ],
+      "markupAliases": [
+        "<IMGEX"
+      ]
+    },
+    {
+      "id": "gee-imgex-submit",
+      "label": "<&IMGEX:F:U:H:D:X:Y:P/@标签>",
+      "snippet": "<&IMGEX:${1:WIL序号}:${2:默认图片}:${3:移入图片}:${4:按下图片}:${5:X}:${6:Y}:${7:输入框ID}/@${8:标签}>",
+      "description": "显示三态图片按钮，点击时可提交输入框并执行脚本标签。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 13
+      },
+      "parameters": [
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "默认状态的图片序号。"
+        },
+        {
+          "description": "鼠标移入时的图片序号。"
+        },
+        {
+          "description": "鼠标按下时的图片序号。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "要提交的输入框 ID。多个 ID 以逗号分隔，* 表示全部输入框。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ],
+      "markupAliases": [
+        "<IMGEX"
+      ]
+    },
+    {
+      "id": "playimg-absolute",
+      "label": "<&PLAYIMG:F:N:C:T:X:Y:M:备注文字:P>",
+      "snippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0-3)}:${8:备注文字}:${9:输入框ID列表}>",
+      "description": "使用绝对坐标播放动态图片，可设置绘制层、备注和提交输入框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 23
+      },
+      "parameters": [
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "动画开始图片的序号。"
+        },
+        {
+          "description": "连续播放的图片张数。"
+        },
+        {
+          "description": "每帧播放间隔，单位为毫秒。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "绘制模式。0 原始，1 透明，2 底层原始，3 底层透明。"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        },
+        {
+          "description": "要提交的输入框 ID。多个 ID 以逗号分隔，* 表示全部输入框。"
+        },
+        {
+          "description": "脚本触发标签。"
+        }
+      ],
+      "markupAliases": [
+        "<PLAYIMG"
+      ],
+      "hoverSnippet": "<&PLAYIMG:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0-3)}:${8:备注文字}:${9:输入框ID列表}/@${10:标签}>"
+    },
+    {
+      "id": "playimgex-absolute",
+      "label": "<&PLAYIMGEX:F:N:C:T:H:X:Y:M:备注文字:P>",
+      "snippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}:${8:绘制模式(0-3)}:${9:备注文字}:${10:输入框ID列表}>",
+      "description": "使用绝对坐标按指定次数播放动态图片，可设置绘制层、备注和提交输入框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 33
+      },
+      "parameters": [
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "动画开始图片的序号。"
+        },
+        {
+          "description": "连续播放的图片张数。"
+        },
+        {
+          "description": "每帧播放间隔，单位为毫秒。"
+        },
+        {
+          "description": "动画播放次数。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "绘制模式。0 原始，1 透明，2 底层原始，3 底层透明。"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        },
+        {
+          "description": "要提交的输入框 ID。多个 ID 以逗号分隔，* 表示全部输入框。"
+        },
+        {
+          "description": "脚本触发标签。"
+        }
+      ],
+      "markupAliases": [
+        "<PLAYIMGEX"
+      ],
+      "hoverSnippet": "<&PLAYIMGEX:${1:WIL序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:播放次数}:${6:X}:${7:Y}:${8:绘制模式(0-3)}:${9:备注文字}:${10:输入框ID列表}/@${11:标签}>"
+    },
+    {
+      "id": "text-absolute",
+      "label": "<&TEXT:内容:X:Y{FCOLOR=颜色}>",
+      "snippet": "<&TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:251}}>",
+      "description": "使用绝对坐标显示文字",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/Npc文字Text使用.htm",
+        "title": "Npc文字Text使用",
+        "evidenceLine": 5
+      },
+      "parameters": [
+        {
+          "description": "显示的文字。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "文字颜色编号。"
+        }
+      ],
+      "markupAliases": [
+        "<TEXT"
+      ],
+      "styleParameters": [
+        {
+          "key": "FCOLOR",
+          "description": "文字颜色编号。"
+        },
+        {
+          "key": "FSIZE",
+          "description": "文字字号。"
+        },
+        {
+          "key": "FNAME",
+          "description": "字体名称。"
+        },
+        {
+          "key": "FBOLD",
+          "description": "文字是否加粗，示例以 1 表示加粗。"
+        },
+        {
+          "key": "AUTOCOLOR",
+          "description": "轮换显示的文字颜色，多个颜色编号以逗号分隔。"
+        }
+      ]
+    },
+    {
+      "id": "text-absolute-link",
+      "label": "<&TEXT:内容:X:Y{FCOLOR=颜色}/@标签>",
+      "snippet": "<&TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:251}}/@${5:标签}>",
+      "description": "使用绝对坐标显示可点击文字",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/Npc文字Text使用.htm",
+        "title": "Npc文字Text使用",
+        "evidenceLine": 7
+      },
+      "parameters": [
+        {
+          "description": "显示的文字。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "文字颜色编号。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ],
+      "markupAliases": [
+        "<TEXT"
+      ],
+      "styleParameters": [
+        {
+          "key": "FCOLOR",
+          "description": "文字颜色编号。"
+        },
+        {
+          "key": "FSIZE",
+          "description": "文字字号。"
+        },
+        {
+          "key": "FNAME",
+          "description": "字体名称。"
+        },
+        {
+          "key": "FBOLD",
+          "description": "文字是否加粗，示例以 1 表示加粗。"
+        },
+        {
+          "key": "AUTOCOLOR",
+          "description": "轮换显示的文字颜色，多个颜色编号以逗号分隔。"
+        }
+      ]
+    },
+    {
+      "id": "gee-text-input-submit",
+      "label": "<TEXT:文字:X:Y:输入框ID/@标签>",
+      "snippet": "<TEXT:${1:文字}:${2:X}:${3:Y}:${4:输入框ID}/@${5:标签}>",
+      "description": "点击文字时提交指定输入框并执行标签。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/NPC对话框内默认输入框.htm",
+        "title": "NPC对话框内默认输入框",
+        "evidenceLine": 18
+      },
+      "parameters": [
+        {
+          "description": "显示的文字。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "要提交的输入框 ID。多个 ID 以逗号分隔，* 表示全部输入框。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ],
+      "markupAliases": [
+        "<&TEXT"
+      ],
+      "styleParameters": [
+        {
+          "key": "FCOLOR",
+          "description": "文字颜色编号。"
+        },
+        {
+          "key": "FSIZE",
+          "description": "文字字号。"
+        },
+        {
+          "key": "FNAME",
+          "description": "字体名称。"
+        },
+        {
+          "key": "FBOLD",
+          "description": "文字是否加粗，示例以 1 表示加粗。"
+        },
+        {
+          "key": "AUTOCOLOR",
+          "description": "轮换显示的文字颜色，多个颜色编号以逗号分隔。"
+        }
+      ]
+    },
+    {
+      "id": "item-show",
+      "label": "<&ITEMSHOW:D:F:X:Y:Z:W:G:U/@Label>",
+      "snippet": "<&ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:灰化}:${8:数量单位}/@${9:标签}>",
+      "description": "使用绝对坐标显示物品图片和属性，可设置背景框、发光、灰化、数量单位和单击标签",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用装备信息.htm",
+        "title": "NPC对话框调用装备信息（支持物品图片以及展示属性）",
+        "evidenceLine": 2
+      },
+      "parameters": [
+        {
+          "description": "物品数据库编号 IDX。"
+        },
+        {
+          "description": "显示数量，小于 1 时隐藏数量。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "背景框。0 无，1 使用 NewopUI.pak 第 250 张，大于 1 直接指定图片。"
+        },
+        {
+          "description": "首饰发光代码，可为 0 或省略。"
+        },
+        {
+          "description": "0 或空为正常显示，1 灰化。"
+        },
+        {
+          "description": "数量单位。0 不使用，1 在超过 10000 时显示 W。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ],
+      "markupAliases": [
+        "<ITEMSHOW"
+      ]
+    },
+    {
+      "id": "input-text",
+      "label": "<&INPUTTEXT:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+      "snippet": "<&INPUTTEXT:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+      "description": "创建文本输入框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/NPC对话框内默认输入框.htm",
+        "title": "NPC对话框内默认输入框",
+        "evidenceLine": 1
+      },
+      "parameters": [
+        {
+          "description": "输入框 ID，1–40。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "输入框宽度。"
+        },
+        {
+          "description": "输入框高度。"
+        },
+        {
+          "description": "背景颜色，0–255。-1 表示透明。"
+        },
+        {
+          "description": "边框颜色，0–255。-1 表示无边框。"
+        },
+        {
+          "description": "输入文字颜色。"
+        },
+        {
+          "description": "允许输入的最小长度，0 表示不检查。"
+        },
+        {
+          "description": "允许输入的最大长度，0 表示不检查。"
+        },
+        {
+          "description": "数据无效时的提示内容。为空时客户端不检查有效性。"
+        },
+        {
+          "description": "未输入时的提示文字。"
+        },
+        {
+          "description": "提示文字的颜色。"
+        }
+      ],
+      "markupAliases": [
+        "<INPUTTEXT"
+      ]
+    },
+    {
+      "id": "input-number",
+      "label": "<&INPUTNUM:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+      "snippet": "<&INPUTNUM:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小值}:${10:最大值}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+      "description": "创建数字输入框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/NPC对话框内默认输入框.htm",
+        "title": "NPC对话框内默认输入框",
+        "evidenceLine": 6
+      },
+      "parameters": [
+        {
+          "description": "输入框 ID，1–40。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "输入框宽度。"
+        },
+        {
+          "description": "输入框高度。"
+        },
+        {
+          "description": "背景颜色，0–255。-1 表示透明。"
+        },
+        {
+          "description": "边框颜色，0–255。-1 表示无边框。"
+        },
+        {
+          "description": "输入文字颜色。"
+        },
+        {
+          "description": "允许的最小数值。最小值和最大值同时为 0 表示不限。"
+        },
+        {
+          "description": "允许的最大数值，须大于等于最小值。"
+        },
+        {
+          "description": "数据无效时的提示内容。为空时客户端不检查有效性。"
+        },
+        {
+          "description": "未输入时的提示文字。"
+        },
+        {
+          "description": "提示文字的颜色。"
+        }
+      ],
+      "markupAliases": [
+        "<INPUTNUM"
+      ]
+    },
+    {
+      "id": "countdown",
+      "label": "<&COUNTDOWN:S:C:COLOR:X:Y:M/@LABEL>",
+      "snippet": "<&COUNTDOWN:${1:秒数}:${2:次数}:${3:颜色}:${4:X}:${5:Y}:${6:显示格式}/@${7:触发标签}>",
+      "description": "显示文字倒计时并在结束时触发脚本",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框内倒计时.html",
+        "title": "NPC对话框内倒计时",
+        "evidenceLine": 4
+      },
+      "parameters": [
+        {
+          "description": "每轮倒计时秒数。"
+        },
+        {
+          "description": "重复次数，0 表示无限次。"
+        },
+        {
+          "description": "倒计时文字颜色。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "时间格式。0 或空为时分秒，1 按时长省略小时或分钟，2 显示总秒数。"
+        },
+        {
+          "description": "倒计时完成后的触发标签。"
+        }
+      ],
+      "markupAliases": [
+        "<COUNTDOWN"
+      ]
+    },
+    {
+      "id": "image-countdown",
+      "label": "<&IMGCOUNTDOWN:S:C:N:GAP:X:Y:M/@LABEL>",
+      "snippet": "<&IMGCOUNTDOWN:${1:秒数}:${2:次数}:${3:开始图片}:${4:图片间隔}:${5:X}:${6:Y}:${7:显示格式}/@${8:触发标签}>",
+      "description": "使用图片数字显示倒计时",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框内倒计时.html",
+        "title": "NPC对话框内倒计时",
+        "evidenceLine": 19
+      },
+      "parameters": [
+        {
+          "description": "每轮倒计时秒数。"
+        },
+        {
+          "description": "重复次数，0 表示无限次。"
+        },
+        {
+          "description": "NewopUI.pak 中的起始数字图片序号。"
+        },
+        {
+          "description": "数字图片的间隔。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "时间格式。0 或空为时分秒，1 按时长省略小时或分钟，2 显示总秒数。"
+        },
+        {
+          "description": "倒计时完成后的触发标签。"
+        }
+      ],
+      "markupAliases": [
+        "<IMGCOUNTDOWN"
+      ]
+    },
+    {
+      "id": "image-number",
+      "label": "<&IMGNUM:TYPE:VALUE:GAP:X:Y:INPUTIDS>",
+      "snippet": "<&IMGNUM:${1:数字类型(0-9)}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:提交输入框ID}>",
+      "description": "使用 NewopUI 1230-1329 中指定数字类型的素材显示数值，可提交指定输入框 ID",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/数字转换为图片显示标签.htm",
+        "title": "数字转换为图片显示标签",
+        "evidenceLine": 5
+      },
+      "parameters": [
+        {
+          "description": "数字外观类型，0–9。"
+        },
+        {
+          "description": "要显示的非负数值，可使用变量。"
+        },
+        {
+          "description": "数字之间的间隔。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "要提交的输入框 ID。多个 ID 以逗号分隔，* 表示全部输入框。"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        },
+        {
+          "description": "脚本触发标签。"
+        }
+      ],
+      "markupAliases": [
+        "<IMGNUM"
+      ],
+      "hoverSnippet": "<&IMGNUM:${1:数字类型(0-9)}:${2:数字值}:${3:字符间隔}:${4:X}:${5:Y}:${6:提交输入框ID}|${7:提示文字}/@${8:标签}>"
+    },
+    {
+      "id": "progress-bar",
+      "label": "<ProgressBar:X:Y:F:B:P:C:T:X2:Y2:N:X:V:D:L:X3:Y3:TEXT:TIP>",
+      "snippet": "<ProgressBar:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}>",
+      "description": "显示动态进度条",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/Npc对话框动态进度条功能.htm",
+        "title": "Npc对话框动态进度条功能[!]",
+        "evidenceLine": 7
+      },
+      "markupAliases": [
+        "<&PROGRESSBAR"
+      ],
+      "parameters": [
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "图片所在 WIL 资源文件序号。"
+        },
+        {
+          "description": "背景图片序号。"
+        },
+        {
+          "description": "进度部分图片序号。"
+        },
+        {
+          "description": "进度部分动画图片张数。"
+        },
+        {
+          "description": "进度动画播放间隔。"
+        },
+        {
+          "description": "进度部分 X 偏移。"
+        },
+        {
+          "description": "进度部分 Y 偏移。"
+        },
+        {
+          "description": "进度最小值。"
+        },
+        {
+          "description": "进度最大值。"
+        },
+        {
+          "description": "进度当前值。"
+        },
+        {
+          "description": "增长方向。0 向右，1 向左，2 向下，3 向上。"
+        },
+        {
+          "description": "进度文字颜色，0–255。"
+        },
+        {
+          "description": "文字 X 偏移。"
+        },
+        {
+          "description": "文字 Y 偏移。"
+        },
+        {
+          "description": "显示文字，%p 为当前值，%m 为最大值，%r 为百分比。"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        },
+        {
+          "description": "脚本触发标签。"
+        }
+      ],
+      "hoverSnippet": "<ProgressBar:${1:X}:${2:Y}:${3:WIL序号}:${4:背景图片}:${5:进度图片}:${6:数量}:${7:间隔}:${8:X2}:${9:Y2}:${10:最小值}:${11:最大值}:${12:当前值}:${13:方向}:${14:文字颜色}:${15:X3}:${16:Y3}:${17:显示文字}:${18:备注}/@${19:标签}>"
+    },
+    {
+      "id": "item-box",
+      "label": "<ITEMBOX:N:F:M:X:Y:W:H:S:T>",
+      "snippet": "<ITEMBOX:${1:编号}:${2:WIL序号}:${3:背景图片}:${4:X}:${5:Y}:${6:宽度}:${7:高度}:${8:允许类型}:${9:提示文字}>",
+      "description": "创建自定义物品 OK 框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/自定义OK框.htm",
+        "title": "自定义OK框[!]",
+        "evidenceLine": 3
+      },
+      "parameters": [
+        {
+          "description": "自定义 OK 框编号，0–31。"
+        },
+        {
+          "description": "背景 WIL 序号，-1 表示不绘制背景。"
+        },
+        {
+          "description": "背景图片序号。"
+        },
+        {
+          "description": "横向微调坐标。"
+        },
+        {
+          "description": "纵向微调坐标。"
+        },
+        {
+          "description": "OK 框宽度。"
+        },
+        {
+          "description": "OK 框高度。"
+        },
+        {
+          "description": "允许放入的物品 StdMode 编号。多个值用逗号分隔，* 接受全部。"
+        },
+        {
+          "description": "未放入装备时的鼠标提示。"
+        }
+      ]
+    },
+    {
+      "id": "looks-preview",
+      "label": "<Looks:N:X:Y:Z>",
+      "snippet": "<Looks:${1:图片位置}:${2:X}:${3:Y}:${4:背景框(0/1)}>",
+      "description": "显示 Items 系列资源中的物品外观",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm",
+        "title": "Npc对话框绝对坐标元素",
+        "evidenceLine": 22
+      },
+      "parameters": [
+        {
+          "description": "图片位置"
+        },
+        {
+          "description": "X"
+        },
+        {
+          "description": "Y"
+        },
+        {
+          "description": "背景框(0/1)"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        },
+        {
+          "description": "脚本触发标签。"
+        }
+      ],
+      "markupAliases": [
+        "<&Looks"
+      ],
+      "hoverSnippet": "<Looks:${1:图片位置}:${2:X}:${3:Y}:${4:背景框(0/1)}|${5:提示文字}/@${6:标签}>"
+    },
+    {
+      "id": "state-item-preview",
+      "label": "<StateItem:Looks:X:Y:边框|提示/@Label>",
+      "snippet": "<StateItem:${1:Looks}:${2:X}:${3:Y}:${4:边框}|${5:提示}/@${6:标签}>",
+      "description": "显示 StateItem 物品外观，可用于附加对话框和提示内容",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm",
+        "title": "Npc对话框绝对坐标元素",
+        "evidenceLine": 24
+      },
+      "parameters": [
+        {
+          "description": "物品Looks"
+        },
+        {
+          "description": "X"
+        },
+        {
+          "description": "Y"
+        },
+        {
+          "description": "边框"
+        },
+        {
+          "description": "悬停提示"
+        },
+        {
+          "description": "触发标签"
+        }
+      ],
+      "markupAliases": [
+        "<&StateItem"
+      ]
+    },
+    {
+      "id": "dnitems-preview",
+      "label": "<DnItems:Looks:X:Y:边框|提示/@Label>",
+      "snippet": "<DnItems:${1:Looks}:${2:X}:${3:Y}:${4:边框}|${5:提示}/@${6:标签}>",
+      "description": "显示 DnItems 物品外观，可用于附加对话框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm",
+        "title": "Npc对话框绝对坐标元素",
+        "evidenceLine": 23
+      },
+      "parameters": [
+        {
+          "description": "物品Looks"
+        },
+        {
+          "description": "X"
+        },
+        {
+          "description": "Y"
+        },
+        {
+          "description": "边框"
+        },
+        {
+          "description": "悬停提示"
+        },
+        {
+          "description": "触发标签"
+        }
+      ],
+      "markupAliases": [
+        "<&DnItems"
+      ]
+    },
+    {
+      "id": "newopui-preview",
+      "label": "<NewopUI:N:X:Y>",
+      "snippet": "<NewopUI:${1:图片序号}:${2:X}:${3:Y}>",
+      "description": "显示 NewopUI.pak 中的图片",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/Npc对话框绝对坐标.htm",
+        "title": "Npc对话框绝对坐标元素",
+        "evidenceLine": 25
+      },
+      "parameters": [
+        {
+          "description": "图片序号"
+        },
+        {
+          "description": "X"
+        },
+        {
+          "description": "Y"
+        },
+        {
+          "description": "鼠标悬停时显示的提示文字。"
+        },
+        {
+          "description": "脚本触发标签。"
+        }
+      ],
+      "markupAliases": [
+        "<&NewopUI"
+      ],
+      "hoverSnippet": "<NewopUI:${1:图片序号}:${2:X}:${3:Y}|${4:提示文字}/@${5:标签}>"
+    },
+    {
+      "id": "user-item-preview",
+      "label": "<UserItem:D:X:Y:Z:W/@Label>",
+      "snippet": "<UserItem:${1:装备位置}:${2:X}:${3:Y}:${4:背景框}:${5:发光代码}/@${6:标签}>",
+      "description": "在 NPC 对话框显示人物身上装备",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用身上装备信息.htm",
+        "title": "NPC对话框调用身上装备信息（支持物品图片以及展示属性）",
+        "evidenceLine": 2
+      },
+      "parameters": [
+        {
+          "description": "装备位置。0–29 身上装备，30–35 首饰盒，40–51 神佑。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "背景框。0 不显示，1 使用 NewopUI.pak 第 250 张，其他大于 1 的值为指定图片。"
+        },
+        {
+          "description": "发光代码，与装备 Light 值相同，可省略。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ],
+      "markupAliases": [
+        "<&UserItem"
+      ]
+    },
+    {
+      "id": "hero-user-item-preview",
+      "label": "<HeroUserItem:D:X:Y:Z:W/@Label>",
+      "snippet": "<HeroUserItem:${1:装备位置}:${2:X}:${3:Y}:${4:背景框}:${5:发光代码}/@${6:标签}>",
+      "description": "在 NPC 对话框显示英雄身上装备",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用身上装备信息.htm",
+        "title": "NPC对话框调用身上装备信息（支持物品图片以及展示属性）",
+        "evidenceLine": 13
+      },
+      "parameters": [
+        {
+          "description": "装备位置。0–29 身上装备，30–35 首饰盒，40–51 神佑。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "背景框。0 不显示，1 使用 NewopUI.pak 第 250 张，其他大于 1 的值为指定图片。"
+        },
+        {
+          "description": "发光代码，与装备 Light 值相同，可省略。"
+        },
+        {
+          "description": "点击后执行的脚本标签。"
+        }
+      ]
+    },
+    {
+      "id": "gee-user-item-view-target",
+      "label": "<UserItem:D:F:X:Y:Z:W:G>",
+      "snippet": "<UserItem:${1:装备位置}:${2:F}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:查看对象}>",
+      "description": "查看当前目标装备。手册另列无需指定查看对象的简短写法。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用身上装备信息.htm",
+        "title": "NPC对话框调用身上装备信息（支持物品图片以及展示属性）",
+        "evidenceLine": 10
+      },
+      "parameters": [
+        {
+          "description": "装备位置。0–29 身上装备，30–35 首饰盒，40–51 神佑。"
+        },
+        {
+          "description": "F 占位。手册长格式列出该项，未说明含义。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "背景框。0 不显示，1 使用 NewopUI.pak 第 250 张，其他大于 1 的值为指定图片。"
+        },
+        {
+          "description": "发光代码，与装备 Light 值相同，可省略。"
+        },
+        {
+          "description": "查看对象。0 或空显示自己的装备，1 显示当前查看目标的装备。"
+        }
+      ],
+      "markupAliases": [
+        "<&UserItem"
+      ]
+    },
+    {
+      "id": "gee-hero-user-item-view-target",
+      "label": "<HeroUserItem:D:F:X:Y:Z:W:G>",
+      "snippet": "<HeroUserItem:${1:装备位置}:${2:F}:${3:X}:${4:Y}:${5:背景框}:${6:发光代码}:${7:查看对象}>",
+      "description": "查看英雄装备，需英雄在线。手册说明英雄与人物使用相同格式，名称加 Hero 前缀，末尾 G 指定查看对象。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/NPC对话框调用身上装备信息.htm",
+        "title": "NPC对话框调用身上装备信息（支持物品图片以及展示属性）",
+        "evidenceLine": 17
+      },
+      "parameters": [
+        {
+          "description": "装备位置。0–29 身上装备，30–35 首饰盒，40–51 神佑。"
+        },
+        {
+          "description": "F 占位。手册长格式列出该项，未说明含义。"
+        },
+        {
+          "description": "横向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "纵向坐标，加 & 时使用绝对坐标。"
+        },
+        {
+          "description": "背景框。0 不显示，1 使用 NewopUI.pak 第 250 张，其他大于 1 的值为指定图片。"
+        },
+        {
+          "description": "发光代码，与装备 Light 值相同，可省略。"
+        },
+        {
+          "description": "查看对象。0 或空显示自己的装备，1 显示当前查看目标的装备。"
+        }
+      ]
+    },
+    {
+      "id": "big-number-text",
+      "label": "<BigNum:数值:X:Y:{FColor=颜色;FSize=字号;FName=字体}>",
+      "snippet": "<BigNum:${1:数值}:${2:X}:${3:Y}:{FColor=${4:249};FSize=${5:9};FName=${6:微软雅黑}}>",
+      "description": "在 NPC 对话框按客户端大数单位规则显示数值",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/部分脚本实例/变量显示数字单位.htm",
+        "title": "变量支持数字单位",
+        "evidenceLine": 11
+      },
+      "parameters": [
+        {
+          "description": "数值或变量"
+        },
+        {
+          "description": "X"
+        },
+        {
+          "description": "Y"
+        },
+        {
+          "description": "文字颜色"
+        },
+        {
+          "description": "字号"
+        },
+        {
+          "description": "字体名"
+        }
+      ],
+      "styleParameters": [
+        {
+          "key": "FCOLOR",
+          "description": "文字颜色编号。"
+        },
+        {
+          "key": "FSIZE",
+          "description": "文字字号。"
+        },
+        {
+          "key": "FNAME",
+          "description": "字体名称。"
+        }
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "name": "FjAttack",
+      "label": "[@FjAttack]",
+      "description": "飞剑攻击命中时在 QFunction 执行",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/飞剑功能操作命令.html",
+        "title": "飞剑功能操作命令",
+        "evidenceLine": 72
+      }
+    },
+    {
+      "name": "HumDropBagItem",
+      "label": "[@HumDropBagItem]",
+      "description": "人物从背包丢弃物品前触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/丢弃背包物品前触发.html",
+        "title": "丢弃背包物品前触发",
+        "evidenceLine": 7
+      }
+    },
+    {
+      "name": "HeroDropBagItem",
+      "label": "[@HeroDropBagItem]",
+      "description": "英雄从背包丢弃物品前触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/丢弃背包物品前触发.html",
+        "title": "丢弃背包物品前触发",
+        "evidenceLine": 8
+      }
+    },
+    {
+      "name": "QueryUserState",
+      "label": "[@QueryUserState]",
+      "description": "本人查看他人装备时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/查看他人装备触发.htm",
+        "title": "查看他人装备触发",
+        "evidenceLine": 2
+      }
+    },
+    {
+      "name": "QueryUserHeroState",
+      "label": "[@QueryUserHeroState]",
+      "description": "本人查看他人英雄装备时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/查看他人装备触发.htm",
+        "title": "查看他人装备触发",
+        "evidenceLine": 3
+      }
+    },
+    {
+      "name": "UserQueryState",
+      "label": "[@UserQueryState]",
+      "description": "他人查看本人物装备时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/查看他人装备触发.htm",
+        "title": "查看他人装备触发",
+        "evidenceLine": 4
+      }
+    },
+    {
+      "name": "UserQueryHeroState",
+      "label": "[@UserQueryHeroState]",
+      "description": "他人查看本人物的英雄装备时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/查看他人装备触发.htm",
+        "title": "查看他人装备触发",
+        "evidenceLine": 5
+      }
+    }
+  ]
+}

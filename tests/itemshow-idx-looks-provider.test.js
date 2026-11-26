@@ -313,6 +313,54 @@ async function main() {
       'conflicting GOM databases must not select a Looks value by filename order');
     assert.equal(resolver.resolveItemFieldByName(sourceFile, '传送戒指', 'IDX', 'GOM'), undefined,
       'conflicting GOM databases must not grant an IDX capability by filename order');
+
+    const setupFile = path.join(temporary, 'MirServer', 'Mir200', '!Setup.txt');
+    const setupTime = new Date(1_700_001_000_000);
+    const selectDatabase = (file, mode = '3') => {
+      const content = `[Server]\nUseAccessDB=${mode}\nSqliteFileName=${file}\n`;
+      fs.writeFileSync(setupFile, content.padEnd(1024, ' '));
+      fs.utimesSync(setupFile, setupTime, setupTime);
+    };
+    selectDatabase(databaseFile);
+    const configuredSetupStat = fs.statSync(setupFile);
+    await resolver.prepareFor(sourceFile, 'GOM');
+    assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', 'GOM'), '20034',
+      '!Setup must select the active database even when a sibling backup conflicts');
+    assert.equal(resolver.resolveItemFieldByName(sourceFile, '传送戒指', 'IDX', 'GOM'), '935',
+      'name lookups must use the same configured database as IDX -> Looks');
+
+    selectDatabase(conflictingLegacyFile);
+    const changedSetupStat = fs.statSync(setupFile);
+    assert.equal(changedSetupStat.size, configuredSetupStat.size);
+    assert.equal(changedSetupStat.mtimeMs, configuredSetupStat.mtimeMs);
+    await resolver.prepareFor(sourceFile, 'GOM');
+    assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', 'GOM'), '40031',
+      'a same-size/same-mtime !Setup edit must switch the cached source to its newly selected file');
+    assert.equal(resolver.resolveItemFieldByName(sourceFile, '传送戒指', 'IDX', 'GOM'), '934',
+      'the prior configured item database must not remain cached after changing source');
+
+    selectDatabase(path.join(path.dirname(databaseFile), 'missing-configured.db'));
+    await resolver.prepareFor(sourceFile, 'GOM');
+    assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', 'GOM'), undefined,
+      'missing configured databases must not fall back to backups, stale XLS or cached item values');
+    assert.equal(resolver.resolveItemFieldByName(sourceFile, '传送戒指', 'IDX', 'GOM'), undefined);
+    await resolver.prepareFor(sourceFile, '996PC');
+    assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', '996PC'), '30031',
+      '996PC cfg_item must remain isolated from legacy !Setup source selection');
+
+    selectDatabase(databaseFile, '999');
+    await resolver.prepareFor(sourceFile, 'GOM');
+    assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', 'GOM'), undefined,
+      'unknown active database modes must not open a configured-looking sibling or backup');
+    selectDatabase(databaseFile);
+    await resolver.prepareFor(sourceFile, 'GOM');
+    assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', 'GOM'), '20034',
+      'restoring a valid configuration must reopen the proven current database');
+    fs.unlinkSync(setupFile);
+    await resolver.prepareFor(sourceFile, 'GOM');
+    assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', 'GOM'), undefined,
+      'without !Setup the existing multi-source conflict rejection must be preserved');
+
     fs.unlinkSync(conflictingLegacyFile);
     await resolver.prepareFor(sourceFile, 'GOM');
     assert.equal(resolver.resolveItemFieldByIndex(sourceFile, 935, 'Looks', 'GOM'), '20034',

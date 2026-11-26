@@ -337,7 +337,8 @@ function parseNpcDialogDocumentInternal(
       ? undefined
       : new Map(conditionGroups.map(group => [group.id, group.satisfied])),
     new Set(variableResolution.executedLabels || []),
-    new Set(variableResolution.activeSurfaceActionLines || [])
+    new Set(variableResolution.activeSurfaceActionLines || []),
+    schemasByToken, options.offsets, linesByNumber
   );
   for (const window of addDlgWindows) warnings.push(...window.warnings);
   const activePreviewPath = Object.fromEntries(
@@ -386,6 +387,9 @@ function parseNpcDialogDocumentInternal(
       for (const element of page.elements) {
         if (!visited.has(page.sourceLabel.toLowerCase()) && !(element.executionRootLabel
           && visited.has(element.executionRootLabel.toLowerCase()) && Number.isInteger(element.sayOccurrence))) continue;
+        // Window icons are created in #ACT. Their script action can be shown, but
+        // the local replay path only binds events emitted by an active #SAY.
+        if (element.panelButton) continue;
         const action = element.runtimeActionPreview;
         const target = action?.link;
         const control = localControlContract(element, options.engine);
@@ -422,7 +426,8 @@ function parseNpcDialogDocumentInternal(
           peer.statementId === 'text-link-params' && peer.runtimeActionPreview?.link?.toLowerCase() === target?.toLowerCase()
         )));
         const legacyButton = (options.engine === 'GOM' && /^<(?:&)?(?:TEXT|IMG|IMGEX|PLAYIMG):/i.test(element.raw))
-          || (options.engine === 'GEE' && /^<(?:&)?(?:TEXT|IMG|IMGEX|PLAYIMG|PLAYIMGEX):/i.test(element.raw));
+          || (options.engine === 'GEE' && /^<(?:&)?(?:TEXT|IMG|IMGEX|IMGNUM|PLAYIMG|PLAYIMGEX):/i.test(element.raw))
+          || (options.engine === '996PC' && /^<(?:EquipShow|DBItemShow):/i.test(element.raw));
         const keyedButton = equip || (options.engine === '996PC' && /^<(?:Button|Img|Text|Layout)\|/i.test(element.raw) && !action?.doubleClickLink);
         if ((element.statementId !== 'text-link-params' && !sharesParameterizedTarget && !legacyButton && !keyedButton) || (action?.trigger || (keyedButton ? 'click' : '')) !== 'click'
           || action?.invalidFields?.length || action?.dynamicFields?.length
@@ -1636,7 +1641,10 @@ function attachAddButtonActionPreviews(
   conditionAliases: ReadonlyMap<string, string>,
   conditionStates: ReadonlyMap<string, boolean> | undefined,
   executedLabels: ReadonlySet<string>,
-  activeSurfaceActionLines: ReadonlySet<number>
+  activeSurfaceActionLines: ReadonlySet<number>,
+  schemasByToken: Map<string, DialogStatementSchema[]>,
+  offsets: NpcDialogOffsets,
+  linesByNumber: ReadonlyMap<number, ScriptLine>
 ): string[] {
   // Capture page-bearing labels before this function creates any synthetic
   // ADDBUTTON-only scene. Otherwise a dormant /@ business handler would make
@@ -1649,7 +1657,7 @@ function attachAddButtonActionPreviews(
       return executedLabels.has(label) || pageLabels.has(label);
     });
   const potentialCreations = surfaceInvocations.flatMap((invocation, index) => (
-    invocation.command === 'DELBUTTON'
+    invocation.command === 'DELBUTTON' || is996PanelButton(invocation, engine)
       ? []
       : [parseAddButtonCreation(source, invocation, engine, index)]
   ));
@@ -1658,6 +1666,7 @@ function attachAddButtonActionPreviews(
   )));
   const relevantSurfaceInvocations = surfaceInvocations.filter(invocation => {
     if (invocation.command !== 'DELBUTTON') return true;
+    if (engine === '996PC' && invocation.arguments.length === 2) return true;
     const deletion = parseAddButtonDeleteAction(invocation, engine);
     return deletion.dynamic
       ? potentialCreations.length > 0
@@ -1682,10 +1691,19 @@ function attachAddButtonActionPreviews(
     .map(invocation => parseAddButtonDeleteAction(invocation, engine));
   const parsed = invocations.flatMap((invocation, index) => {
     if (invocation.command === 'DELBUTTON') return [];
-    const sourceElement = parseAddButtonCreation(source, invocation, engine, index);
     const resolution = variableResolution.get(normalizeLabel(invocation.sourceLabel))?.lines.get(
       invocation.line.lineNumber
     );
+    if (is996PanelButton(invocation, engine)) {
+      const windowId = parseInteger(invocation.arguments[0].text);
+      const iconId = parseInteger(invocation.arguments[1].text);
+      if (windowId !== undefined && iconId !== undefined && invocations.slice(index+1).some(next =>
+        next.sourceLabel === invocation.sourceLabel && (is996PanelButton(next,engine) || next.command === 'DELBUTTON')
+        && parseInteger(next.arguments[0]?.text) === windowId && parseInteger(next.arguments[1]?.text) === iconId)) return [];
+      const element = parse996PanelButton(source, invocation, resolution, schemasByToken, offsets, linesByNumber);
+      return [{element,variables: resolution?.variables || []}];
+    }
+    const sourceElement = parseAddButtonCreation(source, invocation, engine, index);
     const element = bindAddButtonDisplayValues(
       sourceElement,
       invocation,
@@ -1762,6 +1780,42 @@ function attachAddButtonActionPreviews(
     }
   }
   return surfaceConditionIds;
+}
+
+function is996PanelButton(invocation: AddButtonActionInvocation, engine: EngineId): boolean {
+  return engine === '996PC' && invocation.command === 'ADDBUTTON' && invocation.arguments.length === 3;
+}
+
+function parse996PanelButton(
+  source: string, invocation: AddButtonActionInvocation, resolution: DialogResolvedLine | undefined,
+  schemas: Map<string, DialogStatementSchema[]>, offsets: NpcDialogOffsets, lines: ReadonlyMap<number, ScriptLine>
+): DialogElement {
+  const [window, icon, payload] = invocation.arguments;
+  const line = invocation.line;
+  const start = line.start + invocation.commandStart;
+  const sourceRange = span(source, start, line.start + payload.end);
+  const panelButton = {windowId: parseInteger(window.text), iconId: parseInteger(icon.text)};
+  // Only script-owned markup can supply an image or a clickable action. A value
+  // typed into a preview form, read from a file, or introduced through a default
+  // may be displayed as unresolved, but cannot manufacture a control.
+  const name = /^<\$STR\((S\$[^()<>]+)\)>$/i.exec(payload.text)?.[1];
+  const variable = name && resolution?.variables.find(v => v.name === name && v.status === 'resolved' && !v.localPreview);
+  const declaredLine = variable && variable.sourceLine ? lines.get(variable.sourceLine - 1) : undefined;
+  const declared = declaredLine && /^\s*MOV\s+(\S+)\s+(<[\s\S]+>)\s*$/i.exec(declaredLine.text);
+  const literal = /^<[A-Za-z]\w*\|/.test(payload.text) ? payload.text
+    : declared && variable && declared[1] === name && declared[2] === variable.value ? declared[2] : undefined;
+  if (literal && findMarkupEnd(literal,0,literal.length) === literal.length) {
+    const token=/^<[A-Za-z]\w*(?=\|)/.exec(literal)?.[0];
+    const schema=token && selectStatementSchema(schemas.get(token.toUpperCase())||[],'|',literal);
+    if (token && schema) {
+      const element=parseStatement(literal,{...line,start:0,end:literal.length,text:literal},0,literal.length,token,schema,offsets);
+      return {...element,id:`${start}:996-panel-button`,lineNumber:line.lineNumber+1,sourceRange,
+        editable:false,x:undefined,y:undefined,panelButton};
+    }
+  }
+  const element=unknownStatementElement(source,line,start,sourceRange.end,'ADDBUTTON',sourceRange.original,offsets);
+  return {...element,statementId:'996-panel-button',panelButton,description:'996PC 主窗口图标',text:'主窗口图标',
+    warning:'图标内容尚未解析为脚本中定义的静态界面控件。'};
 }
 
 function bindAddButtonDisplayValues(
@@ -5918,7 +5972,14 @@ function selectStatementSchema(
   const compatible = syntax
     ? candidates.filter(candidate => candidate.syntax === syntax)
     : candidates;
-  if (compatible.length <= 1) return compatible[0] || candidates[0];
+  if (compatible.length <= 1) return compatible[0];
+  const longEquip = compatible.find(candidate =>
+    candidate.id === 'gee-user-item-view-target' || candidate.id === 'gee-hero-user-item-view-target');
+  if (longEquip) {
+    const parts = parseStatementValues(raw, 0, raw.length, longEquip.token, 'positional');
+    const count = parts.positional.length - Number(statementContainerBinding(parts, longEquip).shifted);
+    return count >= 7 ? longEquip : compatible.find(candidate => candidate !== longEquip);
+  }
 
   // Some legacy manuals publish suffix variants under the same token and the
   // same positional syntax (notably IMG vs IMG-with-remark and TEXT vs
@@ -7098,7 +7159,7 @@ function statementControlPreview(
   const costItemPreview = statementCostItemPreview(values, schema);
   const progressPreview = statementProgressPreview(values, schema);
   const sliderPreview = statementSliderPreview(values, schema);
-  const runtimeActionPreview = statementRuntimeActionPreview(values, schema);
+  const runtimeActionPreview = itemPreview?.allowItemDrag ? undefined : statementRuntimeActionPreview(values, schema);
   const inputPreview = statementInputPreview(values, schema);
   const togglePreview = statementTogglePreview(values, schema);
   const countdownPreview = statementCountdownPreview(values, schema);
@@ -7276,7 +7337,7 @@ function statementControlPreview(
         ? `ItemShow 的 ${itemPreview.dynamicFields.join('、')} 包含动态值，静态预览仅绘制可确定部分，不把变量默认值冒充运行时结果`
         : undefined,
       itemPreview?.invalidFields?.length
-        ? `物品控件的 ${itemPreview.invalidFields.join('、')} 参数无效；开关仅支持 0 或 1，scale 必须为正数，effectshow 仅支持 0-2，静态预览使用安全回退`
+        ? `物品控件的 ${itemPreview.invalidFields.join('、')} 参数无效；开关仅支持 0 或 1，scale 必须为正数，effectshow 仅支持 0-3，静态预览使用安全回退`
         : undefined,
       itemPreview?.locked
         ? '996PC ItemShow 手册未公开锁图标素材编号，Ctrl+F12 使用 CSS 锁形静态近似'
@@ -8126,7 +8187,7 @@ function statementRuntimeActionPreview(
   }
   const legacy = legacyStatementClickActionPreview(values, schema);
   if (schema.syntax === 'positional' && statementCommand(schema) === 'IMGNUM') {
-    return imageNumberSubmitActionPreview(values, legacy);
+    return imageNumberSubmitActionPreview(values, legacy, schema.engine);
   }
   if (legacy) return legacy;
   if (schema.engine !== '996PC' || schema.syntax !== 'key-value') return undefined;
@@ -8222,13 +8283,16 @@ function statementRuntimeActionPreview(
 
 function imageNumberSubmitActionPreview(
   values: ParsedStatementValues,
-  legacy: DialogRuntimeActionPreview | undefined
+  legacy: DialogRuntimeActionPreview | undefined,
+  engine: EngineId
 ): DialogRuntimeActionPreview | undefined {
   const submitSpan = positionalValue(values, 6);
   if (!submitSpan) return legacy;
 
-  const pipe = findTopLevelPipe(submitSpan.raw);
-  const submitSource = (pipe >= 0 ? submitSpan.raw.slice(0, pipe) : submitSpan.raw).trim();
+  const submitSource = stripValueSuffix(submitSpan.raw).trim();
+  if (engine === 'GEE' && submitSource === '*') {
+    return { trigger: 'click', localOnly: true, ...legacy, submitAllInputs: true };
+  }
   if (submitSource === '0' || submitSource === '*') return legacy;
 
   const preview: DialogRuntimeActionPreview = legacy ? {
@@ -8249,7 +8313,7 @@ function imageNumberSubmitActionPreview(
       dynamic = true;
       continue;
     }
-    if (!/^[1-9]$/.test(value)) {
+    if (!/^[1-9]\d?$/.test(value) || Number(value) > (engine === 'GEE' ? 40 : 9)) {
       invalid = true;
       continue;
     }
@@ -8277,12 +8341,12 @@ function legacyStatementClickActionPreview(
   if (![
     'TEXT', 'IMG', 'IMGEX', 'IMGNUM', 'ITEMSHOW', 'USERITEM', 'HEROUSERITEM',
     'MAKEINDEXITEM', 'STATEITEM', 'DNITEMS',
-    ...(schema.engine === 'GOM' ? ['PLAYIMG'] : schema.engine === 'GEE' ? ['PLAYIMG', 'PLAYIMGEX'] : []),
+    ...(schema.engine === 'GOM' ? ['PLAYIMG'] : schema.engine === 'GEE' ? ['PLAYIMG', 'PLAYIMGEX'] : ['EQUIPSHOW','DBITEMSHOW']),
   ].includes(command)) return undefined;
   for (const value of values.positional) {
     const directive = findTopLevelSlashDirective(value.raw);
     if (!directive || directive.name !== '@') continue;
-    const preview = parseLegacyClickAction(value.raw.slice(directive.index + 1)).preview;
+    const preview = parseLegacyClickAction(value.raw.slice(directive.index + 1), schema.engine).preview;
     const position = schema.engine === 'GOM' ? ({ TEXT: 4, IMG: 5, IMGEX: 7, PLAYIMG: 9 } as Record<string, number>)[command]
       : schema.engine === 'GEE' ? ({ TEXT: 4, IMG: 5, IMGEX: 7, PLAYIMG: 9, PLAYIMGEX: 10 } as Record<string, number>)[command] : undefined;
     const submit = positionalValue(values, position);
@@ -10229,20 +10293,22 @@ function statementItemPreview(
       };
     }
     case 'user-item-preview':
-    case 'hero-user-item-preview': {
+    case 'hero-user-item-preview':
+    case 'gee-user-item-view-target':
+    case 'gee-hero-user-item-view-target': {
       const diagnostics: ItemPreviewDiagnostics = { dynamicFields: [], invalidFields: [] };
-      const hero = schema.id === 'hero-user-item-preview';
+      const hero = schema.id === 'hero-user-item-preview' || schema.id === 'gee-hero-user-item-view-target';
+      const geeLong = schema.id === 'gee-user-item-view-target' || schema.id === 'gee-hero-user-item-view-target';
       const slot = itemNumericValue(
         positionalValue(values, 1), 'index', diagnostics,
         value => Number.isInteger(value) && value >= 0
       );
       const frameValue = itemNumericValue(
-        positionalValue(values, 4), 'bgtype', diagnostics,
+        positionalValue(values, geeLong ? 5 : 4), 'bgtype', diagnostics,
         value => Number.isInteger(value) && value >= 0
       );
-      const targetSpan = schema.engine === 'GOM' ? positionalValue(values, 5) : undefined;
-      const viewedTarget = schema.engine === 'GOM'
-        ? itemBinaryValue(targetSpan, 'target', diagnostics) : undefined;
+      const targetSpan = geeLong ? positionalValue(values, 7) : schema.engine === 'GOM' ? positionalValue(values, 5) : undefined;
+      const viewedTarget = itemBinaryValue(targetSpan, 'target', diagnostics);
       const graySpan = schema.engine === 'GOM' ? positionalValue(values, 6) : undefined;
       const gray = schema.engine === 'GOM'
         ? itemBinaryValue(graySpan, 'grey', diagnostics) : undefined;
@@ -10259,7 +10325,7 @@ function statementItemPreview(
       const effectSpan = schema.engine === 'GOM' ? positionalValue(values, 10) : undefined;
       const drawEffect = schema.engine === 'GOM'
         ? itemBinaryValue(effectSpan, 'effect', diagnostics) : undefined;
-      const lightSpan = schema.engine !== 'GOM' ? positionalValue(values, 5) : undefined;
+      const lightSpan = schema.engine !== 'GOM' ? positionalValue(values, geeLong ? 6 : 5) : undefined;
       const lightCode = schema.engine !== 'GOM' ? itemNumericValue(
         lightSpan, 'light', diagnostics, value => Number.isInteger(value) && value >= 0
       ) : undefined;
@@ -10267,6 +10333,9 @@ function statementItemPreview(
         mode: hero ? 'hero-equipment' : 'equipment',
         equipmentSlot: slot,
         frameValue,
+        ...(geeLong && viewedTarget !== undefined ? { displayTarget: viewedTarget ? 'viewed-character' : 'self' } as const : {}),
+        ...(schema.engine === 'GOM' && !hero && slot !== undefined && slot >= 71 && slot <= 120 && (!targetSpan || !stripValueSuffix(targetSpan.raw).trim() || viewedTarget === false)
+          ? { allowItemDrag: numericValue(positionalValue(values, 11)) === 1 } : {}),
         ...(schema.engine === 'GOM' ? {
           ...(!targetSpan
             ? { displayTarget: 'self' as const }
@@ -10293,6 +10362,24 @@ function statementItemPreview(
         message: '装备内容取决于游戏中的当前人物，只能静态预览物品框',
       }, diagnostics);
     }
+    case 'equipshow-positional-996pc':
+    case 'dbitemshow-positional-996pc': {
+      const diagnostics: ItemPreviewDiagnostics = { dynamicFields: [], invalidFields: [] };
+      const equip = schema.id === 'equipshow-positional-996pc';
+      const index = itemNumericValue(positionalValue(values, 1), equip ? 'index' : 'makeindex', diagnostics,
+        value => Number.isSafeInteger(value) && value >= 0 && (!equip || value <= 55));
+      const background = itemBinaryValue(positionalValue(values, 4), 'bgtype', diagnostics);
+      const gray = itemBinaryValue(positionalValue(values, 5), 'grey', diagnostics);
+      return withItemDiagnostics({
+        mode: equip ? 'equipment' : 'unique-item',
+        ...(equip ? { equipmentSlot: index } : { uniqueIndex: index }),
+        ...(background === undefined ? {} : { frameValue: Number(background) }),
+        ...(gray === undefined ? {} : { gray }),
+        showTips: true,
+        label: `${equip ? '人物装备位' : '唯一物品'} ${index ?? '?'}`,
+        message: '实际装备和属性由游戏中的角色数据决定。',
+      }, diagnostics);
+    }
     case 'newui-equipshow-996pc':
     case 'newui-heroequipshow-996pc': {
       const diagnostics: ItemPreviewDiagnostics = { dynamicFields: [], invalidFields: [] };
@@ -10310,8 +10397,8 @@ function statementItemPreview(
       const showStar = itemBinaryValue(keyedValue(values, 'showstar'), 'showstar', diagnostics);
       const effectShow = itemNumericValue(
         keyedValue(values, 'effectshow'), 'effectshow', diagnostics,
-        value => Number.isInteger(value) && value >= 0 && value <= 2
-      ) as 0 | 1 | 2 | undefined;
+        value => Number.isInteger(value) && value >= 0 && value <= 3
+      ) as 0 | 1 | 2 | 3 | undefined;
       return withItemDiagnostics({
         mode: hero ? 'hero-equipment' : 'equipment',
         equipmentSlot: slot,

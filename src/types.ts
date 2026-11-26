@@ -19,6 +19,15 @@ export interface HelpSource {
   revision?: string;
   page: string;
   title?: string;
+  evidenceLine?: number;
+}
+
+/** A documented alternative selected from the actual invocation. Slot indexes are zero-based. */
+export interface CommandParameterForm {
+  syntax: string;
+  params: string[];
+  argumentCount?: number;
+  literal?: { index: number; value: string };
 }
 
 export interface ServerCorpusEvidence {
@@ -125,9 +134,14 @@ export interface StaticLanguageVariant {
   label: string;
   description: string;
   source: HelpSource;
+  /** A name may be documented without an insertable form. */
+  completionEnabled?: boolean;
   snippet?: string;
+  /** Documented expanded form when the insertion snippet uses fewer slots. */
+  hoverSnippet?: string;
   evidenceToken?: string;
   parameters?: StaticLanguageParameter[];
+  styleParameters?: StaticLanguageParameter[];
   markupAliases?: string[];
 }
 
@@ -151,10 +165,13 @@ export interface StaticLanguageData {
 
 // ---- 引擎函数数据 (functions.json / functions-gee.json) ----
 export interface EngineFunctionInfo {
+  /** This definition supersedes the older per-engine variant in commands.json. */
+  fromCurrentManual?: boolean;
   details?: string;
   params?: string;
   syntax?: string;
   paramList?: string[];
+  parameterForms?: CommandParameterForm[];
   kind?: CommandKind;
   contexts?: CommandContext[];
   aliases?: string[];

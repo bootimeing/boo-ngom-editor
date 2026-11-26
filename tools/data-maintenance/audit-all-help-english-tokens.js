@@ -24,11 +24,7 @@ const options = {
   ),
 };
 
-const ENGINE_FILES = {
-  GOM: 'data/functions.json',
-  GEE: 'data/functions-gee.json',
-  '996PC': 'data/functions-996pc.json',
-};
+const { loadAuditCatalog, ENGINE_IDS } = require('./runtime-audit-catalog');
 
 const HELP_ROOTS = {
   GOM: () => options.gomHelp,
@@ -64,36 +60,13 @@ const FILE_EXTENSION_RE = /\.(?:BMP|CHM|CSV|DAT|DB|DBC|DLL|EXE|GIF|HTM|HTML|IDX|
 const VARIABLE_PATTERN_RE = /^(?:[A-Z]{1,4}\d+|[A-Z]+\d+_[A-Z0-9_]+|[A-Z]+_[A-Z0-9_]*\d+|STR[A-Z]?\d+)$/;
 const PLACEHOLDER_PATTERN_RE = /^(?:PARAM|VALUE|TYPE|COLOR|RATE|POS|GINDEX|GNAME|ITEM|DRILL|WEATHER|TAGMAPINFO|CREATEHERO)\w*\d+$/;
 
-function readJson(relativePath) {
-  return JSON.parse(fs.readFileSync(path.join(projectRoot, relativePath), 'utf8'));
-}
 
-function buildIndexes() {
-  const { buildLanguageIndex } = require(path.join(projectRoot, 'out', 'utils', 'command-index'));
-  const commands = readJson('data/commands.json');
-  const variables = readJson('data/variables.json');
-  const catalogs = Object.fromEntries(
-    Object.entries(ENGINE_FILES).map(([engine, file]) => [engine, readJson(file)])
-  );
-  const constants = {
-    GOM: readJson('data/constants-gom.json'),
-    GEE: readJson('data/constants-gee.json'),
-    '996PC': readJson('data/constants-996pc.json'),
-  };
-  return Object.fromEntries(
-    Object.keys(ENGINE_FILES).map(engine => [
-      engine,
-      buildLanguageIndex(commands, variables, catalogs, engine, constants),
-    ])
-  );
-}
 
-function staticTokens() {
-  const data = readJson('data/static-language.json');
-  const byEngine = Object.fromEntries(Object.keys(ENGINE_FILES).map(engine => [engine, new Set()]));
+function staticTokens(data) {
+  const byEngine = Object.fromEntries(ENGINE_IDS.map(engine => [engine, new Set()]));
   for (const section of ['saySnippets', 'mapInfoParams']) {
     for (const entry of data[section] || []) {
-      for (const engine of Object.keys(ENGINE_FILES)) {
+      for (const engine of ENGINE_IDS) {
         const variant = entry.engineVariants?.[engine];
         if (!variant) continue;
         for (const value of [
@@ -328,15 +301,16 @@ function auditEngine(engine, root, index, engineStaticTokens) {
 }
 
 function main() {
-  const indexes = buildIndexes();
-  const allStaticTokens = staticTokens();
-  const engines = Object.fromEntries(Object.keys(ENGINE_FILES).map(engine => [
+  const { indexes, staticLanguage, fingerprint } = loadAuditCatalog();
+  const allStaticTokens = staticTokens(staticLanguage);
+  const engines = Object.fromEntries(ENGINE_IDS.map(engine => [
     engine,
     auditEngine(engine, HELP_ROOTS[engine](), indexes[engine], allStaticTokens[engine]),
   ]));
   const report = {
     schemaVersion: 1,
-    revision: '2026-07-26',
+    revision: new Date().toISOString().slice(0, 10),
+    catalogFingerprint: fingerprint,
     method: 'exhaustive-case-insensitive-english-token-inventory-with-evidence-only-review-signals',
     policy: 'report-only-no-automatic-language-catalog-writes',
     engines,

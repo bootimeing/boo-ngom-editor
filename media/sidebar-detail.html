@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><style>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+:root{color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:transparent;color:#ccc;font-family:Microsoft YaHei,sans-serif;padding:8px;font-size:12px;overflow-y:auto;overflow-x:hidden}
+body{background:var(--vscode-sideBar-background,#181a1f);color:#ccc;font-family:Microsoft YaHei,sans-serif;padding:8px;font-size:12px;overflow-y:auto;overflow-x:hidden}
 h4{color:#ffaa00;font-size:11px;margin:8px 0 4px}
 .item-name{color:#ff8c00;font-size:14px;font-weight:bold;margin-bottom:4px}
 .top-desc{padding:6px 10px;background:#000;border-left:3px solid #00d4ff;border-radius:4px;margin:6px 0;color:#aaa;font-size:11px;line-height:1.6;word-break:break-all}
@@ -45,6 +46,11 @@ h4{color:#ffaa00;font-size:11px;margin:8px 0 4px}
 .monster-icon-meta{display:flex;flex-wrap:wrap;gap:3px 9px;margin-top:5px;color:#888;font-size:10px;line-height:1.5}
 .monster-icon-meta strong{color:#d8a449;font-weight:normal}
 .empty{color:#555;text-align:center;padding:20px;font-size:11px}
+.description-editor{display:flex;gap:4px;margin-bottom:4px}
+.description-editor textarea{flex:1;min-width:0;background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:3px;padding:4px 6px;font-size:10px;resize:vertical;min-height:100px}
+.description-save{background:#059669;color:#fff;border:none;border-radius:3px;padding:2px 8px;font-size:10px;cursor:pointer;white-space:nowrap}
+.description-save:disabled{cursor:default;opacity:.55}
+.description-status{margin-bottom:4px}
 </style></head><body>
 <div id="content"><div class="empty">点击数据库记录查看详情</div></div>
 <script>
@@ -72,6 +78,8 @@ var _detail={};
 var _iconTimers=[];
 var _descriptionTimers=[];
 var _monsterSavePending={};
+var _descriptionSavePending={};
+var _descriptionSaveStatus={};
 try{ _detail=vscode.getState()||{}; }catch(e){}
 if(_detail&&_detail.name) renderDetail();
 
@@ -87,6 +95,12 @@ window.addEventListener("message",function(e){
       if(preserveVisuals&&(!e.data.animatedImages||Object.keys(e.data.animatedImages).length===0)) e.data.animatedImages=_detail.animatedImages||{};
       if(preserveVisuals&&!e.data.itemImage) e.data.itemImage=_detail.itemImage||'';
       if(preserveVisuals&&!e.data.itemImageLabel) e.data.itemImageLabel=_detail.itemImageLabel||'';
+      if(preserveVisuals){
+        ['topDesc','itemDesc'].forEach(function(key){
+          var edited=_detail['_'+key+'Edited'],pending=_descriptionSavePending[key];
+          if(edited!==undefined&&(!pending||pending.name!==_detail.name||edited!==pending.text))e.data['_'+key+'Edited']=edited;
+        });
+      }else{_descriptionSavePending={};_descriptionSaveStatus={};}
       stopIconAnimations();
       _detail=e.data; vscode.setState(_detail); renderDetail();
       if(e.data.saveResult)showMonsterSaveResult(e.data.saveResult);
@@ -96,8 +110,13 @@ window.addEventListener("message",function(e){
       showMonsterSaveResult(e.data);
       return;
     }
+    if(e.data.type==="itemDescSaveResult"){
+      showDescriptionSaveResult(e.data);
+      return;
+    }
     if(e.data.type==="clearDatabaseDetail"){
       stopIconAnimations();
+      _descriptionSavePending={};_descriptionSaveStatus={};
       _detail={detailKind:e.data.detailKind||'other'};vscode.setState(_detail);renderEmpty(_detail.detailKind);
       return;
     }
@@ -200,8 +219,10 @@ function renderDetail(){
   }
   if(detailKind==='monster')h+=buildMonsterSections(d);
   document.getElementById("content").innerHTML=h;
-  if(detailKind==='item'&&_detail._topDescEdited&&document.getElementById("ta_topDesc"))document.getElementById("ta_topDesc").value=_detail._topDescEdited;
-  if(detailKind==='item'&&_detail._itemDescEdited&&document.getElementById("ta_itemDesc"))document.getElementById("ta_itemDesc").value=_detail._itemDescEdited;
+  if(detailKind==='item'){
+    restoreDescriptionEditor('topDesc');
+    restoreDescriptionEditor('itemDesc');
+  }
   if(detailKind==='monster'){
     restoreMonsterEditorText('dropRateText');
     restoreMonsterEditorText('iconText');
@@ -215,10 +236,11 @@ function renderDetail(){
 function buildEditSection(label,key){
   var raw=_detail[key]||"";
   var s='<h4>物品'+label+'</h4>';
-  s+='<div style="display:flex;gap:4px;margin-bottom:4px">';
-  s+='<textarea id="ta_'+key+'" style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:3px;padding:4px 6px;font-size:10px;resize:vertical;min-height:100px">'+escapeHtml(raw)+'</textarea>';
-  s+='<button onclick="saveDesc(\x27'+key+'\x27)" style="background:#059669;color:#fff;border:none;border-radius:3px;padding:2px 8px;font-size:10px;cursor:pointer;white-space:nowrap">保存</button>';
-  s+='</div><div class=top-desc style="margin-bottom:4px">'+p(raw,_detail.images)+'</div>';
+  s+='<div class="description-editor">';
+  s+='<textarea id="ta_'+key+'" data-description-editor="'+key+'" aria-label="物品'+label+'" spellcheck="false">'+escapeHtml(raw)+'</textarea>';
+  s+='<button type="button" class="description-save" id="save_desc_'+key+'" data-action="save-description" data-key="'+key+'">保存</button>';
+  s+='</div><div class="monster-editor-status description-status" role="status" id="status_desc_'+key+'"></div>';
+  s+='<div class="top-desc" style="margin-bottom:4px">'+p(raw,_detail.images)+'</div>';
   return s;
 }
 
@@ -304,9 +326,9 @@ function buildMonsterSections(d){
 function buildMonsterTextEditor(key,value,placeholder,buttonText){
   var iconClass=key==='iconText'?' icon-config':'';
   var h='<div class="monster-editor">';
-  h+='<textarea class="'+iconClass.trim()+'" id="ta_'+key+'" spellcheck="false" placeholder="'+escapeHtml(placeholder)+'" oninput="markMonsterDetailDirty(\x27'+key+'\x27)" onkeydown="handleMonsterEditorKey(event,\x27'+key+'\x27)">'+escapeHtml(value)+'</textarea>';
+  h+='<textarea class="'+iconClass.trim()+'" id="ta_'+key+'" data-monster-editor="'+key+'" aria-label="'+(key==='iconText'?'怪物顶戴配置':'怪物爆率')+'" spellcheck="false" placeholder="'+escapeHtml(placeholder)+'">'+escapeHtml(value)+'</textarea>';
   h+='<div class="monster-editor-footer"><span class="monster-editor-status" id="status_'+key+'">'+(value?'':'尚未创建文件')+'</span>';
-  h+='<button class="monster-save" id="save_'+key+'" onclick="saveMonsterDetail(\x27'+key+'\x27)">'+escapeHtml(buttonText)+'</button></div></div>';
+  h+='<button type="button" class="monster-save" id="save_'+key+'" data-action="save-monster-detail" data-key="'+key+'">'+escapeHtml(buttonText)+'</button></div></div>';
   return h;
 }
 
@@ -623,12 +645,77 @@ function startDescriptionAnimations(){
 }
 
 function saveDesc(key){
-  if(_detail.fieldsOnly===true)return;
+  if(_detail.fieldsOnly===true||(key!=='topDesc'&&key!=='itemDesc'))return;
   var ta=document.getElementById("ta_"+key); if(!ta)return;
+  if(_descriptionSavePending[key]&&_descriptionSavePending[key].name===_detail.name)return;
   var newText=ta.value.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
-  _detail[key]=newText; _detail['_'+key+'Edited']=undefined;
+  _detail['_'+key+'Edited']=newText;vscode.setState(_detail);
+  _descriptionSavePending[key]={name:_detail.name,text:newText};
+  setDescriptionStatus(key,'正在保存...','saving');
+  var button=document.getElementById('save_desc_'+key);if(button)button.disabled=true;
   vscode.postMessage({type:"saveItemDesc",name:_detail.name,key:key,text:newText});
-  renderDetail();
 }
+function setDescriptionStatus(key,message,state){
+  _descriptionSaveStatus[key]={name:_detail.name,message:message,state:state};
+  var status=document.getElementById('status_desc_'+key);if(!status)return;
+  status.textContent=message||'';status.className='monster-editor-status '+(state||'');status.title=message||'';
+}
+function restoreDescriptionEditor(key){
+  var textarea=document.getElementById('ta_'+key);if(!textarea)return;
+  var edited=_detail['_'+key+'Edited'],pending=_descriptionSavePending[key],savedStatus=_descriptionSaveStatus[key];
+  if(edited!==undefined)textarea.value=edited;
+  var button=document.getElementById('save_desc_'+key);
+  if(pending&&pending.name===_detail.name){
+    if(button)button.disabled=true;
+    setDescriptionStatus(key,'正在保存...','saving');
+  }else if(edited!==undefined)setDescriptionStatus(key,'有未保存的修改','dirty');
+  else if(savedStatus&&savedStatus.name===_detail.name)setDescriptionStatus(key,savedStatus.message,savedStatus.state);
+}
+function markDescriptionDirty(key){
+  var textarea=document.getElementById('ta_'+key);if(!textarea||_detail.fieldsOnly===true)return;
+  _detail['_'+key+'Edited']=textarea.value;vscode.setState(_detail);
+  var pending=_descriptionSavePending[key];
+  setDescriptionStatus(key,pending&&pending.name===_detail.name?'正在保存；当前还有新的修改':'有未保存的修改',pending&&pending.name===_detail.name?'saving':'dirty');
+}
+function showDescriptionSaveResult(result){
+  var key=result&&result.key;
+  if(!result||result.name!==_detail.name||(key!=='topDesc'&&key!=='itemDesc')||_detail.fieldsOnly===true)return;
+  var pending=_descriptionSavePending[key],textarea=document.getElementById('ta_'+key);
+  if(!textarea)return;
+  delete _descriptionSavePending[key];
+  var button=document.getElementById('save_desc_'+key);if(button)button.disabled=false;
+  if(result.ok){
+    if(pending&&pending.name===_detail.name&&textarea.value!==pending.text){
+      _detail['_'+key+'Edited']=textarea.value;
+      setDescriptionStatus(key,'已保存上次修改，当前还有未保存的修改','dirty');
+    }else if(_detail['_'+key+'Edited']!==undefined&&!pending){
+      setDescriptionStatus(key,'内容已更新，当前还有未保存的修改','dirty');
+    }else{
+      _detail[key]=pending?pending.text:_detail[key];delete _detail['_'+key+'Edited'];
+      setDescriptionStatus(key,result.message||'已保存','success');
+    }
+  }else{
+    _detail['_'+key+'Edited']=textarea.value;
+    setDescriptionStatus(key,result.message||'保存失败，请重试','error');
+  }
+  vscode.setState(_detail);
+}
+document.addEventListener('click',function(event){
+  var target=event.target,button=target&&target.closest?target.closest('button[data-action]'):null;
+  if(!button||button.disabled)return;
+  var key=button.getAttribute('data-key');
+  if(button.getAttribute('data-action')==='save-description'&&(key==='topDesc'||key==='itemDesc'))saveDesc(key);
+  if(button.getAttribute('data-action')==='save-monster-detail'&&(key==='dropRateText'||key==='iconText'))saveMonsterDetail(key);
+});
+document.addEventListener('input',function(event){
+  var target=event.target,key=target&&target.getAttribute?target.getAttribute('data-monster-editor'):null;
+  if(key==='dropRateText'||key==='iconText')markMonsterDetailDirty(key);
+  var descriptionKey=target&&target.getAttribute?target.getAttribute('data-description-editor'):null;
+  if(descriptionKey==='topDesc'||descriptionKey==='itemDesc')markDescriptionDirty(descriptionKey);
+});
+document.addEventListener('keydown',function(event){
+  var target=event.target,key=target&&target.getAttribute?target.getAttribute('data-monster-editor'):null;
+  if(key==='dropRateText'||key==='iconText')handleMonsterEditorKey(event,key);
+});
 vscode.postMessage({type:"sidebarReady"});
 </script></body></html>

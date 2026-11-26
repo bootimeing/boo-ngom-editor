@@ -516,11 +516,22 @@ function loadCatalog(message){
   tables=message.tables||[];
   databaseType=message.dbType||'';
   databaseTotal=Number(message.totalCount||0);
+  document.getElementById('info').title=message.sourcePath?(message.sourceDescription||'当前数据库')+'\n'+message.sourcePath:'';
   updateInfo();
   renderTabs();
   if(!tables.length){
+    activeRequestId=++requestId;
+    suppressGridEvents=true;
+    if(databaseGrid){databaseGrid.destroy();databaseGrid=null}
+    suppressGridEvents=false;
     currentTable=null;
+    currentRows=[];currentColumns=[];renderedTableId='';renderedColumns=[];
+    selectedRow=-1;totalRows=0;pageIndex=0;fillState=null;activeCellEdit=null;
+    pendingSelectRowId=null;restoreTableViewport=null;restoreRangeBounds=null;pendingGridRollback=[];
+    document.getElementById('fillHandle').style.display='none';
     document.getElementById('table').innerHTML='<div class="empty">未找到可读取的数据表</div>';
+    renderEquipmentFilters();updatePager();
+    vscode.postMessage({type:'clearDatabaseDetail',tableName:'',tableLabel:''});
     setLoading(false);updateActionState();
     return;
   }
@@ -533,6 +544,7 @@ function renderTabs(){
     button.type='button';button.className='tab'+(currentTable&&currentTable.id===table.id?' active':'');
     button.textContent=table.label+' ('+Number(table.rowCount||0).toLocaleString()+')';
     button.title=table.fileName+' / '+table.name;
+    button.setAttribute('aria-pressed',String(!!(currentTable&&currentTable.id===table.id)));
     button.addEventListener('click',function(){selectTable(table.id)});
     root.appendChild(button);
   });

@@ -21,6 +21,7 @@ function main() {
   const extension = fs.readFileSync('src/extension.ts', 'utf8');
   const assistant = fs.readFileSync('src/assistant.ts', 'utf8');
   const databaseDetail = fs.readFileSync('src/utils/database-detail.ts', 'utf8');
+  const databaseDetailActions = fs.readFileSync('src/utils/database-detail-actions.ts', 'utf8');
   const mapPreviewProvider = fs.readFileSync('src/providers/map-preview.ts', 'utf8');
   const sidebarBridge = fs.readFileSync('src/utils/sidebar-bridge.ts', 'utf8');
   const pakReader = fs.readFileSync('src/utils/pak-reader.ts', 'utf8');
@@ -459,10 +460,13 @@ function main() {
     'cached archive image metadata must reach the monster composite preview'
   );
   assert.match(
-    extension,
-    /buildMonsterIconPreviews\(detail\.icons, resolvePakImageAsset\)[\s\S]*resolveCachedPatchPakImageAsset/,
+    databaseDetailActions,
+    /buildMonsterIconPreviews\(detail\.icons, options\.resolveImage\)[\s\S]*options\.resolveArchiveImage/,
     'database detail refresh must resolve body and icon layout metadata'
   );
+  assert.match(extension,
+    /handleDatabaseDetailMutation\(msg,[\s\S]*resolveImage: resolvePakImageAsset[\s\S]*resolveArchiveImage: resolveCachedPatchPakImageAsset/,
+    'the standalone detail surface must use the shared save and image resolvers');
   assert.match(
     sidebar,
     /function saveMonsterDetail[\s\S]*type:'saveMonsterDetail'/,
@@ -471,8 +475,8 @@ function main() {
   assert.match(sidebar, /monsterDetailSaveResult/, 'monster detail editors must display save feedback');
   assert.match(sidebar, /event\.ctrlKey\|\|event\.metaKey[\s\S]*event\.key[\s\S]*==='s'/, 'monster editors must support the save shortcut');
   assert.match(
-    extension,
-    /msg\.type === 'saveMonsterDetail'[\s\S]*saveMonsterDatabaseDetailText[\s\S]*buildMonsterIconPreviews/,
+    databaseDetailActions,
+    /msg\.type !== 'saveMonsterDetail'[\s\S]*saveMonsterDatabaseDetailText[\s\S]*buildMonsterIconPreviews/,
     'monster detail saves must persist and rebuild the visual preview'
   );
   assert.match(
@@ -713,7 +717,7 @@ function main() {
     'the item material and properties must render above visual notes'
   );
   assert.match(
-    extension,
+    databaseDetailActions,
     /preserveSelectionVisuals:\s*true/,
     'description saves must explicitly request preservation of the selected item visuals'
   );

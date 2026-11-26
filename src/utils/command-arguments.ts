@@ -18,6 +18,10 @@ export interface ScriptCommandArgument<T> {
   index: number;
 }
 
+export type ScriptCommandHoverTarget<T> =
+  | { kind: 'command'; invocation: ScriptCommandInvocation<T> }
+  | ({ kind: 'argument' } & ScriptCommandArgument<T>);
+
 export interface CommandParameterDescription {
   raw: string;
   label: string;
@@ -48,12 +52,53 @@ export function findScriptCommandArgumentAt<T>(
   resolveCommand: CommandResolver<T>
 ): ScriptCommandArgument<T> | undefined {
   for (const invocation of findScriptCommandInvocations(line, resolveCommand)) {
-    for (let index = 0; index < invocation.arguments.length; index++) {
-      const argument = invocation.arguments[index];
-      if (argument.start <= character && character < argument.end) {
-        return { invocation, argument, index };
+    const result = argumentAt(invocation, character);
+    if (result) return result;
+  }
+  return undefined;
+}
+
+function argumentAt<T>(invocation: ScriptCommandInvocation<T>, character: number): ScriptCommandArgument<T> | undefined {
+  const index = invocation.arguments.findIndex(span => span.start <= character && character < span.end);
+  return index < 0 ? undefined : { invocation, argument: invocation.arguments[index], index };
+}
+
+/** Resolve hover against the active engine. Other parser consumers keep their original invocation model. */
+export function findScriptCommandHoverAt<T>(
+  line: string,
+  character: number,
+  resolveCommand: CommandResolver<T>,
+  isCondition: (command: T) => boolean
+): ScriptCommandHoverTarget<T> | undefined {
+  if (character < 0 || character >= line.length || /^\s*(?:;|\/\/|$)/.test(line)) return undefined;
+  const head = findLineInvocation(line, resolveCommand, true);
+  const invocations = head ? [head, ...findMarkupInvocations(line, resolveCommand)] : findMarkupInvocations(line, resolveCommand);
+  for (const original of invocations) {
+    let invocation = original;
+    let offset = 0;
+    let command = original.command;
+    let span = original.commandSpan;
+    // In NOT CHECK..., CHECK owns the following arguments. Unknown operands retain NOT's generic parameter.
+    if (original.form === 'line' && !/^\s*#(?:ACT|ELSEACT|SAY|ELSESAY)\b/i.test(line)) {
+      while (/(?:^|\.)NOT$/i.test(span.text) && isCondition(command)) {
+        const operand = original.arguments[offset];
+        if (!operand || character < operand.start) break;
+        const name = hoverCommandName(line, operand.start, operand.end);
+        if (!name || name.end !== operand.end) break;
+        if (character < name.start) return undefined; // A dynamic object owns the text before its command name.
+        const condition = resolveCommand(name.text);
+        if (!condition || !isCondition(condition)) break;
+        command = condition;
+        span = name;
+        offset++;
       }
+      if (offset) invocation = {
+        command, typedName: span.text, commandSpan: span, arguments: original.arguments.slice(offset), form: original.form,
+      };
     }
+    if (span.start <= character && character < span.end) return { kind: 'command', invocation };
+    const argument = argumentAt(invocation, character);
+    if (argument) return { kind: 'argument', ...argument };
   }
   return undefined;
 }
@@ -98,7 +143,8 @@ export function isMapParameterDescription(rawValue: string): boolean {
 
 function findLineInvocation<T>(
   line: string,
-  resolveCommand: CommandResolver<T>
+  resolveCommand: CommandResolver<T>,
+  allowDynamicObjects = false
 ): ScriptCommandInvocation<T> | undefined {
   let cursor = skipWhitespace(line, 0, line.length);
   let argumentEnd = line.length;
@@ -115,19 +161,52 @@ function findLineInvocation<T>(
     }
   }
 
-  const commandMatch = COMMAND_PATTERN.exec(line.slice(cursor, argumentEnd));
-  if (!commandMatch) return undefined;
-  const typedName = commandMatch[0].replace(/\.+$/, '');
-  const command = resolveCommand(typedName);
+  const span = allowDynamicObjects
+    ? hoverCommandName(line, cursor, argumentEnd)
+    : staticCommandName(line, cursor, argumentEnd);
+  if (!span) return undefined;
+  const command = resolveCommand(span.text);
   if (!command) return undefined;
-  const commandEnd = cursor + typedName.length;
   return {
     command,
-    typedName,
-    commandSpan: { start: cursor, end: commandEnd, text: typedName },
-    arguments: splitWhitespaceArguments(line, commandEnd, argumentEnd),
+    typedName: span.text,
+    commandSpan: span,
+    arguments: splitWhitespaceArguments(line, span.end, argumentEnd),
     form: 'line',
   };
+}
+
+function staticCommandName(line: string, start: number, end: number): ScriptTextSpan | undefined {
+  const text = COMMAND_PATTERN.exec(line.slice(start, end))?.[0].replace(/\.+$/, '');
+  return text ? { start, end: start + text.length, text } : undefined;
+}
+
+/** Preserve the static suffix for engine lookup, excluding expression ranges from command hover. */
+function hoverCommandName(line: string, start: number, end: number): ScriptTextSpan | undefined {
+  let cursor = start;
+  let staticStart = start;
+  const segment = /[^.\s<>()[\]{},"';:/\\|]+/uy;
+  while (cursor < end) {
+    if (line.startsWith('<$', cursor)) {
+      const close = findAngleMarkupEnd(line, cursor);
+      if (close < 0 || close + 1 >= end || line[close + 1] !== '.') return undefined;
+      cursor = close + 2;
+      staticStart = cursor;
+      continue;
+    }
+    segment.lastIndex = cursor;
+    const part = segment.exec(line);
+    if (!part || segment.lastIndex > end) return undefined;
+    cursor = segment.lastIndex;
+    const asciiName = /^[A-Za-z_][A-Za-z0-9_]*$/.test(part[0]);
+    if (cursor === end || line[cursor] !== '.') {
+      return asciiName ? { start: staticStart, end: cursor, text: line.slice(staticStart, cursor) } : undefined;
+    }
+    cursor++;
+    // Literal player names may start with digits or contain Chinese characters.
+    if (!asciiName) staticStart = cursor;
+  }
+  return undefined;
 }
 
 function findMarkupInvocations<T>(
@@ -170,7 +249,7 @@ function splitWhitespaceArguments(line: string, start: number, end: number): Scr
     const state = createDelimiterState();
     while (cursor < end) {
       const char = line[cursor];
-      updateDelimiterState(state, char);
+      updateDelimiterState(state, char, line[cursor + 1]);
       if (/\s/.test(char) && isTopLevel(state)) break;
       cursor++;
     }
@@ -200,7 +279,7 @@ function splitDelimitedArguments(
       segmentStart = cursor + 1;
       continue;
     }
-    updateDelimiterState(state, char);
+    updateDelimiterState(state, char, line[cursor + 1]);
   }
   result.push(trimmedSpan(line, segmentStart, end) || { start: end, end, text: '' });
   return result;
@@ -281,7 +360,7 @@ function createDelimiterState(): DelimiterState {
   return { round: 0, square: 0, curly: 0, angle: 0, quote: '' };
 }
 
-function updateDelimiterState(state: DelimiterState, char: string): void {
+function updateDelimiterState(state: DelimiterState, char: string, next: string | undefined): void {
   if (state.quote) {
     if (char === state.quote) state.quote = '';
     return;
@@ -296,7 +375,7 @@ function updateDelimiterState(state: DelimiterState, char: string): void {
   else if (char === ']' && state.square > 0) state.square--;
   else if (char === '{') state.curly++;
   else if (char === '}' && state.curly > 0) state.curly--;
-  else if (char === '<') state.angle++;
+  else if (char === '<' && next && !/[\s=>]/.test(next)) state.angle++;
   else if (char === '>' && state.angle > 0) state.angle--;
 }
 

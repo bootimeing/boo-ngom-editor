@@ -5,7 +5,7 @@ export type ScriptLabelReferenceKind = 'ui' | 'goto';
 
 export interface ScriptLabelReference {
   kind: ScriptLabelReferenceKind;
-  command?: 'DELAYGOTO' | 'DELAYCALL';
+  command?: string;
   name: string;
   rawName: string;
   markerStart: number;
@@ -36,7 +36,7 @@ export type ScriptCommandCallbackKind = 'timer' | 'button' | 'addDlg';
 
 export interface ScriptCommandCallbackReference {
   kind: ScriptCommandCallbackKind;
-  command: 'SETONTIMER' | 'ADDBUTTON' | 'ADDDLG';
+  command: 'SETONTIMER' | 'SETONTIMERMS' | 'ADDBUTTON' | 'ADDDLG' | 'SELECTBAGITEM';
   id: string;
   label: string;
   targetFileName: 'QManage.txt' | 'QFunction-0.txt';
@@ -47,16 +47,17 @@ export interface ScriptCommandCallbackReference {
 interface NumericScriptCommandCallbackRule {
   valueKind: 'numeric';
   kind: 'timer' | 'button';
-  command: 'SETONTIMER' | 'ADDBUTTON';
+  command: 'SETONTIMER' | 'SETONTIMERMS' | 'ADDBUTTON';
+  engine?: EngineId;
   argumentIndex: number;
-  labelPrefix: 'OnTimer' | 'ButtonClick';
+  labelPrefix: 'OnTimer' | 'OnTimerMS' | 'ButtonClick';
   targetFileName: ScriptCommandCallbackReference['targetFileName'];
 }
 
 interface DirectLabelScriptCommandCallbackRule {
   valueKind: 'direct-label';
   kind: 'addDlg';
-  command: 'ADDDLG';
+  command: 'ADDDLG' | 'SELECTBAGITEM';
   argumentIndex: number;
   engine: 'GOM';
   targetFileName: 'QFunction-0.txt';
@@ -67,6 +68,10 @@ type ScriptCommandCallbackRule =
   | DirectLabelScriptCommandCallbackRule;
 
 const SCRIPT_COMMAND_CALLBACK_RULES: readonly ScriptCommandCallbackRule[] = [
+  {valueKind: 'numeric', kind: 'timer', command: 'SETONTIMERMS', argumentIndex: 0,
+    labelPrefix: 'OnTimerMS', targetFileName: 'QManage.txt', engine: '996PC'},
+  {valueKind: 'direct-label', kind: 'addDlg', command: 'SELECTBAGITEM', argumentIndex: 0,
+    engine: 'GOM', targetFileName: 'QFunction-0.txt'},
   {
     valueKind: 'numeric',
     kind: 'timer',
@@ -95,12 +100,19 @@ const SCRIPT_COMMAND_CALLBACK_RULES: readonly ScriptCommandCallbackRule[] = [
 
 // Fixed second-argument local targets, verified against each engine's help.
 // 996PC documents DelayCall, but its DelayGoto entry has no verified signature.
-const LOCAL_DELAYED_LABEL_COMMANDS: readonly {
-  name: 'DELAYGOTO' | 'DELAYCALL';
+const LOCAL_CALLBACK_COMMANDS: readonly {
+  name: string;
+  argument: number;
   engines: readonly EngineId[];
 }[] = [
-  { name: 'DELAYGOTO', engines: ['GOM', 'GEE'] },
-  { name: 'DELAYCALL', engines: ['GOM', 'GEE', '996PC'] },
+  { name: 'DELAYGOTO', argument: 1, engines: ['GOM', 'GEE'] },
+  { name: 'DELAYCALL', argument: 1, engines: ['GOM', 'GEE', '996PC'] },
+  { name: 'SENDCENTERMSG', argument: 5, engines: ['GOM', 'GEE'] },
+  { name: 'SENDDELAYMSG', argument: 4, engines: ['GOM', 'GEE'] },
+  { name: 'HTTPPOST', argument: 3, engines: ['GEE'] },
+  { name: 'HTTPGET', argument: 1, engines: ['GEE'] },
+  { name: 'PLAYDICE', argument: 1, engines: ['GOM'] },
+  { name: 'LOOPBAGITEMS', argument: 0, engines: ['996PC'] },
 ];
 
 // 官方系统回调标签（按钮/对话标签中的 /@ 或 /@@ 调用），用于避免误报
@@ -152,6 +164,23 @@ const OFFICIAL_SYSTEM_UI_LABELS = new Set([
   'INPUTINTEGER300',
   'WITHDRAWAL',
 ]);
+
+export function scriptCodeBeforeComment(line: string): string {
+  if (!/(?:^|\s)(?:;|\/\/)/.test(line)) return line;
+  let quote = '', angle = 0, group = 0;
+  for (let index = 0; index < line.length; index++) {
+    const ch = line[index];
+    if (quote) { if (ch === quote) quote = ''; continue; }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '<' && /[&$\p{L}]/u.test(line[index + 1] || '')) angle++;
+    else if (ch === '>' && angle) angle--;
+    else if ('([{'.includes(ch)) group++;
+    else if (')]}'.includes(ch) && group) group--;
+    else if (!angle && !group && (index === 0 || /\s/.test(line[index - 1])) &&
+      (ch === ';' || line.startsWith('//', index))) return line.slice(0, index);
+  }
+  return line;
+}
 
 export function isScriptCommentLine(line: string): boolean {
   return /^\s*(?:;|\/\/)/.test(line);
@@ -227,7 +256,7 @@ export function findScriptCommandCallbackReferences(
       const command = typedName.toUpperCase();
       return SCRIPT_COMMAND_CALLBACK_RULES.find(rule => (
         rule.command === command
-        && (rule.valueKind !== 'direct-label' || rule.engine === engine)
+        && (!rule.engine || rule.engine === engine)
       ));
     }
   );
@@ -237,8 +266,10 @@ export function findScriptCommandCallbackReferences(
     const rule = invocation.command;
     const idSpan = invocation.arguments[rule.argumentIndex];
     if (!idSpan) continue;
+    if (rule.command === 'ADDBUTTON' && engine === '996PC' && invocation.arguments.length === 3) continue;
+    const direct = rule.command === 'SELECTBAGITEM' && !idSpan.text.startsWith('@') ? '@' + idSpan.text : idSpan.text;
     const id = rule.valueKind === 'direct-label'
-      ? normalizeStaticDirectCallbackLabel(idSpan.text)
+      ? normalizeStaticDirectCallbackLabel(direct)
       : normalizeStaticCallbackId(idSpan.text, rule.kind, engine);
     if (id === undefined) continue;
     references.push({
@@ -323,11 +354,21 @@ export function findScriptLabelReferences(
   if (isScriptCommentLine(lineText)) return [];
 
   const references: ScriptLabelReference[] = [];
-  const uiMarker = /\/@/g;
+  const uiMarker = engine === '996PC' ? /\/@|\|(?:db)?link\s*=\s*@/gi : /\/@/g;
   let match: RegExpExecArray | null;
   while ((match = uiMarker.exec(lineText)) !== null) {
-    const reference = createReference(lineText, 'ui', match.index, match.index + match[0].length);
-    if (reference) references.push(reference);
+    if (match[0].startsWith('|') && !/<[a-z][a-z0-9]*\|(?:<\$[^>]*>|[^<>])*$/i.test(lineText.slice(0, match.index + 1))) continue;
+    const markerStart = match[0].startsWith('|') ? match.index + match[0].length - 1 : match.index;
+    const reference = createReference(lineText, 'ui', markerStart, match.index + match[0].length);
+    if (reference && engine === '996PC') {
+      const end = reference.rawName.search(/[#|]/);
+      if (end >= 0) {
+        reference.rawName = reference.rawName.slice(0, end);
+        reference.name = normalizeReferenceName(reference.rawName, 'ui');
+        reference.end = reference.nameStart + end;
+      }
+    }
+    if (reference?.name) references.push(reference);
   }
 
   const gotoMarker = /\bGOTO[\t ]+@/gi;
@@ -340,11 +381,11 @@ export function findScriptLabelReferences(
     const directive = /^\s*#([A-Za-z]+)/.exec(lineText)?.[1].toUpperCase();
     if (!directive || directive === 'ACT' || directive === 'ELSEACT') {
       for (const invocation of findScriptCommandInvocations(lineText, typedName => (
-        LOCAL_DELAYED_LABEL_COMMANDS.find(rule => rule.name === typedName.toUpperCase()
+        LOCAL_CALLBACK_COMMANDS.find(rule => rule.name === typedName.toUpperCase()
           && rule.engines.includes(engine))
       ))) {
         if (invocation.form !== 'line') continue;
-        const argument = invocation.arguments[1];
+        const argument = invocation.arguments[invocation.command.argument];
         if (!argument) continue;
         const label = normalizeStaticDirectCallbackLabel(argument.text);
         if (!label) continue;
@@ -430,7 +471,7 @@ export function findAtLabelTokenAt(lineText: string, character: number): string 
   return undefined;
 }
 
-function normalizeStaticDirectCallbackLabel(value: string): string | undefined {
+export function normalizeStaticDirectCallbackLabel(value: string): string | undefined {
   if (!value.startsWith('@')) return undefined;
   const label = readUntilTerminator(value, 1, isGenericAtLabelTerminator);
   if (!label || label.length !== value.length - 1) return undefined;

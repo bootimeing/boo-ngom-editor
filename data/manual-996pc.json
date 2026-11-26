@@ -1,0 +1,2560 @@
+{
+  "engine": "996PC",
+  "sha256": "e9c61268f0f87bc68166cb12824b9931f981ba114a7c4561655ac7c16b7383ba",
+  "functions": {
+    "ChangeMapMonName": {
+      "syntax": "ChangeMapMonName 地图 X Y 范围 原怪物名 新怪物名",
+      "details": "修改范围内怪物名称，爆率按新名称读取。X、Y 和范围均为 0 时作用于全图。",
+      "params": "地图 X Y 范围 原怪物名 新怪物名",
+      "paramList": [
+        "地图编号",
+        "中心X坐标",
+        "中心Y坐标",
+        "范围（3 表示 3×3）",
+        "原怪物名（* 表示不限）",
+        "新怪物名"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/修改地图怪物名称.htm",
+        "title": "修改地图怪物名称",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 6,
+      "maxArgs": 6
+    },
+    "ChangeMapMonNameEx": {
+      "syntax": "ChangeMapMonNameEx 地图 X Y 范围 原怪物名 新怪物名",
+      "details": "修改范围内怪物名称，爆率继续按原名称读取。X、Y 和范围均为 0 时作用于全图。",
+      "params": "地图 X Y 范围 原怪物名 新怪物名",
+      "paramList": [
+        "地图编号",
+        "中心X坐标",
+        "中心Y坐标",
+        "范围（3 表示 3×3）",
+        "原怪物名（* 表示不限）",
+        "新怪物名"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/修改地图怪物名称.htm",
+        "title": "修改地图怪物名称",
+        "evidenceLine": 15
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 6,
+      "maxArgs": 6
+    },
+    "SetMonColor": {
+      "syntax": "SetMonColor 地图 怪物名 颜色 持续秒数 类型",
+      "details": "修改指定地图内指定怪物的名字颜色。",
+      "params": "地图 怪物名 颜色 持续秒数 类型",
+      "paramList": [
+        "地图编号",
+        "怪物名称",
+        "颜色码（1–255）",
+        "持续时间（秒，0 为永久）",
+        "颜色类型（0 固定，1 七彩变色）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/修改怪物名字颜色.htm",
+        "title": "修改怪物名字颜色",
+        "evidenceLine": 4
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 5,
+      "maxArgs": 5
+    },
+    "SetMonColorEx": {
+      "syntax": "SetMonColorEx 地图 X Y 半径 怪物名 颜色 持续秒数 类型",
+      "details": "修改地图指定半径内怪物的名字颜色。",
+      "params": "地图 X Y 半径 怪物名 颜色 持续秒数 类型",
+      "paramList": [
+        "地图编号",
+        "中心X坐标",
+        "中心Y坐标",
+        "作用半径",
+        "怪物名称",
+        "颜色码（1–255）",
+        "持续时间（秒，0 为永久）",
+        "颜色类型（0 固定，1 七彩变色）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/修改怪物名字颜色.htm",
+        "title": "修改怪物名字颜色",
+        "evidenceLine": 21
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 8,
+      "maxArgs": 8
+    },
+    "CheckSelfRankNo": {
+      "syntax": "CheckSelfRankNo 比较符 排行榜 名次",
+      "details": "检测人物在指定排行榜中的名次。",
+      "params": "比较符 排行榜 名次",
+      "paramList": [
+        "比较符（>、<、=、?）",
+        "排行榜（1 人物等级、2 战士、3 法师、4 道士、5 英雄等级、6 英雄战士、7 英雄法师、8 英雄道士）",
+        "比较名次"
+      ],
+      "contexts": [
+        "IF"
+      ],
+      "kind": "check",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/取系统排行榜的玩家及名次.htm",
+        "title": "取系统排行榜的玩家及名次",
+        "evidenceLine": 9
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "GetRankNameByNo": {
+      "syntax": "GetRankNameByNo 排行榜 名次 玩家名变量",
+      "details": "按名次取玩家名。",
+      "params": "排行榜 名次 玩家名变量",
+      "paramList": [
+        "排行榜（1 人物等级、2 战士、3 法师、4 道士、5 英雄等级、6 英雄战士、7 英雄法师、8 英雄道士）",
+        "名次",
+        "保存玩家名的变量"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/取系统排行榜的玩家及名次.htm",
+        "title": "取系统排行榜的玩家及名次",
+        "evidenceLine": 4
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "GetRankNoByName": {
+      "syntax": "GetRankNoByName 排行榜 玩家名 名次变量",
+      "details": "按玩家名取名次。",
+      "params": "排行榜 玩家名 名次变量",
+      "paramList": [
+        "排行榜（1 人物等级、2 战士、3 法师、4 道士、5 英雄等级、6 英雄战士、7 英雄法师、8 英雄道士）",
+        "玩家名",
+        "保存名次的变量"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/取系统排行榜的玩家及名次.htm",
+        "title": "取系统排行榜的玩家及名次",
+        "evidenceLine": 7
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "GetRankLevelByNo": {
+      "syntax": "GetRankLevelByNo 排行榜 名次 等级变量",
+      "details": "按名次取玩家等级。",
+      "params": "排行榜 名次 等级变量",
+      "paramList": [
+        "排行榜（1 人物等级、2 战士、3 法师、4 道士、5 英雄等级、6 英雄战士、7 英雄法师、8 英雄道士）",
+        "名次",
+        "保存等级的变量"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/取系统排行榜的玩家及名次.htm",
+        "title": "取系统排行榜的玩家及名次",
+        "evidenceLine": 29
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "GetRankLevelByName": {
+      "syntax": "GetRankLevelByName 排行榜 玩家名 等级变量",
+      "details": "按玩家名取榜单中的等级。",
+      "params": "排行榜 玩家名 等级变量",
+      "paramList": [
+        "排行榜（1 人物等级、2 战士、3 法师、4 道士、5 英雄等级、6 英雄战士、7 英雄法师、8 英雄道士）",
+        "玩家名",
+        "保存等级的变量"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/取系统排行榜的玩家及名次.htm",
+        "title": "取系统排行榜的玩家及名次",
+        "evidenceLine": 40
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "DoTaunt": {
+      "syntax": "DoTaunt 距离 等级上限",
+      "details": "嘲讽人物周围等级不超过上限的怪物。",
+      "params": "距离 等级上限",
+      "paramList": [
+        "距人物的格数",
+        "受嘲讽怪物的等级上限"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/吸怪引怪嘲讽.htm",
+        "title": "吸怪引怪嘲讽",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "CheckGroupItem": {
+      "syntax": "CheckGroupItem 套装编号",
+      "details": "检测指定编号的套装是否生效。",
+      "params": "套装编号",
+      "paramList": [
+        "套装编号"
+      ],
+      "contexts": [
+        "IF"
+      ],
+      "kind": "check",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/套装检测命令.htm",
+        "title": "套装检测命令",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "ChangeItemIndex": {
+      "syntax": "ChangeItemIndex 物品唯一ID 目标IDX",
+      "details": "将现有装备转换为指定 IDX 的物品，保留附加属性和自定义属性。",
+      "params": "物品唯一ID 目标IDX",
+      "paramList": [
+        "要转换的物品唯一ID",
+        "道具表的目标物品IDX"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/将身上的装备直接替换成指定IDX物品.htm",
+        "title": "将身上的装备直接替换成指定IDX物品",
+        "evidenceLine": 4
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "CreatGroup": {
+      "syntax": "CreatGroup 玩家名字",
+      "details": "强制与指定玩家组队，也会执行组队触发。",
+      "params": "玩家名字",
+      "paramList": [
+        "玩家名字"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/强制组队.htm",
+        "title": "强制组队",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "ForcePickItem": {
+      "syntax": "ForcePickItem",
+      "details": "捡取脚下仍在他人掉落保护时间内的一件物品。",
+      "params": "",
+      "paramList": [],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/强行捡起掉落物品.htm",
+        "title": "强行捡起掉落物品",
+        "evidenceLine": 5
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 0,
+      "maxArgs": 0
+    },
+    "SetPickItemToBag": {
+      "syntax": "SetPickItemToBag 开关",
+      "details": "控制拾取物品时的飞入背包效果。",
+      "params": "开关",
+      "paramList": [
+        "开关（0 关，1 开）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/拾取飞入背包效果.htm",
+        "title": "拾取飞入背包效果",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "SetOnTimerMS": {
+      "syntax": "SetOnTimerMS 编号 毫秒间隔 [执行次数]",
+      "details": "开启毫秒级个人定时器，触发 QM 的 @OnTimerMS编号。手册提示 250 毫秒以内的精度受人物运行间隔影响。",
+      "params": "编号 毫秒间隔 [执行次数]",
+      "paramList": [
+        "定时器编号（0–9）",
+        "间隔（毫秒）",
+        "执行次数（省略则持续执行，直到手动停止）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 8
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 3,
+      "snippet": "SetOnTimerMS ${1:0} ${2:300}"
+    },
+    "SetOffTimerMS": {
+      "syntax": "SetOffTimerMS 编号",
+      "details": "停止指定编号的毫秒级个人定时器。",
+      "params": "编号",
+      "paramList": [
+        "定时器编号（0–9）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 10
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "ClearGuild": {
+      "syntax": "ClearGuild 模式 行会名或人数",
+      "details": "按名称或人数条件清理行会。",
+      "params": "模式 行会名或人数",
+      "paramList": [
+        "清理模式（0 按名称，1 按人数）",
+        "模式 0 填行会名，模式 1 填人数阈值（少于此人数的行会被清理，-1 表示所有行会）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/清理行会命令.htm",
+        "title": "清理行会命令",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "ChangeDropEffect": {
+      "syntax": "ChangeDropEffect 装备位置 光柱特效ID",
+      "details": "修改指定装备的掉落光柱。",
+      "params": "装备位置 光柱特效ID",
+      "paramList": [
+        "装备位置",
+        "光柱特效ID（0 还原，-1 清除所有光柱，大于 50000 时指定光柱）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/物品光柱.htm",
+        "title": "物品光柱",
+        "evidenceLine": 4
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "UpdateNgLT": {
+      "syntax": "UpdateNgLT 目标面板ID 控件坐标列表",
+      "details": "移动内挂控件，目标为原面板或 0 时仅改变坐标。使用 UPDATENGNOW 刷新生效。",
+      "params": "目标面板ID 控件坐标列表",
+      "paramList": [
+        "目标面板ID",
+        "控件坐标列表（控件ID=X|Y，多项用逗号分隔）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/脚本控制内挂系统.htm",
+        "title": "脚本控制内挂系统",
+        "evidenceLine": 5
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "UpdateNgV": {
+      "syntax": "UpdateNgV 类型 控件赋值列表",
+      "details": "设置内挂控件，使用 UPDATENGNOW 刷新生效。",
+      "params": "类型 控件赋值列表",
+      "paramList": [
+        "设置类型（1 隐藏/可见，2 取消/勾选，3 输入框或下拉框文本）",
+        "控件赋值列表（ID=值或起始ID-结束ID=值，多项以逗号分隔）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/脚本控制内挂系统.htm",
+        "title": "脚本控制内挂系统",
+        "evidenceLine": 10
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "UpdateNgNow": {
+      "syntax": "UpdateNgNow",
+      "details": "刷新脚本对内挂控件的修改。",
+      "params": "",
+      "paramList": [],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/脚本控制内挂系统.htm",
+        "title": "脚本控制内挂系统",
+        "evidenceLine": 16
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 0,
+      "maxArgs": 0
+    },
+    "UpdateNgReset": {
+      "syntax": "UpdateNgReset [控件ID]",
+      "details": "还原脚本对内挂控件的上次修改，省略编号还原全部。",
+      "params": "[控件ID]",
+      "paramList": [
+        "要还原的控件ID"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/脚本控制内挂系统.htm",
+        "title": "脚本控制内挂系统",
+        "evidenceLine": 18
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 0,
+      "maxArgs": 1
+    },
+    "NotHintItem": {
+      "syntax": "NotHintItem 指定方式 物品值",
+      "details": "关闭指定物品的装备对比提示。",
+      "params": "指定方式 物品值",
+      "paramList": [
+        "指定方式（1 物品唯一ID，2 物品IDX，3 物品名）",
+        "对应的唯一ID、IDX或物品名"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/自定义装备对比.htm",
+        "title": "自定义装备对比",
+        "evidenceLine": 18
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "SetCamp": {
+      "syntax": "SetCamp 阵营ID",
+      "details": "设置玩家的阵营。阵营状态不会自动持久保存。",
+      "params": "阵营ID",
+      "paramList": [
+        "阵营ID"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/阵营系统.htm",
+        "title": "阵营系统",
+        "evidenceLine": 6
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "GetCamp": {
+      "syntax": "GetCamp 保存阵营ID的变量",
+      "details": "获取玩家的阵营。阵营状态不会自动持久保存。",
+      "params": "保存阵营ID的变量",
+      "paramList": [
+        "保存阵营ID的变量"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/阵营系统.htm",
+        "title": "阵营系统",
+        "evidenceLine": 7
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "RecallMobEx": {
+      "syntax": "RecallMobEx 怪物名 X Y 等级 数量 叛变秒数 颜色 计数选项 升级选项 隐藏主人名 继承伤害百分比 血量 参数13",
+      "details": "召唤指定怪物为宝宝。该页列出 13 个参数，只解释到第 12 个。",
+      "params": "怪物名 X Y 等级 数量 叛变秒数 颜色 计数选项 升级选项 隐藏主人名 继承伤害百分比 血量 参数13",
+      "paramList": [
+        "怪物名称",
+        "当前地图出生X（0 在人物身边）",
+        "当前地图出生Y（0 在人物身边）",
+        "宝宝等级（最高 7）",
+        "数量",
+        "叛变时间（秒，最低 10）",
+        "颜色（0 不改变，1–7 指定，-1 自动变色）",
+        "M2 召唤数量检测（大于 0 时不计入）",
+        "升级开关（0 可升级）",
+        "隐藏主人名（0 否，1 是）",
+        "继承人物伤害百分比",
+        "宝宝血量（0 按继承比例）",
+        "参数13（手册未解释）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/魔王岭怪物支持.htm",
+        "title": "魔王岭怪物支持",
+        "evidenceLine": 11
+      },
+      "completionEnabled": false,
+      "completionVerified": false
+    },
+    "Check": {
+      "syntax": "Check [标识列表] 期望值",
+      "details": "检测一个或一组个人标识是否都等于期望值。支持以逗号分隔标识、以短横线表示范围。",
+      "params": "[标识列表] 期望值",
+      "paramList": [
+        "个人标识列表，例如 [1,2,4-6,8]；支持变量",
+        "期望值（0 或 1）"
+      ],
+      "contexts": [
+        "IF"
+      ],
+      "kind": "check",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/个人标识常量用法.htm",
+        "title": "个人标识常量用法",
+        "evidenceLine": 8
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "Set": {
+      "syntax": "Set [标识列表] 设置值",
+      "details": "设置个人标识，可批量设置，也可用 -1 取反。",
+      "params": "[标识列表] 设置值",
+      "paramList": [
+        "个人标识列表，例如 [1,2,4-6,8]；支持变量",
+        "设置值（0 清除，1 设置，-1 取反）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/个人标识常量用法.htm",
+        "title": "个人标识常量用法",
+        "evidenceLine": 14
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "Goto": {
+      "syntax": "GOTO @标签 或 GOTO @标签(入参列表|返回变量列表)",
+      "details": "跳转到当前脚本标签，可用 @标签(入参列表|返回变量列表) 传入最多 5 项并接收最多 17 个返回值。",
+      "params": "@标签[(入参|返回变量)]",
+      "paramList": [
+        "目标标签（可写为 @标签(入参1,入参2|返回变量1,返回变量2)）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/GOTO传递参数及脚本参数回调功能.htm",
+        "title": "GOTO传递参数及脚本参数回调功能",
+        "evidenceLine": 1
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1,
+      "snippet": "GOTO @${1:标签}"
+    },
+    "Return": {
+      "syntax": "RETURN [返回值1 ... 返回值17]",
+      "details": "将结果按顺序交给 GOTO 的返回变量列表，并结束当前脚本段。最多回传 17 项。",
+      "params": "[返回值1] [返回值2] [返回值3] [返回值4] [返回值5] [返回值6] [返回值7] [返回值8] [返回值9] [返回值10] [返回值11] [返回值12] [返回值13] [返回值14] [返回值15] [返回值16] [返回值17]",
+      "paramList": [
+        "第1个返回值",
+        "第2个返回值",
+        "第3个返回值",
+        "第4个返回值",
+        "第5个返回值",
+        "第6个返回值",
+        "第7个返回值",
+        "第8个返回值",
+        "第9个返回值",
+        "第10个返回值",
+        "第11个返回值",
+        "第12个返回值",
+        "第13个返回值",
+        "第14个返回值",
+        "第15个返回值",
+        "第16个返回值",
+        "第17个返回值"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/GOTO传递参数及脚本参数回调功能.htm",
+        "title": "GOTO传递参数及脚本参数回调功能",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "maxArgs": 17,
+      "snippet": "RETURN ${1:返回值}"
+    },
+    "ChangeNameColor": {
+      "syntax": "ChangeNameColor 颜色代码",
+      "details": "修改人物名字颜色。",
+      "params": "颜色代码",
+      "paramList": [
+        "名称颜色（0–255，-1 按转生变色顺序循环）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/更新名称颜色.htm",
+        "title": "更改人物颜色",
+        "evidenceLine": 5
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "ChangeItemAddValueID": {
+      "syntax": "ChangeItemAddValueID 装备位置 属性位置 操作符 值",
+      "details": "依照属性 ID 修改装备附加属性。",
+      "params": "装备位置 属性位置 操作符 值",
+      "paramList": [
+        "装备位置（-1 为 OK 框，0–55 为穿戴位置）",
+        "附加属性位置（0–13；44 为不显示的属性）",
+        "操作符（+、-、=）",
+        "操作数值"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/修改物品的附加属性值.html",
+        "title": "修改物品的附加属性值",
+        "evidenceLine": 5
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 4,
+      "maxArgs": 4
+    },
+    "CheckItemAddValueID": {
+      "syntax": "CheckItemAddValueID 装备位置 属性位置 比较符 值 保存变量",
+      "details": "检测指定 ID 的装备附加属性。",
+      "params": "装备位置 属性位置 比较符 值 保存变量",
+      "paramList": [
+        "装备位置（-1 为 OK 框，0–55 为穿戴位置）",
+        "附加属性位置（0–13；44 为不显示的属性）",
+        "比较符（<、>、=、?）",
+        "比较值",
+        "保存结果的变量"
+      ],
+      "contexts": [
+        "IF"
+      ],
+      "kind": "check",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/修改物品的附加属性值.html",
+        "title": "修改物品的附加属性值",
+        "evidenceLine": 8
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "maxArgs": 5
+    },
+    "GetItemAddValueID": {
+      "syntax": "GetItemAddValueID 装备位置 属性位置 变量 获取方式",
+      "details": "读取指定 ID 的装备附加属性。",
+      "params": "装备位置 属性位置 变量 获取方式",
+      "paramList": [
+        "装备位置（-1 为 OK 框，0–55 为穿戴位置）",
+        "附加属性位置（0–13；44 为不显示的属性）",
+        "保存数值的变量",
+        "获取方式（0 附加属性，1 基础属性和附加属性之和）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/修改物品的附加属性值.html",
+        "title": "修改物品的附加属性值",
+        "evidenceLine": 11
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "maxArgs": 4
+    },
+    "LoopBagItems": {
+      "syntax": "LoopBagItems @回调 唯一ID变量 物品名变量 数量变量 [颜色变量] [标记变量] [极品变量]",
+      "details": "遍历背包物品，为当前物品填入变量并调用回调标签。",
+      "params": "@回调 唯一ID变量 物品名变量 数量变量 [颜色变量] [标记变量] [极品变量]",
+      "paramList": [
+        "回调标签",
+        "物品唯一ID变量",
+        "物品名称变量",
+        "数量变量",
+        "颜色变量",
+        "物品标记变量",
+        "记录是否极品的变量"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/NPC.htm",
+        "title": "遍历背包物品",
+        "evidenceLine": 3
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "maxArgs": 7
+    },
+    "DelItemByMakeIndex": {
+      "syntax": "DelItemByMakeIndex 唯一ID列表 [绑定状态变量] [失败状态变量]",
+      "details": "按唯一ID删除背包物品，多个 ID 用逗号隔开。仅处理背包物品。",
+      "params": "唯一ID列表 [绑定状态变量] [失败状态变量]",
+      "paramList": [
+        "物品唯一ID列表（逗号分隔）",
+        "绑定状态返回变量（大于 0 表示绑定）",
+        "删除失败返回变量（大于 0 表示失败）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/NPC.htm",
+        "title": "遍历背包物品",
+        "evidenceLine": 12
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 3
+    },
+    "CheckCurrTargetRace": {
+      "syntax": "CheckCurrTargetRace 比较符 Race值",
+      "details": "检测当前目标类型。在死亡触发中可区分人物和英雄。",
+      "params": "比较符 Race值",
+      "paramList": [
+        "比较符（=、>、<）",
+        "目标 Race 值（人物为 0，英雄为 2）"
+      ],
+      "contexts": [
+        "IF"
+      ],
+      "kind": "check",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/脚本检测命令/检测杀人者是人物还是怪物.htm",
+        "title": "检测杀人者是人物还是怪物",
+        "evidenceLine": 9
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 2,
+      "maxArgs": 2
+    },
+    "AddAttList": {
+      "syntax": "AddAttList 属性组名 操作符 属性字符串 [参数4]",
+      "details": "按属性组和操作符应用属性字符串。当前手册格式列到参数4，仅解释前三项并展示三参数范例。",
+      "params": "属性组名 操作符 属性字符串 [参数4]",
+      "paramList": [
+        "自定义属性组名",
+        "操作符（+、-、=）",
+        "属性字符串，例如 3#1#100|3#2#100",
+        "参数4（当前手册未说明含义）"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/通过字符串增加对应属性值.htm",
+        "title": "通过字符串增加对应属性值",
+        "evidenceLine": 3
+      },
+      "completionEnabled": false,
+      "completionVerified": false
+    },
+    "AddButton": {
+      "syntax": "ADDBUTTON 主窗口ID 图标ID 图标路径\nADDBUTTON 补丁序号 点击触发序号 默认图片 经过图片 按下图片 坐标X 坐标Y 是否可移动(0/1) 标题(-1为空) 悬浮备注",
+      "details": "添加自定义按钮。新面板写作 ADDBUTTON 主窗口ID 图标ID 图标路径，可传入包含控件的字符串变量。旧命令按补丁、图像、坐标等十项参数创建按钮。",
+      "params": "补丁序号 点击触发序号 默认图片 经过图片 按下图片 坐标X 坐标Y 是否可移动(0/1) 标题(-1为空) 悬浮备注",
+      "paramList": [
+        "旧式：WIL补丁序号；新面板：主窗口ID",
+        "旧式：点击触发序号；新面板：图标ID",
+        "旧式：默认图片；新面板：图标路径或控件内容变量",
+        "经过图片",
+        "按下图片",
+        "坐标X",
+        "坐标Y",
+        "是否可移动(0/1)",
+        "标题(-1为空)",
+        "悬浮备注"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新NPC界面写法/自定义按钮AddButton.htm",
+        "title": "自定义按钮AddButton",
+        "evidenceLine": 1
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "snippet": "ADDBUTTON ${1:主窗口ID} ${2:图标ID} ${3:图标路径}"
+    },
+    "DelButton": {
+      "syntax": "DELBUTTON 主窗口ID 图标ID\nDELBUTTON 按钮序号(1-100) [删除范围(0自己/1全服)]",
+      "details": "删除自定义按钮。新面板按主窗口 ID 和图标 ID 删除。旧式按按钮序号及可选删除范围执行。",
+      "params": "主窗口ID 图标ID",
+      "paramList": [
+        "旧式：按钮序号（1–100）；新面板：主窗口ID",
+        "旧式：删除范围（0 自己，1 全服）；新面板：图标ID"
+      ],
+      "contexts": [
+        "ACT"
+      ],
+      "kind": "action",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新NPC界面写法/自定义按钮AddButton.htm",
+        "title": "自定义按钮AddButton",
+        "evidenceLine": 7
+      },
+      "completionEnabled": true,
+      "completionVerified": true,
+      "minArgs": 1,
+      "maxArgs": 2,
+      "snippet": "DELBUTTON ${1:主窗口ID} ${2:图标ID}"
+    },
+    "SetMonBurstItems": {
+      "syntax": "SetMonBurstItems 物品名称 数量",
+      "details": "在 QF 的 @KillMon 杀怪触发中设置怪物额外爆出的指定物品。手册示例为 SetMonBurstItems 骨玉权杖 5。",
+      "params": "物品名称 数量",
+      "paramList": [
+        "本次杀怪要爆出的物品名称，例如骨玉权杖。",
+        "要爆出的物品数量，示例中 5 表示五件。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/强制怪物爆出指定物品.htm",
+        "title": "强制怪物爆出指定物品",
+        "evidenceLine": 2
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    "SETSELLCHAR": {
+      "syntax": "SETSELLCHAR [开关]",
+      "details": "控制当前角色是否允许在九九角色交易行出售。",
+      "params": "[开关]",
+      "paramList": [
+        "1允许出售角色，0或省略禁止出售"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/角色交易行.htm",
+        "title": "角色交易行",
+        "evidenceLine": 5
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 0,
+      "maxArgs": 1
+    },
+    "MAKEPOSION": {
+      "syntax": "MAKEPOSION 类型 秒数 威力",
+      "details": "给人物施加指定状态。",
+      "params": "类型 秒数 威力",
+      "paramList": [
+        "0绿毒、1红毒、5麻痹、12冰冻、13蛛网",
+        "持续秒数",
+        "威力"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/改变人物状态.html",
+        "title": "改变人物状态",
+        "evidenceLine": 2
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 3,
+      "maxArgs": 3
+    },
+    "ADDBUTTONEX": {
+      "syntax": "ADDBUTTONEX 触发号|X|Y|移动 WIL 三态图片 特效WIL 常态特效 经过特效 按下特效 标题|备注 所属界面",
+      "details": "创建带三态特效的界面按钮。手册列出九项，示例只填八项，第九项必填性未说明。",
+      "params": "触发号|X|Y|移动 WIL 三态图片 特效WIL 常态特效 经过特效 按下特效 标题|备注 所属界面",
+      "paramList": [
+        "包含四个参数，每个参数用“|”隔开。触发序号(1-100)|X坐标|Y坐标|是否可以移动(0=不能移动1=可以移动)",
+        "按钮WIL补丁序号，此序号在M2-查看-列表信息二-WIL资源 里面编辑",
+        "按钮图片，包含三个参数，每个参数用“|”隔开。按钮默认图片序号|鼠标经过图片序号|按钮按下图片序号",
+        "按钮特效WIL补丁序号，此序号在M2-查看-列表信息二-WIL资源 里面编辑",
+        "按钮默认特效，如果没有可以使用“*”，包含六个参数，每个参数用“|”隔开。特效开始图片序号|播放张数|播放速度(毫秒)|绘制模式(0特效绘制,1普通绘制)|微调X|微调Y",
+        "按钮鼠标经过特效，如果没有可以使用“*”，包含六个参数，每个参数用“|”隔开。特效开始图片序号|播放张数|播放速度(毫秒)|绘制模式(0,1)|微调X|微调Y",
+        "按钮按下特效，如果没有可以使用“*”，包含六个参数，每个参数用“|”隔开。特效开始图片序号|播放张数|播放速度(毫秒)|绘制模式(0,1)|微调X|微调Y",
+        "包含两个参数，每个参数用“|”隔开。按钮上面显示的文字标题,-1时为空标题|鼠标移动到按钮显示的悬浮框备注信息 “\\”表示换行 “/”颜色分割符",
+        "创建在哪个界面上 0屏幕上 1装备对话框上 2装备 3时装 4状态 5属性 6称号 7技能 8出战 9包裹 10聊天框左侧界面 11聊天框右侧界面 12商铺界面 13查看对方装备对话框上 14查看对方装备 15查看对方时装 16查看对称号 17聊天框"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/功能操作命令/自定义按钮.html",
+        "title": "自定义按钮",
+        "evidenceLine": 28
+      },
+      "completionVerified": false,
+      "completionEnabled": false
+    },
+    "SETLOCKLEVEL": {
+      "syntax": "SETLOCKLEVEL 模式",
+      "details": "设置人物等级锁定及经验处理。",
+      "params": "模式",
+      "paramList": [
+        "0解除，1锁定等级且不加经验，2锁定等级但累加经验"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/设置等级锁定功能.htm",
+        "title": "设置等级锁定功能",
+        "evidenceLine": 3
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 1,
+      "maxArgs": 1
+    },
+    "GIVE": {
+      "syntax": "GIVE 物品或GOLD [数量]",
+      "details": "给人物指定物品或金币。",
+      "params": "物品或GOLD [数量]",
+      "paramList": [
+        "物品名称；发放金币填 GOLD",
+        "物品数量或金币数。给物品时可省略数量，见《设置物品来源》中的 Give 木剑。"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/其他相关资料/传奇基础脚本命令详解[!].htm",
+        "title": "传奇基础脚本命令详解[!]",
+        "evidenceLine": 132
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "minArgs": 1,
+      "maxArgs": 2,
+      "snippet": "GIVE ${1:木剑} ${2:1}"
+    },
+    "H.GIVE": {
+      "syntax": "H.GIVE 物品名称 数量",
+      "details": "向英雄发放物品。本引擎《英雄上线触发》示例有 H.give 骨玉权杖 1。",
+      "params": "物品名称 数量",
+      "paramList": [
+        "发给英雄的物品名称",
+        "发给英雄的物品数量"
+      ],
+      "kind": "action",
+      "contexts": [
+        "ACT"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/英雄功能操作/英雄上线触发.htm",
+        "title": "英雄上线触发",
+        "evidenceLine": 21
+      },
+      "completionVerified": true,
+      "completionEnabled": true,
+      "snippet": "H.GIVE ${1:木剑} ${2:1}"
+    },
+    "CHECKINMAPRANGE": {
+      "syntax": "CHECKINMAPRANGE",
+      "details": "当前引擎更新记录列有副本中的范围检测修复，未单列参数格式。",
+      "params": "",
+      "paramList": [],
+      "kind": "check",
+      "contexts": [
+        "IF"
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "UpDate.htm",
+        "title": "UpDate",
+        "evidenceLine": 196
+      },
+      "completionVerified": false,
+      "completionEnabled": false
+    }
+  },
+  "saySnippets": [
+    {
+      "id": "newui-img-996pc",
+      "label": "<Img|wil=资源|pcimg=图片|x=X|y=Y>",
+      "snippet": "<Img|wil=${1:资源文件名}|pcimg=${2:图片序号}|x=${3:X}|y=${4:Y}|bg=${5:背景图(0/1)}|link=@${6:触发标签}>",
+      "description": "996PC 新 NPC 面板图片组件",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新NPC界面写法/自定义输入框Input.htm",
+        "title": "自定义输入框Input",
+        "evidenceLine": 50
+      },
+      "parameters": [
+        {
+          "key": "wil",
+          "description": "图片资源文件名"
+        },
+        {
+          "key": "pcimg",
+          "description": "图片序号"
+        },
+        {
+          "key": "img",
+          "description": "直接 PNG 路径；客户端素材根目录未公开"
+        },
+        {
+          "key": "x",
+          "description": "坐标X"
+        },
+        {
+          "key": "y",
+          "description": "坐标Y"
+        },
+        {
+          "key": "bg",
+          "description": "是否为背景图"
+        },
+        {
+          "key": "link",
+          "description": "单击触发标签；必须放在最后"
+        },
+        {
+          "key": "esc",
+          "description": "按 ESC 关闭(0/1)"
+        },
+        {
+          "key": "move",
+          "description": "界面可移动(0/1)"
+        },
+        {
+          "key": "reset",
+          "description": "重置界面坐标(0/1)"
+        },
+        {
+          "key": "show",
+          "description": "显示位置"
+        },
+        {
+          "key": "layerid",
+          "description": "NPC 面板窗口ID"
+        },
+        {
+          "key": "loadDelay",
+          "description": "延迟加载剩余界面(0/1)"
+        },
+        {
+          "key": "hideMain",
+          "description": "隐藏主UI界面(0/1)"
+        },
+        {
+          "key": "forbidBagEquip",
+          "description": "禁止打开背包装备栏(0/1)"
+        },
+        {
+          "key": "scale9l",
+          "description": "九宫拉伸左边距"
+        },
+        {
+          "key": "scale9r",
+          "description": "九宫拉伸右边距"
+        },
+        {
+          "key": "scale9t",
+          "description": "九宫拉伸上边距"
+        },
+        {
+          "key": "scale9b",
+          "description": "九宫拉伸下边距"
+        },
+        {
+          "key": "grey",
+          "description": "灰化显示(0/1)"
+        },
+        {
+          "key": "bagPos",
+          "description": "背包位置(1左/0右)"
+        },
+        {
+          "key": "opacity",
+          "description": "透明度(0-255)"
+        },
+        {
+          "key": "reload",
+          "description": "刷新面板(0/1)"
+        },
+        {
+          "key": "id",
+          "description": "元素ID；同一界面不可重复"
+        },
+        {
+          "key": "children",
+          "description": "子节点ID列表，格式为 {1,2,3}"
+        },
+        {
+          "key": "a",
+          "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+        },
+        {
+          "key": "ax",
+          "description": "锚点X"
+        },
+        {
+          "key": "ay",
+          "description": "锚点Y"
+        },
+        {
+          "key": "percentx",
+          "description": "百分比坐标X"
+        },
+        {
+          "key": "percenty",
+          "description": "百分比坐标Y",
+          "aliases": [
+            "pencenty"
+          ]
+        },
+        {
+          "key": "width",
+          "description": "宽度"
+        },
+        {
+          "key": "height",
+          "description": "高度"
+        },
+        {
+          "key": "percentwidth",
+          "description": "百分比宽度"
+        },
+        {
+          "key": "percentheight",
+          "description": "百分比高度"
+        },
+        {
+          "key": "color",
+          "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+        },
+        {
+          "key": "size",
+          "description": "字体大小"
+        },
+        {
+          "key": "submitInput",
+          "description": "点击时提交的输入框编号，多个编号用逗号分隔。"
+        }
+      ]
+    },
+    {
+      "label": "<EquipShow|index=位置|showtips=提示|showstar=星级|bgtype=背景|link=@标签>",
+      "snippet": "<EquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|showstar=${3:显示星级(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>",
+      "description": "996PC 新 NPC 面板人物装备位置展示组件",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm",
+        "title": "物品框ItemShow",
+        "evidenceLine": 2
+      },
+      "parameters": [
+        {
+          "key": "index",
+          "description": "装备位置(0-55)"
+        },
+        {
+          "key": "showtips",
+          "description": "显示物品属性(0/1)"
+        },
+        {
+          "key": "showstar",
+          "description": "显示星级(0/1)"
+        },
+        {
+          "key": "bgtype",
+          "description": "显示背景图(0/1)"
+        },
+        {
+          "key": "link",
+          "description": "单击触发标签"
+        },
+        {
+          "key": "scale",
+          "description": "缩放比例"
+        },
+        {
+          "key": "dblink",
+          "description": "双击触发标签"
+        },
+        {
+          "key": "reload",
+          "description": "刷新面板(0/1)"
+        },
+        {
+          "key": "effectshow",
+          "description": "特效显示方式：0 不显示，1 显示背包外观（默认），2 显示内观特效，3 同时显示装备内观素材和内观特效。"
+        },
+        {
+          "key": "id",
+          "description": "元素ID；同一界面不可重复"
+        },
+        {
+          "key": "children",
+          "description": "子节点ID列表，格式为 {1,2,3}"
+        },
+        {
+          "key": "a",
+          "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+        },
+        {
+          "key": "ax",
+          "description": "锚点X"
+        },
+        {
+          "key": "ay",
+          "description": "锚点Y"
+        },
+        {
+          "key": "x",
+          "description": "坐标X"
+        },
+        {
+          "key": "y",
+          "description": "坐标Y"
+        },
+        {
+          "key": "percentx",
+          "description": "百分比坐标X"
+        },
+        {
+          "key": "percenty",
+          "description": "百分比坐标Y",
+          "aliases": [
+            "pencenty"
+          ]
+        },
+        {
+          "key": "width",
+          "description": "宽度"
+        },
+        {
+          "key": "height",
+          "description": "高度"
+        },
+        {
+          "key": "percentwidth",
+          "description": "百分比宽度"
+        },
+        {
+          "key": "percentheight",
+          "description": "百分比高度"
+        },
+        {
+          "key": "color",
+          "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+        },
+        {
+          "key": "size",
+          "description": "字体大小"
+        }
+      ],
+      "id": "newui-equipshow-996pc"
+    },
+    {
+      "label": "<HEROEquipShow|index=位置|showtips=提示|showstar=星级|bgtype=背景|link=@标签>",
+      "snippet": "<HEROEquipShow|index=${1:装备位置}|showtips=${2:显示属性(0/1)}|showstar=${3:显示星级(0/1)}|bgtype=${4:背景图(0/1)}|link=@${5:触发标签}>",
+      "description": "996PC 新 NPC 面板英雄装备位置展示组件",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新NPC界面写法/物品框ItemShow.htm",
+        "title": "物品框ItemShow",
+        "evidenceLine": 33
+      },
+      "parameters": [
+        {
+          "key": "index",
+          "description": "装备位置(0-55)"
+        },
+        {
+          "key": "showtips",
+          "description": "显示物品属性(0/1)"
+        },
+        {
+          "key": "showstar",
+          "description": "显示星级(0/1)"
+        },
+        {
+          "key": "bgtype",
+          "description": "显示背景图(0/1)"
+        },
+        {
+          "key": "link",
+          "description": "单击触发标签"
+        },
+        {
+          "key": "scale",
+          "description": "缩放比例"
+        },
+        {
+          "key": "dblink",
+          "description": "双击触发标签"
+        },
+        {
+          "key": "reload",
+          "description": "刷新面板(0/1)"
+        },
+        {
+          "key": "effectshow",
+          "description": "特效显示方式：0 不显示，1 显示背包外观（默认），2 显示内观特效，3 同时显示装备内观素材和内观特效。"
+        },
+        {
+          "key": "id",
+          "description": "元素ID；同一界面不可重复"
+        },
+        {
+          "key": "children",
+          "description": "子节点ID列表，格式为 {1,2,3}"
+        },
+        {
+          "key": "a",
+          "description": "显示位置：0左上、1右上、2左下、3右下、4居中、7上下居中、8左右居中"
+        },
+        {
+          "key": "ax",
+          "description": "锚点X"
+        },
+        {
+          "key": "ay",
+          "description": "锚点Y"
+        },
+        {
+          "key": "x",
+          "description": "坐标X"
+        },
+        {
+          "key": "y",
+          "description": "坐标Y"
+        },
+        {
+          "key": "percentx",
+          "description": "百分比坐标X"
+        },
+        {
+          "key": "percenty",
+          "description": "百分比坐标Y",
+          "aliases": [
+            "pencenty"
+          ]
+        },
+        {
+          "key": "width",
+          "description": "宽度"
+        },
+        {
+          "key": "height",
+          "description": "高度"
+        },
+        {
+          "key": "percentwidth",
+          "description": "百分比宽度"
+        },
+        {
+          "key": "percentheight",
+          "description": "百分比高度"
+        },
+        {
+          "key": "color",
+          "description": "颜色值；支持 0-255 及逗号分隔的闪烁颜色"
+        },
+        {
+          "key": "size",
+          "description": "字体大小"
+        }
+      ],
+      "id": "newui-heroequipshow-996pc"
+    },
+    {
+      "id": "item-box",
+      "label": "<ITEMBOX:编号:WIL序号:背景图片:X:Y:宽度:高度:允许类型:提示文字>",
+      "snippet": "<ITEMBOX:${1:编号}:${2:WIL序号}:${3:背景图片}:${4:X}:${5:Y}:${6:宽度}:${7:高度}:${8:允许类型}:${9:提示文字}>",
+      "description": "创建可放入物品的自定义 OK 框。",
+      "evidenceToken": "ITEMBOX",
+      "parameters": [
+        {
+          "description": "框编号（手册标注 0–17）"
+        },
+        {
+          "description": "背景 WIL 文件序号，-1 时不绘制背景"
+        },
+        {
+          "description": "背景图片序号"
+        },
+        {
+          "description": "横向坐标偏移"
+        },
+        {
+          "description": "纵向坐标偏移"
+        },
+        {
+          "description": "宽度"
+        },
+        {
+          "description": "高度"
+        },
+        {
+          "description": "允许的物品 StdMode，多个以逗号分隔，* 允许所有类型"
+        },
+        {
+          "description": "空框时鼠标悬停显示的文字"
+        }
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/自定义OK框[!].htm",
+        "title": "自定义OK框[!]",
+        "evidenceLine": 3
+      }
+    },
+    {
+      "id": "equipshow-positional-996pc",
+      "label": "<EquipShow:装备位置:X:Y:显示背景:灰化/@标签>",
+      "snippet": "<EquipShow:${1:装备位置}:${2:X}:${3:Y}:${4:显示背景}:${5:灰化}/@${6:标签}>",
+      "description": "按身上装备位置显示物品，悬停显示属性。",
+      "evidenceToken": "EquipShow",
+      "parameters": [
+        {
+          "description": "装备位置（0–55）"
+        },
+        {
+          "description": "横向坐标偏移"
+        },
+        {
+          "description": "纵向坐标偏移"
+        },
+        {
+          "description": "是否显示背景图（必备补丁第 47 号图）"
+        },
+        {
+          "description": "灰化显示（0 正常，1 灰化）"
+        },
+        {
+          "description": "可选点击触发标签，可携带参数"
+        }
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/NPC面板编辑功能.htm",
+        "title": "NPC面板编辑功能",
+        "evidenceLine": 2
+      }
+    },
+    {
+      "id": "dbitemshow-positional-996pc",
+      "label": "<DBItemShow:物品唯一ID:X:Y:显示背景:灰化/@标签>",
+      "snippet": "<DBItemShow:${1:物品唯一ID}:${2:X}:${3:Y}:${4:显示背景}:${5:灰化}/@${6:标签}>",
+      "description": "按物品唯一ID显示物品，悬停显示属性。",
+      "evidenceToken": "DBItemShow",
+      "parameters": [
+        {
+          "description": "物品唯一ID"
+        },
+        {
+          "description": "横向坐标偏移"
+        },
+        {
+          "description": "纵向坐标偏移"
+        },
+        {
+          "description": "是否显示背景图（必备补丁第 47 号图）"
+        },
+        {
+          "description": "灰化显示（0 正常，1 灰化）"
+        },
+        {
+          "description": "可选点击触发标签，可携带参数"
+        }
+      ],
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/NPC面板编辑功能.htm",
+        "title": "NPC面板编辑功能",
+        "evidenceLine": 12
+      }
+    },
+    {
+      "label": "<IMG:N:F:X:Y/@Label>",
+      "snippet": "<IMG:${1:图片序号}:${2:资源序号}:${3:X}:${4:Y}/@${5:标签}>",
+      "description": "显示可点击的静态图片",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm",
+        "title": "NPC对话框内创建输入框",
+        "evidenceLine": 20
+      },
+      "id": "img-relative",
+      "parameters": [
+        {
+          "description": "WIL 资源中的图片序号"
+        },
+        {
+          "description": "WIL 文件序号，见 M2 的 WIL 资源列表"
+        },
+        {
+          "description": "横向坐标偏移"
+        },
+        {
+          "description": "纵向坐标偏移"
+        },
+        {
+          "description": "点击时要提交的输入框编号，多个以逗号分隔，例如 1,2"
+        },
+        {
+          "description": "鼠标悬停提示文字，可用颜色代码和 # 分隔，用 ^ 换行"
+        },
+        {
+          "description": "点击图片时执行的标签"
+        }
+      ],
+      "hoverSnippet": "<IMG:${1:图片序号}:${2:资源序号}:${3:X}:${4:Y}:${5:输入框编号}|${6:提示文字}/@${7:标签}>"
+    },
+    {
+      "label": "<IMGEX:F:U:H:D:X:Y/@Label>",
+      "snippet": "<IMGEX:${1:资源序号}:${2:默认图片}:${3:移入图片}:${4:按下图片}:${5:X}:${6:Y}/@${7:标签}>",
+      "description": "显示可点击的三态按钮图片",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm",
+        "title": "NPC对话框内创建输入框",
+        "evidenceLine": 22
+      },
+      "evidenceToken": "IMGEX",
+      "id": "imgex-relative-996pc",
+      "parameters": [
+        {
+          "description": "WIL 文件序号"
+        },
+        {
+          "description": "默认显示的图片序号"
+        },
+        {
+          "description": "鼠标移入时的图片序号"
+        },
+        {
+          "description": "鼠标按下时的图片序号"
+        },
+        {
+          "description": "横向坐标偏移"
+        },
+        {
+          "description": "纵向坐标偏移"
+        },
+        {
+          "description": "点击时要提交的输入框编号，多个以逗号分隔，例如 1,2"
+        },
+        {
+          "description": "鼠标悬停提示文字，可用颜色代码和 # 分隔，用 ^ 换行"
+        },
+        {
+          "description": "点击图片时执行的标签"
+        }
+      ],
+      "hoverSnippet": "<IMGEX:${1:资源序号}:${2:默认图片}:${3:移入图片}:${4:按下图片}:${5:X}:${6:Y}:${7:输入框编号}|${8:提示文字}/@${9:标签}>"
+    },
+    {
+      "label": "<PLAYIMG:F:N:C:T:X:Y:M:L:R/@Label>",
+      "snippet": "<PLAYIMG:${1:资源序号}:${2:开始图片}:${3:播放张数}:${4:间隔毫秒}:${5:X}:${6:Y}:${7:绘制模式(0/1)}:${8:播放次数}:${9:修复模式(0/1)}/@${10:标签}>",
+      "description": "播放动态图片，可设置绘制模式、次数和坐标修复模式",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 20
+      },
+      "evidenceToken": "PLAYIMG",
+      "id": "playimg-relative-996pc",
+      "parameters": [
+        {
+          "description": "WIL 文件序号"
+        },
+        {
+          "description": "动画起始图片序号"
+        },
+        {
+          "description": "播放的图片张数"
+        },
+        {
+          "description": "每帧间隔（毫秒）"
+        },
+        {
+          "description": "横向坐标偏移"
+        },
+        {
+          "description": "纵向坐标偏移"
+        },
+        {
+          "description": "绘制模式（0 普通，1 特效）"
+        },
+        {
+          "description": "播放次数（留空或 0 为无限，正数次播完后消失）"
+        },
+        {
+          "description": "修复模式（0 或留空为普通，1 适用于图片大小不同、坐标有偏移的素材）"
+        },
+        {
+          "description": "点击动画时执行的标签"
+        }
+      ]
+    },
+    {
+      "label": "<COUNTDOWN:秒数:次数:颜色:X:Y/@标签>",
+      "snippet": "<COUNTDOWN:${1:秒数}:${2:次数(0无限)}:${3:颜色}:${4:X}:${5:Y}/@${6:标签}>",
+      "description": "NPC面板倒计时",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/NPC面板倒计时.htm",
+        "title": "NPC面板倒计时",
+        "evidenceLine": 4
+      },
+      "id": "countdown",
+      "parameters": [
+        {
+          "description": "倒计时时间（秒）"
+        },
+        {
+          "description": "重复次数（0 无限）"
+        },
+        {
+          "description": "显示颜色"
+        },
+        {
+          "description": "横向坐标"
+        },
+        {
+          "description": "纵向坐标"
+        },
+        {
+          "description": "倒计时结束时执行的标签"
+        }
+      ]
+    },
+    {
+      "label": "<ITEMSHOW:D:F:X:Y:B>",
+      "snippet": "<ITEMSHOW:${1:数据库物品IDX}:${2:数量}:${3:X}:${4:Y}:${5:显示背景(0/1)}>",
+      "description": "显示物品图片并在悬停时显示属性",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框显示物品图片 显示物品属性.htm",
+        "title": "NPC对话框显示物品图片 显示物品属性",
+        "evidenceLine": 5
+      },
+      "id": "item-show",
+      "parameters": [
+        {
+          "description": "数据库中的物品IDX"
+        },
+        {
+          "description": "数量（0 不显示数量）"
+        },
+        {
+          "description": "横向坐标偏移"
+        },
+        {
+          "description": "纵向坐标偏移"
+        },
+        {
+          "description": "是否绘制背景图（必备补丁第 47 号图）"
+        }
+      ]
+    },
+    {
+      "label": "<INPUTTEXT:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+      "snippet": "<INPUTTEXT:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小长度}:${10:最大长度}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+      "description": "创建文本输入框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm",
+        "title": "NPC对话框内创建输入框",
+        "evidenceLine": 3
+      },
+      "id": "input-text",
+      "parameters": [
+        {
+          "description": "输入框ID（1–9）"
+        },
+        {
+          "description": "横向坐标"
+        },
+        {
+          "description": "纵向坐标"
+        },
+        {
+          "description": "宽度"
+        },
+        {
+          "description": "高度"
+        },
+        {
+          "description": "背景色（-1 透明，0–255 为颜色码）"
+        },
+        {
+          "description": "边框色（-1 无边框，0–255 为颜色码）"
+        },
+        {
+          "description": "文字颜色"
+        },
+        {
+          "description": "最小长度（0 不判断）"
+        },
+        {
+          "description": "最大长度（0 不判断）"
+        },
+        {
+          "description": "输入无效时的提示，留空时客户端不检查有效性"
+        },
+        {
+          "description": "输入提示文字"
+        },
+        {
+          "description": "输入提示文字颜色"
+        }
+      ]
+    },
+    {
+      "label": "<INPUTNUM:ID:X:Y:W:H:BG:BORDER:COLOR:MIN:MAX:ERROR:HINT:HINTCOLOR>",
+      "snippet": "<INPUTNUM:${1:ID}:${2:X}:${3:Y}:${4:宽度}:${5:高度}:${6:背景色}:${7:边框色}:${8:文字颜色}:${9:最小值}:${10:最大值}:${11:错误提示}:${12:提示文字}:${13:提示颜色}>",
+      "description": "创建数字输入框",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/NPC对话框内创建输入框.htm",
+        "title": "NPC对话框内创建输入框",
+        "evidenceLine": 8
+      },
+      "id": "input-number",
+      "parameters": [
+        {
+          "description": "输入框ID（1–9）"
+        },
+        {
+          "description": "横向坐标"
+        },
+        {
+          "description": "纵向坐标"
+        },
+        {
+          "description": "宽度"
+        },
+        {
+          "description": "高度"
+        },
+        {
+          "description": "背景色（-1 透明，0–255 为颜色码）"
+        },
+        {
+          "description": "边框色（-1 无边框，0–255 为颜色码）"
+        },
+        {
+          "description": "文字颜色"
+        },
+        {
+          "description": "最小值（与最大值均为 0 时不限）"
+        },
+        {
+          "description": "最大值（不小于最小值）"
+        },
+        {
+          "description": "输入无效时的提示，留空时客户端不检查有效性"
+        },
+        {
+          "description": "输入提示文字"
+        },
+        {
+          "description": "输入提示文字颜色"
+        }
+      ]
+    },
+    {
+      "label": "<TEXT:内容:X:Y{FCOLOR=颜色}/@标签>",
+      "snippet": "<TEXT:${1:内容}:${2:X}:${3:Y}{FCOLOR=${4:250}}/@${5:标签}>",
+      "description": "使用坐标显示可点击文字",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/设置NPC文字坐标.htm",
+        "title": "设置NPC文字坐标",
+        "evidenceLine": 3
+      },
+      "id": "text-absolute",
+      "parameters": [
+        {
+          "description": "显示的文字内容，可使用脚本变量"
+        },
+        {
+          "description": "鼠标悬停提示文字，可用颜色代码和 # 分隔，用 ^ 换行"
+        },
+        {
+          "description": "横向坐标"
+        },
+        {
+          "description": "纵向坐标"
+        },
+        {
+          "description": "点击时要提交的输入框编号，多个以逗号分隔，例如 1,2"
+        },
+        {
+          "description": "文字颜色代码"
+        },
+        {
+          "description": "点击文字时触发的脚本标签"
+        }
+      ],
+      "hoverSnippet": "<TEXT:${1:内容}|${2:提示文字}:${3:X}:${4:Y}:${5:输入框编号}{FCOLOR=${6:250}}/@${7:标签}>",
+      "styleParameters": [
+        {
+          "key": "FCOLOR",
+          "description": "固定文字颜色代码。"
+        },
+        {
+          "key": "AUTOCOLOR",
+          "description": "自动变色使用的颜色代码序列，以逗号分隔。"
+        }
+      ]
+    },
+    {
+      "label": "<文字/@标签>",
+      "snippet": "<${1:文字}/@${2:标签}>",
+      "description": "显示可点击文字",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm",
+        "title": "扩展NPC脚本点击触发带参数",
+        "evidenceLine": 11
+      },
+      "evidenceToken": "SCRIPTPARAM1",
+      "id": "text-link",
+      "parameters": [
+        {
+          "description": "点击前显示的文字内容"
+        },
+        {
+          "description": "点击时触发的脚本标签"
+        }
+      ]
+    },
+    {
+      "label": "<文字/@标签(参数)>",
+      "snippet": "<${1:文字}/@${2:标签}(${3:参数})>",
+      "description": "显示带脚本参数的可点击文字",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/扩展NPC脚本点击触发带参数.htm",
+        "title": "扩展NPC脚本点击触发带参数",
+        "evidenceLine": 11
+      },
+      "evidenceToken": "SCRIPTPARAM1",
+      "id": "text-link-params",
+      "parameters": [
+        {
+          "description": "点击前显示的文字内容"
+        },
+        {
+          "description": "点击时触发的脚本标签"
+        },
+        {
+          "description": "传给回调的参数，以逗号分隔，旧式最多三项"
+        }
+      ]
+    },
+    {
+      "label": "<文字/FCOLOR=颜色>",
+      "snippet": "<${1:文字}/FCOLOR=${2:250}>",
+      "description": "显示指定颜色的文字",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/脚本中使用图标功能[!].htm",
+        "title": "脚本中使用图标功能[!]",
+        "evidenceLine": 53
+      },
+      "id": "text-color",
+      "parameters": [
+        {
+          "description": "需要着色的文字内容"
+        },
+        {
+          "description": "文字颜色代码"
+        }
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "name": "HeroCheckDropUseItems",
+      "label": "[@HeroCheckDropUseItems]",
+      "description": "英雄身上装备掉落前触发，PARAM1～4为本次掉落物品参数",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/人物身上装备掉落前触发.htm",
+        "title": "人物身上装备掉落前触发",
+        "evidenceLine": 7
+      }
+    },
+    {
+      "name": "HeroShowFashion",
+      "label": "[@HeroShowFashion]",
+      "description": "英雄开启时装外显时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/时装外显勾选及触发.htm",
+        "title": "时装外显勾选及触发",
+        "evidenceLine": 6
+      }
+    },
+    {
+      "name": "HeroNotShowFashion",
+      "label": "[@HeroNotShowFashion]",
+      "description": "英雄取消时装外显时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/时装外显勾选及触发.htm",
+        "title": "时装外显勾选及触发",
+        "evidenceLine": 9
+      }
+    },
+    {
+      "name": "HeroNoAddUnLuck",
+      "label": "[@HeroNoAddUnLuck]",
+      "description": "英雄武器加诅咒时触发，STOP 可中止",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/武器加诅咒触发.htm",
+        "title": "武器加诅咒触发",
+        "evidenceLine": 9
+      }
+    },
+    {
+      "name": "BackpackRecoveryEX",
+      "label": "[@BackpackRecoveryEX]",
+      "description": "按回收ID触发，BACKRECOVERID保存本次回收序号",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/装备回收系统.htm",
+        "title": "装备回收系统",
+        "evidenceLine": 35
+      }
+    },
+    {
+      "name": "HeroItemDropFromBagBefore",
+      "label": "[@HeroItemDropFromBagBefore]",
+      "description": "英雄爆出背包物品前触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/拣物品触发 捡取物品触发[!].html",
+        "title": "拣物品触发 捡取物品触发[!]",
+        "evidenceLine": 24
+      }
+    },
+    {
+      "name": "HeroItemThrowFromBagBefore",
+      "label": "[@HeroItemThrowFromBagBefore]",
+      "description": "英雄主动扔掉背包物品前触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/特殊触发功能/拣物品触发 捡取物品触发[!].html",
+        "title": "拣物品触发 捡取物品触发[!]",
+        "evidenceLine": 25
+      }
+    },
+    {
+      "name": "UpgradeOK",
+      "label": "[@UpgradeOK]",
+      "description": "兼容HeroM2：宝石升级成功",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 4
+      }
+    },
+    {
+      "name": "UpgradeFail",
+      "label": "[@UpgradeFail]",
+      "description": "兼容HeroM2：宝石升级失败",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 4
+      }
+    },
+    {
+      "name": "UpgradeClear",
+      "label": "[@UpgradeClear]",
+      "description": "兼容HeroM2：装备升级属性被清除",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 5
+      }
+    },
+    {
+      "name": "OnTimerMS0",
+      "label": "[@OnTimerMS0]",
+      "description": "QManage 中毫秒级个人定时器 0 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS1",
+      "label": "[@OnTimerMS1]",
+      "description": "QManage 中毫秒级个人定时器 1 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS2",
+      "label": "[@OnTimerMS2]",
+      "description": "QManage 中毫秒级个人定时器 2 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS3",
+      "label": "[@OnTimerMS3]",
+      "description": "QManage 中毫秒级个人定时器 3 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS4",
+      "label": "[@OnTimerMS4]",
+      "description": "QManage 中毫秒级个人定时器 4 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS5",
+      "label": "[@OnTimerMS5]",
+      "description": "QManage 中毫秒级个人定时器 5 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS6",
+      "label": "[@OnTimerMS6]",
+      "description": "QManage 中毫秒级个人定时器 6 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS7",
+      "label": "[@OnTimerMS7]",
+      "description": "QManage 中毫秒级个人定时器 7 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS8",
+      "label": "[@OnTimerMS8]",
+      "description": "QManage 中毫秒级个人定时器 8 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "OnTimerMS9",
+      "label": "[@OnTimerMS9]",
+      "description": "QManage 中毫秒级个人定时器 9 到时触发",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/毫秒级个人定时器.htm",
+        "title": "毫秒级个人定时器",
+        "evidenceLine": 18
+      }
+    },
+    {
+      "name": "HeroStruckDamage",
+      "label": "[@HeroStruckDamage]",
+      "description": "英雄受到攻击时，在扣血前执行。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/英雄功能操作/英雄攻击前掉血触发.htm",
+        "title": "英雄攻击前掉血触发",
+        "evidenceLine": 25
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "BACKRECOVERID",
+      "full": "<$BACKRECOVERID>",
+      "description": "当前回收序号，供按ID回收触发读取",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/装备回收系统.htm",
+        "title": "装备回收系统",
+        "evidenceLine": 38
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "GETSORTSTRRANK",
+      "full": "<$GETSORTSTRRANK(变量,人物名字)>",
+      "description": "读取指定榜单变量中该人物的名次",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/键值对、哈希表.htm",
+        "title": "键值对、哈希表",
+        "evidenceLine": 121
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "FLAG",
+      "full": "<$FLAG(编号)>",
+      "description": "读取指定个人标识的当前值",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/个人标识常量用法.htm",
+        "title": "个人标识常量用法",
+        "evidenceLine": 3
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCRIPTPARAM1",
+      "full": "<$SCRIPTPARAM1>",
+      "description": "当前标签收到的第1个参数",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/GOTO传递参数及脚本参数回调功能.htm",
+        "title": "GOTO传递参数及脚本参数回调功能",
+        "evidenceLine": 14
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCRIPTPARAM2",
+      "full": "<$SCRIPTPARAM2>",
+      "description": "当前标签收到的第2个参数",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/GOTO传递参数及脚本参数回调功能.htm",
+        "title": "GOTO传递参数及脚本参数回调功能",
+        "evidenceLine": 14
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCRIPTPARAM3",
+      "full": "<$SCRIPTPARAM3>",
+      "description": "当前标签收到的第3个参数",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/GOTO传递参数及脚本参数回调功能.htm",
+        "title": "GOTO传递参数及脚本参数回调功能",
+        "evidenceLine": 14
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCRIPTPARAM4",
+      "full": "<$SCRIPTPARAM4>",
+      "description": "当前标签收到的第4个参数",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/GOTO传递参数及脚本参数回调功能.htm",
+        "title": "GOTO传递参数及脚本参数回调功能",
+        "evidenceLine": 14
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "SCRIPTPARAM5",
+      "full": "<$SCRIPTPARAM5>",
+      "description": "当前标签收到的第5个参数",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/GOTO传递参数及脚本参数回调功能.htm",
+        "title": "GOTO传递参数及脚本参数回调功能",
+        "evidenceLine": 14
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "StoneUpgrade.NAME",
+      "full": "<$StoneUpgrade.NAME>",
+      "description": "兼容HeroM2：宝石框装备的名称",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 8
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "StoneUpgrade.STDMODE",
+      "full": "<$StoneUpgrade.STDMODE>",
+      "description": "兼容HeroM2：宝石框装备的物品类型",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 10
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "StoneUpgrade.DURA",
+      "full": "<$StoneUpgrade.DURA>",
+      "description": "兼容HeroM2：宝石框装备的当前持久",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 12
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "StoneUpgrade.DURAMAX",
+      "full": "<$StoneUpgrade.DURAMAX>",
+      "description": "兼容HeroM2：宝石框装备的最大持久",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 14
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "StoneUpgrade.UpgCount",
+      "full": "<$StoneUpgrade.UpgCount>",
+      "description": "兼容HeroM2：宝石框装备的升级次数",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/兼容HeroM2/游戏功能详解/宝石升级系统[!].htm",
+        "title": "宝石升级系统[!]",
+        "evidenceLine": 16
+      },
+      "completionVerified": true,
+      "completionEnabled": true
+    },
+    {
+      "name": "USEITEMNAME",
+      "full": "<$USEITEMNAME>",
+      "description": "当前使用物品的名称；带 [装备位置] 时读取指定位置的装备名，见《自定义装备位》。",
+      "scope": "996PC 系统常量",
+      "source": {
+        "revision": "2026-07-23",
+        "page": "游戏引擎反外挂系统/新增功能/准星功能.htm",
+        "title": "准星功能"
+      },
+      "aliases": [
+        "<$USEITEMNAME[XX]>"
+      ],
+      "completionVerified": true,
+      "completionEnabled": true,
+      "descriptionReview": "final-own-help-manual"
+    },
+    {
+      "name": "USEITEM",
+      "full": "<$USEITEM[XX]>",
+      "description": "读取指定装备位置的装备实例唯一 ID；XX 填 M2 配置的位置，例如 71。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/自定义装备位.htm",
+        "title": "自定义装备位",
+        "evidenceLine": 7
+      },
+      "completionEnabled": true,
+      "completionVerified": true
+    },
+    {
+      "name": "USEITEMID",
+      "full": "<$USEITEMID[XX]>",
+      "description": "读取指定装备位置的物品 IDX；XX 填 M2 配置的位置，例如 71。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/自定义装备位.htm",
+        "title": "自定义装备位",
+        "evidenceLine": 7
+      },
+      "completionEnabled": true,
+      "completionVerified": true
+    }
+  ],
+  "mapInfoParams": [
+    {
+      "id": "CAMP",
+      "label": "CAMP",
+      "snippet": "CAMP",
+      "description": "阵营地图，杀人不增加PK值。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/新增功能/阵营系统.htm",
+        "title": "阵营系统",
+        "evidenceLine": 4
+      }
+    },
+    {
+      "id": "FIGHT5",
+      "label": "FIGHT5",
+      "snippet": "FIGHT5",
+      "description": "人物死亡不掉装备，怪物仍可掉落物品。",
+      "source": {
+        "revision": "2026-11-25",
+        "page": "游戏引擎反外挂系统/游戏功能详解/地图参数详解[!].htm",
+        "title": "地图参数详解[!]",
+        "evidenceLine": 140
+      }
+    }
+  ]
+}

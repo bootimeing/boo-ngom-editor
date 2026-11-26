@@ -53,6 +53,7 @@ interface Node {
   row?: DropAnalysisRow;
   children: Node[];
   rate?: Fraction;
+  weight?: bigint;
   unknown: string[];
 }
 type CaseState = 'awaiting-branch' | 'awaiting-open' | 'open' | 'ready';
@@ -302,14 +303,29 @@ export function analyzeDropRates(text: string, engine: EngineId): DropAnalysis {
     const item = /^(\S+\/\S+)\s+(\S+)(?:\s+(.*))?$/.exec(source);
     if (item) {
       const [itemName, trigger, ...extra] = item[2].split('|');
+      let quantity = item[3];
+      let weight: bigint | undefined;
+      const parent = stack.at(-1)!;
+      if (quantity && /[{}]|\bWEIGHT\s*=/i.test(quantity)) {
+        const metadata = /^(?:(\d+)\s+)?\{WEIGHT=(\d{1,7})\}$/i.exec(quantity);
+        if (engine === 'GOM' && metadata && Number(metadata[2]) >= 1 && Number(metadata[2]) <= 1000000) {
+          weight = BigInt(metadata[2]);
+          quantity = metadata[1];
+        } else {
+          const message = engine === 'GOM' ? '物品权重或扩展字段无效，WEIGHT 须为 1～1000000' : '当前引擎未证实此物品行的权重格式';
+          if (parent.group) parent.unknown.push(message);
+          warn(line, message);
+        }
+      }
       const row: DropAnalysisRow = { line, section, item: itemName, trigger, sourceRate: item[1],
-        quantity: item[3], formula: [], runtimeReasons: [], unknownReasons: [] };
+        quantity, formula: [], runtimeReasons: [], unknownReasons: [] };
       if (trigger?.startsWith('@')) row.runtimeReasons.push(`QF ${trigger}/ALLOWDROP 决定最终是否掉落`);
       if (!itemName || extra.length || (trigger !== undefined && !/^@[^|]+$/.test(trigger))) row.unknownReasons.push('物品触发字段未确认');
       if (/^(?:[AS]\d+$|<\$)/i.test(itemName)) row.runtimeReasons.push('动态物品名称及清空状态未执行');
-      if (item[3] && !/^\d+$/.test(item[3])) row.unknownReasons.push('数量或附加字段未确认');
+      if (quantity && !/^\d+$/.test(quantity)) row.unknownReasons.push('数量或附加字段未确认');
       const value = rate(item[1]);
-      stack.at(-1)!.children.push({ row, children: [], rate: value,
+      if (!value && engine === 'GOM' && parent.group) parent.unknown.push('候选物品几率无效，无法确定整组概率');
+      parent.children.push({ row, children: [], rate: value, weight,
         unknown: value ? [] : ['几率动态、分母无效或超出已验证范围'] });
       result.rows.push(row); continue;
     }
@@ -348,10 +364,11 @@ export function analyzeDropRates(text: string, engine: EngineId): DropAnalysis {
       return;
     }
     if (group?.random && node.children.some(child => !child.group && !child.row)) errors.push('RANDOM 候选含未展开/未知节点，候选总数不能确定');
-    const selection: Fraction = group?.random && node.children.length ? [1n, BigInt(node.children.length)] : ONE;
-    const childChance = multiply(chance, selection);
-    const childSteps = group?.random ? [...steps, `随机选一 1/${node.children.length}`] : steps;
+    const totalWeight = group?.random ? node.children.reduce((sum, child) => sum + (child.weight ?? 1n), 0n) : 0n;
     for (const child of node.children) {
+      const selection: Fraction = group?.random ? [child.weight ?? 1n, totalWeight] : ONE;
+      const childChance = multiply(chance, selection);
+      const childSteps = group?.random ? [...steps, `随机选一 ${fraction(selection)}`] : steps;
       // GXX skips a selected nested group's gate, but this is not proof for
       // every supported engine/version. Keep that combination unquantified.
       const childErrors = group?.random && child.group

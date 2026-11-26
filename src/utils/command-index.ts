@@ -2,6 +2,7 @@ import {
   CommandContext,
   CommandEntry,
   CommandKind,
+  CommandParameterForm,
   ConstantEntry,
   CommandsData,
   EngineConstantCatalog,
@@ -29,6 +30,7 @@ export interface IndexedCommand {
   syntax: string;
   description: string;
   params: string[];
+  parameterForms?: CommandParameterForm[];
   kind: CommandKind;
   contexts: CommandContext[];
   aliases: string[];
@@ -43,6 +45,14 @@ export interface IndexedCommand {
   aliasOf?: string;
   legacyShared: boolean;
   origin: 'shared' | 'engine' | 'custom';
+  fromCurrentManual?: boolean;
+}
+
+export function commandParamsForArguments(command: IndexedCommand, args: readonly { text: string }[]): string[] {
+  return command.parameterForms?.find(form =>
+    (form.argumentCount === undefined || args.length === form.argumentCount) &&
+    (!form.literal || args[form.literal.index]?.text.toUpperCase() === form.literal.value.toUpperCase())
+  )?.params ?? command.params;
 }
 
 export interface LanguageIndex {
@@ -139,7 +149,7 @@ function inferFunctionKind(name: string, info: EngineFunctionInfo): CommandKind 
   return 'action';
 }
 
-function splitTopLevelParams(text: string): string[] {
+export function splitTopLevelParams(text: string): string[] {
   const result: string[] = [];
   let current = '';
   let depth = 0;
@@ -229,6 +239,15 @@ function normalizeEngineFunction(
   const normalizedName = commandToken(name);
   const kind = inferFunctionKind(normalizedName, info);
   const params = splitFunctionParams(info);
+  // Current manuals keep insertion labels in the signature and detailed
+  // hover prose in paramList. Preserve both when a shared entry also exists.
+  const signature = info.syntax?.split(/\r?\n/, 1)[0];
+  const shortParams = info.fromCurrentManual && signature
+    ? splitTopLevelParams(signature.replace(/^\S+\s*/, ''))
+    : undefined;
+  const manualSnippet = shortParams && shortParams.length === params.length
+    ? [normalizedName, ...shortParams.map((label, i) => `\${${i + 1}:${label.replace(/[}\\$]/g, '\\$&')}}`)].join(' ')
+    : undefined;
   return {
     name: normalizedName,
     syntax: info.syntax || (params.length ? `${normalizedName} ${params.join(' ')}` : normalizedName),
@@ -239,15 +258,17 @@ function normalizeEngineFunction(
     aliases: (info.aliases || []).map(commandToken),
     engines: [engine],
     minArgs: info.minArgs,
+    parameterForms: info.parameterForms,
     maxArgs: info.maxArgs,
     source: info.source,
-    snippet: info.snippet || buildSaySnippet(normalizedName, params),
+    snippet: info.snippet || buildSaySnippet(normalizedName, params) || manualSnippet,
     completionVerified: info.completionVerified ?? false,
     completionEnabled: info.completionEnabled ?? true,
     corpusEvidence: info.corpusEvidence,
     legacyShared: false,
     origin: 'engine',
-    priority: info.completionVerified === true ? 30 : 20,
+    fromCurrentManual: info.fromCurrentManual === true,
+    priority: info.fromCurrentManual ? 60 : info.completionVerified === true ? 30 : 20,
   };
 }
 
@@ -288,7 +309,8 @@ function mergeCommands(existing: RankedCommand, incoming: RankedCommand): Ranked
     aliases: unique([...existing.aliases, ...incoming.aliases]),
     engines: unique([...existing.engines, ...incoming.engines]),
     source: preferred.source || fallback.source,
-    snippet: preferred.snippet || fallback.snippet,
+    snippet: preferred.fromCurrentManual ? preferred.snippet : preferred.snippet || fallback.snippet,
+    fromCurrentManual: preferred.fromCurrentManual === true,
     completionVerified: preferred.completionVerified,
     completionEnabled: preferred.completionEnabled,
     corpusEvidence: preferred.corpusEvidence || fallback.corpusEvidence,

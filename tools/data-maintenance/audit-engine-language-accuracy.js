@@ -37,10 +37,6 @@ const documentedClassificationOverrides = {
   SETITEMBIND: 'gom-only',
 };
 
-function readJson(relativePath) {
-  return JSON.parse(fs.readFileSync(path.join(projectRoot, relativePath), 'utf8'));
-}
-
 function walkHtmlFiles(root) {
   if (!fs.existsSync(root)) throw new Error(`Help directory does not exist: ${root}`);
   const files = [];
@@ -84,12 +80,20 @@ function decodeEntities(text) {
     .replace(/&#x([\da-f]+);/gi, (_, value) => String.fromCodePoint(parseInt(value, 16)));
 }
 
-function htmlToLines(html) {
+function htmlToLines(html, repeatedTableNames) {
   const $ = cheerio.load(protectLegacyText(html), { decodeEntities: false });
   $('script, style, noscript').remove();
   const content = $('#winchm_template_content').length > 0
     ? $('#winchm_template_content')
     : $('body');
+  if (repeatedTableNames) {
+    content.find('tr').each((_, row) => {
+      const cells = $(row).children('td, th').map((_, cell) => $(cell).text().trim().toUpperCase()).get();
+      if (/^[A-Z][A-Z0-9_.]+$/.test(cells[0] || '') && cells.slice(1).includes(cells[0])) {
+        repeatedTableNames.add(cells[0]);
+      }
+    });
+  }
   content.find('br').replaceWith('\n');
   content.find('p, div, tr, li, h1, h2, h3, h4, h5, h6, pre, blockquote')
     .each((_, element) => {
@@ -115,7 +119,8 @@ function buildHelpCorpus(root) {
   const byToken = new Map();
   for (const file of walkHtmlFiles(root)) {
     const html = decodeHtml(file);
-    const lines = htmlToLines(html);
+    const repeatedTableNames = new Set();
+    const lines = htmlToLines(html, repeatedTableNames);
     const text = lines.join('\n');
     const relativePath = path.relative(root, file).replace(/\\/g, '/');
     const title = decodeEntities(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] || '')
@@ -135,6 +140,7 @@ function buildHelpCorpus(root) {
       normalizedText: normalizeText(text),
       hash: crypto.createHash('sha256').update(normalizeText(text)).digest('hex'),
       tokenCounts,
+      repeatedTableNames,
     };
     const pageIndex = pages.push(page) - 1;
     for (const token of tokenCounts.keys()) {
@@ -578,13 +584,13 @@ function variableEvidencePatterns(entry) {
   const range = /^([A-Za-z])(\d+)-\1(\d+)$/i.exec(entry.name);
   if (range) {
     patterns.push(new RegExp(
-      `\\b${escapePattern(`${range[1]}${range[2]}`)}\\s*(?:-|~|—|至)\\s*`
+      `\\b${escapePattern(`${range[1]}${range[2]}`)}\\s*(?:-|~|～|—|至)\\s*`
       + `${escapePattern(`${range[1]}${range[3]}`)}\\b`,
       'i'
     ));
   }
-  if (entry.name === 'STR(T0)') patterns.push(/\bT0\s*(?:-|~|—|至)\s*T499\b/i);
-  if (entry.name === 'STR(U0)') patterns.push(/\bU0\s*(?:-|~|—|至)\s*U499\b/i);
+  if (entry.name === 'STR(T0)') patterns.push(/\bT0\s*(?:-|~|～|—|至)\s*T(?:499|599)\b/i);
+  if (entry.name === 'STR(U0)') patterns.push(/\bU0\s*(?:-|~|～|—|至)\s*U(?:499|599)\b/i);
   return patterns;
 }
 
@@ -612,7 +618,30 @@ function symbolEvidenceMatches(entry, type, page) {
   const patterns = type === 'variable'
     ? variableEvidencePatterns(entry)
     : triggerEvidencePatterns(entry);
-  return patterns.some(pattern => pattern.test(page.text));
+  return patterns.some(pattern => pattern.test(page.text))
+    || (type === 'trigger' && indexedTriggerEvidence(entry.name, page));
+}
+
+function indexedTriggerEvidence(name, page) {
+  const timer = /^OnTimerMS(\d+)$/i.exec(name);
+  if (timer && /@OnTimerMS索引号/i.test(page.text)) {
+    const range = /SETONTIMERMS\s*定时器索引\s*[(（](\d+)\s*[-～]\s*(\d+)[)）]/i.exec(page.text);
+    return Boolean(range && +timer[1] >= +range[1] && +timer[1] <= +range[2]);
+  }
+  const item = /^(TakeOff|HeroTakeOff)(\d+)$/i.exec(name);
+  if (!item || !page.lines.some(line => line.trim().toUpperCase() === '@' + item[1].toUpperCase() + 'X')) return false;
+  const heading = page.lines.indexOf('常用装备位置');
+  if (heading < 0 || page.lines[heading + 1] !== '位置装备') return false;
+  for (const line of page.lines.slice(heading + 2)) {
+    const values = /^(\d+(?:[、～]\d+)*)[\u3400-\u9fff]/.exec(line)?.[1];
+    if (!values) break;
+    const slot = +item[2];
+    if (values.includes('～')) {
+      const [first, last] = values.split('～').map(Number);
+      if (first <= slot && slot <= last) return true;
+    } else if (values.split('、').map(Number).includes(slot)) return true;
+  }
+  return false;
 }
 
 function symbolCorpusEvidenceMatches(entry, engine, type) {
@@ -682,7 +711,8 @@ function resolvedSymbolAudit(commands, variables, corpora) {
       const engines = {};
       for (const engine of ['GOM', 'GEE', '996PC']) {
         const active = actualEngines.includes(engine);
-        const selectedSource = entry.engineSources?.[engine];
+        const variant = entry.engineVariants?.[engine];
+        const selectedSource = variant?.source || entry.engineSources?.[engine];
         const selectedPage = sourcePage(selectedSource, corpora[engine]);
         const helpSourceStatus = sourcePageStatus(selectedSource, corpora[engine]);
         const corpusEvidenceMatched = active
@@ -692,7 +722,7 @@ function resolvedSymbolAudit(commands, variables, corpora) {
           ? 'corpus'
           : helpSourceStatus;
         const evidenceMatched = active
-          ? symbolEvidenceMatches(entry, type, selectedPage) || corpusEvidenceMatched
+          ? symbolEvidenceMatches(variant || entry, type, selectedPage) || corpusEvidenceMatched
           : false;
         if (active) {
           summary.active[engine]++;
@@ -780,9 +810,10 @@ function resolvedStaticLanguageAudit(data, corpora) {
         }
         const page = sourcePage(variant.source, corpora[engine]);
         const sourceStatus = sourcePageStatus(variant.source, corpora[engine]);
-        const token = section === 'mapInfoParams'
-          ? entry.id
-          : variant.evidenceToken || staticEvidenceToken[entry.id];
+        const displayedToken = /^[<&]*([A-Z][A-Z0-9_.]*)/i.exec(variant.label)?.[1];
+        const token = variant.evidenceToken || (section === 'mapInfoParams'
+          ? displayedToken
+          : staticEvidenceToken[entry.id] || displayedToken);
         const evidenceMatched = Boolean(
           page
           && token
@@ -795,7 +826,7 @@ function resolvedStaticLanguageAudit(data, corpora) {
         if (!variant.source?.page) issues.push(`${engine}:missing-source`);
         else if (sourceStatus !== 'matched') issues.push(`${engine}:source-${sourceStatus}`);
         else if (!evidenceMatched) issues.push(`${engine}:source-evidence-missing`);
-        if (section === 'saySnippets' && !variant.snippet) {
+        if (section === 'saySnippets' && variant.completionEnabled !== false && !variant.snippet) {
           issues.push(`${engine}:missing-snippet`);
         }
         engines[engine] = {
@@ -878,7 +909,44 @@ function confirmedNoArgument(engine, name) {
   return Boolean(override && override.verified !== false && override.params.length === 0);
 }
 
-function obviousQualityIssues(command, engine) {
+function manualSyntaxShapes(command) {
+  const alternative = new RegExp('\\r?\\n|\\s+或\\s+(?=' + escapePattern(command.name) + '\\s)', 'i');
+  return command.syntax.split(alternative).map(line => {
+    // In the current manuals a bracket pair may group multiple positional slots.
+    const args = topLevelSyntaxTokens(line).slice(1);
+    const required = args.filter((arg, index) => !arg.startsWith('[')
+      || /方括号属于命令写法/.test(command.params[index] || '')).length;
+    const count = args.reduce((sum, arg) => sum + (
+      arg.startsWith('[') && arg.endsWith(']') ? topLevelSyntaxTokens(arg.slice(1, -1)).length : 1
+    ), 0);
+    return { required, count };
+  });
+}
+
+function hasZeroArgumentExample(page, name) {
+  if (!page) return false;
+  if (page.repeatedTableNames?.has(name.toUpperCase())) return true;
+  let section;
+  for (const line of page.lines) {
+    const text = line.trim().toUpperCase();
+    if (text.startsWith('#') || text.startsWith('[@') || text === '用法与参数') section = text;
+    else if ((/^#(?:IF|ACT|ELSEACT)$/.test(section) || section === '用法与参数')
+      && text.replace(/^NOT\s+/, '') === name.toUpperCase()) return true;
+    else if (/[\u3400-\u9fff]/.test(text) && !/^[A-Z_.]+\s/.test(text)) section = undefined;
+  }
+  return false;
+}
+
+function documentedObjectCommand(page, name) {
+  if (!page || !/^[HM]\./i.test(name)) return false;
+  const base = name.slice(2);
+  if (!page.lines.some(line => line.toUpperCase().startsWith(base.toUpperCase() + ' '))) return false;
+  return /^H\./i.test(name)
+    ? /支持当前人物或英雄对象|支持人物和英雄有效装备槽|H\.用于在线英雄/i.test(page.text)
+    : /M\.用于已有目标上下文的事件/i.test(page.text);
+}
+
+function obviousQualityIssues(command, engine, page) {
   const issues = [];
   if (!command.completionVerified) return issues;
   const description = (command.description || '').trim();
@@ -936,7 +1004,7 @@ function obviousQualityIssues(command, engine) {
   if (!bracketBalance('(', ')') || !bracketBalance('[', ']')) {
     issues.push('unbalanced-syntax-brackets');
   }
-  if (command.kind !== 'say' && command.syntax.length > 180) {
+  if (command.kind !== 'say' && command.syntax.split(/\r?\n/).some(line => line.length > 180)) {
     issues.push('excessive-syntax-text');
   }
   if (
@@ -944,7 +1012,8 @@ function obviousQualityIssues(command, engine) {
     && !/\s\|\s|\.{3}|…/.test(command.syntax)
   ) {
     const syntaxParamCount = Math.max(0, topLevelSyntaxTokens(command.syntax).length - 1);
-    if (syntaxParamCount !== command.params.length) {
+    if (syntaxParamCount !== command.params.length && !(command.fromCurrentManual
+        && manualSyntaxShapes(command).some(shape => shape.count === command.params.length))) {
       issues.push('syntax-parameter-count-mismatch');
     }
   }
@@ -967,6 +1036,7 @@ function obviousQualityIssues(command, engine) {
     command.params.length === 0
     && command.syntax.trim().toUpperCase() === command.name.trim().toUpperCase()
     && !confirmedNoArgument(engine, command.name)
+    && !hasZeroArgumentExample(page, command.name)
   ) {
     issues.push('unproved-no-argument-command');
   }
@@ -974,10 +1044,13 @@ function obviousQualityIssues(command, engine) {
     const requiredParams = command.params.filter(param => (
       !/^\s*\[(?!\\)/.test(param)
     )).length;
+    const shapes = command.fromCurrentManual ? manualSyntaxShapes(command) : [];
+    const syntaxRangeMatches = shapes.length > 0
+      && Math.min(...shapes.map(shape => shape.required)) === command.minArgs
+      && Math.max(...shapes.map(shape => shape.count)) === command.maxArgs;
     if (
       command.minArgs > command.maxArgs
-      || command.minArgs !== requiredParams
-      || command.maxArgs !== command.params.length
+      || (!syntaxRangeMatches && (command.minArgs !== requiredParams || command.maxArgs !== command.params.length))
     ) {
       issues.push('argument-range-does-not-match-params');
     }
@@ -1004,7 +1077,7 @@ function commandCorpusEvidenceMatches(command) {
   ));
 }
 
-function resolvedLanguageAudit(commands, variables, catalogs, corpora) {
+function resolvedLanguageAudit(commands, variables, catalogs, corpora, constants) {
   const { buildLanguageIndex } = require(path.join(
     projectRoot,
     'out',
@@ -1016,7 +1089,7 @@ function resolvedLanguageAudit(commands, variables, catalogs, corpora) {
     engines: {},
   };
   for (const engine of ['GOM', 'GEE', '996PC']) {
-    const index = buildLanguageIndex(commands, variables, catalogs, engine);
+    const index = buildLanguageIndex(commands, variables, catalogs, engine, constants);
     const completionNames = new Set(index.commandCompletions.map(command => (
       command.name.toUpperCase()
     )));
@@ -1050,8 +1123,17 @@ function resolvedLanguageAudit(commands, variables, catalogs, corpora) {
       const sourceStatus = corpusEvidenceMatched && helpSourceStatus !== 'matched'
         ? 'corpus'
         : helpSourceStatus;
-      const issues = obviousQualityIssues(command, engine);
-      if (documentation.supported || corpusEvidenceMatched) summary.documented++;
+      const citedPage = sourcePage(command.source, corpora[engine]);
+      const citedText = citedPage?.text || '';
+      const namePattern = escapePattern(command.name);
+      const namedConditional = new RegExp(namePattern + '放在#IF用于判断', 'i').test(citedText);
+      const monsterFallback = /^PreviewMonDropItem(?:Refresh)?$/i.test(command.name)
+        && new RegExp('(?:^|\\s)M\\.' + namePattern + '\\s+\\[', 'i').test(citedText)
+        && /无怪物对象时尝试人物当前目标/.test(citedText);
+      const documented = documentation.supported || corpusEvidenceMatched
+        || documentedObjectCommand(citedPage, command.name) || namedConditional || monsterFallback;
+      const issues = obviousQualityIssues(command, engine, citedPage);
+      if (documented) summary.documented++;
       else summary.undocumented++;
       if (sourceStatus === 'matched' || sourceStatus === 'corpus') summary.sourceMatched++;
       else if (sourceStatus === 'missing') summary.sourceMissing++;
@@ -1075,7 +1157,7 @@ function resolvedLanguageAudit(commands, variables, catalogs, corpora) {
         source: command.source || null,
         snippet: command.snippet || null,
         sourceStatus,
-        documented: documentation.supported || corpusEvidenceMatched,
+        documented,
         documentation: {
           supportMethod: documentation.supportMethod,
           bestPage: documentation.bestPage,
@@ -1096,14 +1178,8 @@ function resolvedLanguageAudit(commands, variables, catalogs, corpora) {
 }
 
 function main() {
-  const commands = readJson('data/commands.json');
-  const variables = readJson('data/variables.json');
-  const staticLanguage = readJson('data/static-language.json');
-  const catalogs = {
-    GOM: readJson('data/functions.json'),
-    GEE: readJson('data/functions-gee.json'),
-    '996PC': readJson('data/functions-996pc.json'),
-  };
+  const { loadAuditCatalog, corpusDigest } = require('./runtime-audit-catalog');
+  const { commands, variables, staticLanguage, catalogs, constants, fingerprint } = loadAuditCatalog();
   const gomFunctions = catalogIndex(catalogs.GOM);
   const geeFunctions = catalogIndex(catalogs.GEE);
   const gomCorpus = buildHelpCorpus(options.gomHelp);
@@ -1117,7 +1193,7 @@ function main() {
       GOM: gomCorpus,
       GEE: geeCorpus,
       '996PC': pc996Corpus,
-    }
+    }, constants
   );
   const resolvedSymbols = resolvedSymbolAudit(
     commands,
@@ -1196,7 +1272,9 @@ function main() {
 
   const report = {
     schemaVersion: 4,
-    revision: '2026-07-23',
+    revision: new Date().toISOString().slice(0, 10),
+    catalogFingerprint: fingerprint,
+    corpusFingerprints: { GOM: corpusDigest(gomCorpus), GEE: corpusDigest(geeCorpus), '996PC': corpusDigest(pc996Corpus) },
     method: 'strict-definition-and-final-visible-language',
     helpFiles: {
       GOM: gomCorpus.pages.length,
@@ -1242,6 +1320,9 @@ module.exports = {
   explicitCommandStatement,
   htmlToLines,
   inspectEngine,
+  documentedObjectCommand,
+  indexedTriggerEvidence,
+  obviousQualityIssues,
   normalizeText,
   options,
   sourcePageStatus,

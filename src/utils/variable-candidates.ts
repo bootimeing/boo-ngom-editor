@@ -4,7 +4,7 @@ import {
   NestedVariableAnalysis,
   NestedVariableAnalysisOptions,
 } from './nested-variable-analysis';
-import { isScriptCommentLine } from './script-labels';
+import { scriptCodeBeforeComment } from './script-labels';
 import { findScriptVariables, findSemanticScriptVariableExclusionRanges } from './variable-statistics';
 import { EngineId } from '../types';
 
@@ -49,17 +49,13 @@ export function collectCandidateUsage(
   options: CandidateCollectionOptions = {},
 ): CandidateUsage {
   const usage = createCandidateUsage(options.engine);
-  const activeText = text.replace(/[^\r\n]*(?:\r\n|\r|\n|$)/g, chunk => {
-    const line = chunk.replace(/[\r\n]+$/, '');
-    const ending = chunk.slice(line.length);
-    return `${isScriptCommentLine(line) ? ' '.repeat(line.length) : line}${ending}`;
-  });
+  const activeText = text.replace(/[^\r\n]+/g, line => scriptCodeBeforeComment(line).padEnd(line.length));
 
   const nested = options.nestedAnalysis || analyzeNestedVariables(text, {
     ...options, personalFlagRange: options.personalFlagRange || personalFlagRangeForEngine(usage.engine),
   });
   const semanticExcludedRanges = findSemanticScriptVariableExclusionRanges(activeText, usage.engine);
-  for (const reference of findScriptVariables(activeText)) {
+  for (const reference of findScriptVariables(activeText, usage.engine)) {
     const match = /^([UTAG])(\d+)$/i.exec(reference.name);
     if (!match || isNestedVariableBaseOffset(reference.index, nested.references)) continue;
     if (options.excludedRanges?.some(range => range.start <= reference.index && reference.index < range.end)) {

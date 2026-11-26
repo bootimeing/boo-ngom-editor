@@ -176,7 +176,7 @@ function mapImageReference(rawValue: number): number {
   return rawValue === 0xffff ? 0 : rawValue & 0x7fff;
 }
 
-function validateHeader(data: Buffer): { width: number; height: number; cellSize: 12 | 14 | 36 } {
+export function readOriginalMapHeader(data: Buffer, fileSize = data.length): { width: number; height: number; cellSize: 12 | 14 | 36 } {
   if (data.length < HEADER_SIZE) throw new Error('MAP 文件小于 52 字节，文件头不完整');
   const unsupportedProfile = unsupportedMapProfile(data);
   if (unsupportedProfile) {
@@ -187,7 +187,7 @@ function validateHeader(data: Buffer): { width: number; height: number; cellSize
   if (width <= 0 || height <= 0 || width > 4000 || height > 4000) {
     throw new Error(`MAP 尺寸无效: ${width}x${height}`);
   }
-  const payloadSize = data.length - HEADER_SIZE;
+  const payloadSize = fileSize - HEADER_SIZE;
   const pointCount = width * height;
   if (payloadSize % pointCount !== 0) {
     throw new Error(`MAP 数据长度与 ${width}x${height} 不匹配`);
@@ -251,7 +251,7 @@ export async function parseOriginalMap(
   onProgress?: (completed: number, total: number) => void
 ): Promise<OriginalMapModel> {
   const data = bufferView(input);
-  const { width, height, cellSize } = validateHeader(data);
+  const { width, height, cellSize } = readOriginalMapHeader(data);
   const animationProfile = mapAnimationProfile(data, cellSize);
   const pointCount = width * height;
   const backImages = new Uint16Array(pointCount);

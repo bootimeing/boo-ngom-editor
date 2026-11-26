@@ -38,7 +38,7 @@ export function resolveGxxItemLightEffect(
   if (code === 12) return spec('StateEffect', 680, 25, 16, 20);
   if (code === 13) return spec('StateEffect', 720, 25, 16, 20);
   if (code === 14) return spec('Prguse', 640, 8, 16, 20);
-  if (code >= 100 && code <= 699) {
+  if (code >= 100 && code <= 2599) {
     const group = Math.floor(code / 100);
     return spec(`HeadgearEffect${group === 1 ? '' : group}`, (code % 100) * 20, 20);
   }

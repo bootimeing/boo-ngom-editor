@@ -34,7 +34,10 @@ function main() {
   assert.equal(resolveGxxItemLightEffect('GOM', 1), undefined,
     'GOM must not inherit GXX light archive semantics');
   assert.equal(resolveGxxItemLightEffect('GEE', 0), undefined);
-  assert.equal(resolveGxxItemLightEffect('GEE', 700), undefined);
+  assert.equal(resolveGxxItemLightEffect('GEE', 700).archiveName, 'HeadgearEffect7');
+  assert.equal(resolveGxxItemLightEffect('GEE', 2599).archiveName, 'HeadgearEffect25');
+  assert.equal(resolveGxxItemLightEffect('GEE', 2599).startIndex, 1980);
+  assert.equal(resolveGxxItemLightEffect('GEE', 2600), undefined);
   console.log('item-light-preview.test.js: PASS');
 }
 

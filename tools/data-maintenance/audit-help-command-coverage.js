@@ -25,11 +25,7 @@ const options = {
   ),
 };
 
-const ENGINE_FILES = {
-  GOM: 'data/functions.json',
-  GEE: 'data/functions-gee.json',
-  '996PC': 'data/functions-996pc.json',
-};
+const { loadAuditCatalog, ENGINE_IDS } = require('./runtime-audit-catalog');
 
 const GENERIC_TOKENS = new Set([
   'ACT', 'ALL', 'AND', 'ATT', 'AUTO', 'BREAK', 'BUTTON', 'CALL', 'CHECK',
@@ -53,6 +49,10 @@ const FORMAT_RE = /^(?:命令)?(?:格式|用法|语法)(?:[一二三四五六七
 
 const DOCUMENTED_NON_COMMANDS = {
   GOM: {
+    INCGOLD: 'MapInfo 地图参数',
+    DECGOLD: 'MapInfo 地图参数',
+    TIMEMAP: 'MapInfo 地图参数',
+    INCFILELIST: '当前 GOM 手册明确仅 INCFILTLIST 注册；页面标题保留旧拼写',
     CSV: '文件格式名称',
     FCOLOR: '滚动公告的颜色参数名',
     FORMAT: '帮助正文中的格式化函数说明',
@@ -87,9 +87,6 @@ const DOCUMENTED_NON_COMMANDS = {
   },
 };
 
-function readJson(relativePath) {
-  return JSON.parse(fs.readFileSync(path.join(projectRoot, relativePath), 'utf8'));
-}
 
 function stripDirective(value) {
   return value
@@ -187,25 +184,6 @@ function collectCandidates(corpus) {
   return result;
 }
 
-function buildIndexes() {
-  const { buildLanguageIndex } = require(path.join(projectRoot, 'out', 'utils', 'command-index'));
-  const commands = readJson('data/commands.json');
-  const variables = readJson('data/variables.json');
-  const catalogs = Object.fromEntries(
-    Object.entries(ENGINE_FILES).map(([engine, file]) => [engine, readJson(file)])
-  );
-  const constants = {
-    GOM: readJson('data/constants-gom.json'),
-    GEE: readJson('data/constants-gee.json'),
-    '996PC': readJson('data/constants-996pc.json'),
-  };
-  return Object.fromEntries(
-    Object.keys(ENGINE_FILES).map(engine => [
-      engine,
-      buildLanguageIndex(commands, variables, catalogs, engine, constants),
-    ])
-  );
-}
 
 function serializeCandidate(candidate) {
   return {
@@ -224,7 +202,7 @@ function coverageDisposition(token, index) {
   if (index.commandByName.has(token)) {
     return { kind: 'exact', command: token };
   }
-  const actorPrefix = /^(?:H|M|P|CO|FS|PET|L|GOM|GAMEOFMIR|S\d+)\.(.+)$/.exec(token);
+  const actorPrefix = /^(?:(?:H|M|O|P|CO|FS|PET|L|GOM|GAMEOFMIR|S\d+)\.)+([A-Z_][A-Z0-9_]*)$/.exec(token);
   if (actorPrefix && index.commandByName.has(actorPrefix[1])) {
     return { kind: 'target-prefix', command: actorPrefix[1] };
   }
@@ -239,13 +217,21 @@ function auditEngine(engine, root, index) {
   if (!root) throw new Error(`Missing --${engine === '996PC' ? '996pc' : engine.toLowerCase()}-help`);
   const corpus = buildHelpCorpus(root);
   const discovered = [...collectCandidates(corpus).values()]
-    .map(candidate => ({
-      ...serializeCandidate(candidate),
-      coverage: coverageDisposition(candidate.token, index),
-    }));
-  const explicitlyRejected = discovered.filter(candidate => (
-    DOCUMENTED_NON_COMMANDS[engine]?.[candidate.token]
-  ));
+    .map(candidate => {
+      const item = serializeCandidate(candidate);
+      return { ...item, coverage: coverageDisposition(candidate.token, index) };
+    });
+  const reasonFor = candidate => {
+    const reason = DOCUMENTED_NON_COMMANDS[engine]?.[candidate.token];
+    if (reason || engine !== 'GOM') return reason;
+    const onlyFrom = page => candidate.evidence.length > 0 && candidate.evidence.every(item => item.page.endsWith(page));
+    if (candidate.token === 'FS.' && onlyFrom('/脚本命令释放技能EX.htm')) return '分身对象前缀';
+    if (/^VALUE(?:1|8|9|18|18VALUE2|19VALUE8|20VALUE9)$/.test(candidate.token)
+      && onlyFrom('/天生元素设置.htm')) return '物品元素字段或相邻表格单元格的合并文本';
+    if (/^PLAYER[AB]$/.test(candidate.token) && onlyFrom('/变量数据传递MOVEX.html')) return '示例中的角色名';
+    return undefined;
+  };
+  const explicitlyRejected = discovered.filter(reasonFor);
   const isRejected = candidate => explicitlyRejected.includes(candidate);
   const coveredExact = discovered
     .filter(candidate => !isRejected(candidate) && candidate.coverage.kind === 'exact')
@@ -262,12 +248,10 @@ function auditEngine(engine, root, index) {
   const rejected = explicitlyRejected
     .map(candidate => ({
       ...candidate,
-      reason: DOCUMENTED_NON_COMMANDS[engine][candidate.token],
+      reason: reasonFor(candidate),
     }))
     .sort((left, right) => left.token.localeCompare(right.token));
-  const candidates = unknown
-    .filter(candidate => !DOCUMENTED_NON_COMMANDS[engine]?.[candidate.token])
-    .sort((left, right) => right.score - left.score || left.token.localeCompare(right.token));
+  const candidates = unknown.sort((left, right) => right.score - left.score || left.token.localeCompare(right.token));
   return {
     helpPages: corpus.pages.length,
     knownCommands: index.commandByName.size,
@@ -283,7 +267,7 @@ function auditEngine(engine, root, index) {
 }
 
 function main() {
-  const indexes = buildIndexes();
+  const { indexes, fingerprint } = loadAuditCatalog();
   const engines = {
     GOM: auditEngine('GOM', options.gomHelp, indexes.GOM),
     GEE: auditEngine('GEE', options.geeHelp, indexes.GEE),
@@ -291,7 +275,8 @@ function main() {
   };
   const report = {
     schemaVersion: 1,
-    revision: '2026-07-26',
+    revision: new Date().toISOString().slice(0, 10),
+    catalogFingerprint: fingerprint,
     method: 'case-insensitive-first-token-with-script-syntax-evidence',
     engines,
     summary: Object.fromEntries(Object.entries(engines).map(([engine, value]) => [engine, {

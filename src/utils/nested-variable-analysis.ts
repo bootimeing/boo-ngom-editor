@@ -1,14 +1,14 @@
 import { findScriptVariables, normalizeScriptVariableName } from './variable-statistics';
-import { isScriptCommentLine } from './script-labels';
+import { isScriptCommentLine, scriptCodeBeforeComment } from './script-labels';
 import { EngineId } from '../types';
+import { maskDialogContainerIds } from './script-container-ids';
 import { computeStaticNumericOperation, evaluateStaticFormula } from './script-static-arithmetic';
 import { runtimePreviewOutputIndexes, runtimePreviewOutputFamilyIndexes, runtimePreviewImplicitOutputs } from '../ui-dialog/preview-command-outputs';
 
 const MAX_INFERRED_VALUES = 512;
 const MAX_PERSONAL_FLAG = 1024;
 const truncatedValueSets = new WeakSet<ReadonlySet<string>>();
-const VARIABLE_NAME = /^(?:[PDMNSIGAUTJZ]\d+|(?:GL|[NSLD])\$[A-Za-z0-9_\u3400-\u9fff]+)$/i;
-const CONCRETE_VARIABLE = /(?:[NSLD]\$[A-Za-z0-9_\u3400-\u9fff]+|GL\$[A-Za-z0-9_\u3400-\u9fff]+|[PDMNSIGAUTJZ]\d+)/gi;
+const VARIABLE_NAME = /^(?:[PDMNSIGAUTJZ]\d+|(?:GL|[NSLD])\$[\p{L}\p{N}_]+(?:·[\p{L}\p{N}_]+)*)$/iu;
 
 export type NestedVariableResolutionStatus = 'resolved' | 'partial' | 'unresolved';
 
@@ -35,7 +35,7 @@ export interface NestedVariableResolution extends NestedVariableReference {
 export interface PersonalFlagReference {
   raw: string;
   content: string;
-  command: 'CHECK' | 'SET' | 'RESET';
+  command: 'CHECK' | 'SET' | 'RESET' | 'FLAG';
   countExpression?: string;
   start: number;
   end: number;
@@ -260,13 +260,14 @@ interface ParsedScript {
   explicitVariables: ReadonlySet<string>;
 }
 
-export function extractNestedVariableReferences(text: string): NestedVariableReference[] {
+export function extractNestedVariableReferences(text: string, engine: EngineId = 'GOM'): NestedVariableReference[] {
   const references: NestedVariableReference[] = [];
+  const searchable = maskDialogContainerIds(text, engine);
   const starts = lineStarts(text);
-  const startPattern = /((?:GL|[A-Za-z])(?:\$[A-Za-z0-9_\u3400-\u9fff]*|\d*))<\$STR\s*\(/gi;
+  const startPattern = /((?:GL|[A-Za-z])(?:\$[\p{L}\p{N}_·]*|\d*))<\$STR\s*\(/giu;
   let match: RegExpExecArray | null;
 
-  while ((match = startPattern.exec(text)) !== null) {
+  while ((match = startPattern.exec(searchable)) !== null) {
     if (match.index > 0 && isVariableCharacter(text[match.index - 1])) {
       startPattern.lastIndex = match.index + 1;
       continue;
@@ -310,14 +311,31 @@ export function extractNestedVariableReferences(text: string): NestedVariableRef
 export function extractPersonalFlagReferences(text: string): PersonalFlagReference[] {
   const references: PersonalFlagReference[] = [];
   const starts = lineStarts(text);
-  const commandPattern = /^[ \t]*(?:NOT[ \t]+)?(?:<\$[^>\r\n]+>\.)?(CHECK|SET|RESET)[ \t]*\[/gim;
+  const sayLines = new Set<number>();
+  let say = false;
+  for (const [line, content] of text.split(/\r\n|\r|\n/).entries()) {
+    if (/^\s*\[@/.test(content)) say = false;
+    const block = /^\s*#(ACT|ELSEACT|SAY|ELSESAY|IF|AND|OR)\b/i.exec(content);
+    if (block) say = /^(SAY|ELSESAY)$/i.test(block[1]);
+    if (say) sayLines.add(line);
+  }
+  for (const match of text.matchAll(/<\$FLAG\s*\(/gi)) {
+    const start = match.index!, opening = start + match[0].length - 1;
+    const line = lineAtOffset(starts, start);
+    const close = findClosingParenthesis(text, opening + 1);
+    if (close < 0 || close >= (starts[line + 1] ?? text.length) || text[close + 1] !== '>') continue;
+    const content = text.slice(opening + 1, close).trim();
+    if (content) references.push({ raw: text.slice(start, close + 2), content, command: 'FLAG', start, end: close + 2, line });
+  }
+  const commandPattern = /^[ \t]*(?:#(?:ACT|ELSEACT|IF|OR|AND)[ \t]+)?(?:NOT[ \t]+)?(?:<\$[^>\r\n]+>\.)?(CHECK|SET|RESET)[ \t]*\[/gim;
   let match: RegExpExecArray | null;
 
   while ((match = commandPattern.exec(text)) !== null) {
     const open = commandPattern.lastIndex - 1;
     const close = findBalancedClose(text, open, '[', ']');
-    const lineBreak = /[\r\n]/.exec(text.slice(open));
-    const lineEnd = lineBreak ? open + lineBreak.index : -1;
+    const line = lineAtOffset(starts, open);
+    if (sayLines.has(line)) continue;
+    const lineEnd = (starts[line + 1] ?? text.length + 1) - 1;
     if (close < 0 || (lineEnd >= 0 && close > lineEnd)) {
       commandPattern.lastIndex = open + 1;
       continue;
@@ -326,7 +344,8 @@ export function extractPersonalFlagReferences(text: string): PersonalFlagReferen
     let countExpression: string | undefined;
     if (command === 'RESET') {
       const restEnd = lineEnd < 0 ? text.length : lineEnd;
-      countExpression = splitArguments(text.slice(close + 1, restEnd).trim())[0] || '1';
+      countExpression = splitArguments(text.slice(close + 1, restEnd).trim())[0];
+      if (!countExpression) continue;
     }
     references.push({
       raw: text.slice(open, close + 1),
@@ -340,7 +359,7 @@ export function extractPersonalFlagReferences(text: string): PersonalFlagReferen
     commandPattern.lastIndex = close + 1;
   }
 
-  return references;
+  return references.sort((left, right) => left.start - right.start);
 }
 
 export function isNestedVariableBaseOffset(
@@ -363,10 +382,11 @@ export function normalizeNestedVariableReference(reference: NestedVariableRefere
 }
 
 export function normalizePersonalFlagReference(reference: PersonalFlagReference): string {
+  if (reference.command === 'FLAG') return reference.raw;
   const normalize = (value: string) => value
     .replace(/\$STR/gi, '$STR')
     .replace(/\$SCRIPTPARAM/gi, '$SCRIPTPARAM')
-    .replace(/(?:GL|[NSLD])\$[A-Za-z0-9_\u3400-\u9fff]+|[PDMNSIGAUTJZ]\d+/gi,
+    .replace(/(?:GL|[NSLD])\$[\p{L}\p{N}_]+(?:·[\p{L}\p{N}_]+)*|[PDMNSIGAUTJZ]\d+/giu,
       name => normalizeScriptVariableName(name));
   const base = `[${normalize(reference.content)}]`;
   return reference.command === 'RESET' && reference.countExpression
@@ -379,8 +399,9 @@ export function analyzeNestedVariables(
   options: NestedVariableAnalysisOptions = {},
 ): NestedVariableAnalysis {
   const activeText = maskCommentLines(text);
-  const references = extractNestedVariableReferences(activeText);
+  const references = extractNestedVariableReferences(activeText, options.engine);
   const personalFlagReferences = extractPersonalFlagReferences(activeText);
+  const flagRange = options.personalFlagRange ?? (options.engine === '996PC' ? {min: 0, max: 999} : undefined);
   if (references.length === 0 && personalFlagReferences.length === 0) {
     return { references: [], personalFlags: [], inferredValues: new Map() };
   }
@@ -394,14 +415,14 @@ export function analyzeNestedVariables(
   if (!requiresDataFlow) {
     return {
       references: [],
-      personalFlags: personalFlagReferences.map(reference => resolveStaticPersonalFlagReference(reference, options.personalFlagRange)),
+      personalFlags: personalFlagReferences.map(reference => resolveStaticPersonalFlagReference(reference, flagRange)),
       inferredValues: new Map(),
     };
   }
   const parsed = parseScript(activeText, options, labelsByLine, references);
   const inferredValues = solveValues(parsed);
   solveCompleteness(parsed, inferredValues);
-  const explicitVariables = collectConcreteVariables(activeText, references);
+  const explicitVariables = collectConcreteVariables(activeText, references, options.engine);
   const flow = solveSourceFlow(activeText, parsed, inferredValues, references, personalFlagReferences);
   const resolved = references.map(reference => {
     const state = flow.get(reference.line) || emptyFlowState();
@@ -411,7 +432,7 @@ export function analyzeNestedVariables(
   const personalFlags = personalFlagReferences.map(reference => {
     const state = flow.get(reference.line) || emptyFlowState();
     return { ...resolvePersonalFlagReference(reference, state.values, state.complete, parsed,
-      labelsByLine[reference.line] || '', options.personalFlagRange),
+      labelsByLine[reference.line] || '', flagRange),
     ...flowEvidence(reference.content + ' ' + (reference.countExpression || ''), state) };
   });
 
@@ -447,6 +468,19 @@ function expressionDependencies(expression: string): string[] {
   return [...names];
 }
 
+interface LocalScriptCall { target: string; args: string[]; outputs: string[]; }
+
+function localScriptCall(rest: string): LocalScriptCall | undefined {
+  const match = /^@([^\s()<>]+)\s*\(/.exec(rest);
+  if (!match) return undefined;
+  const close = findClosingParenthesis(rest, match[0].length);
+  if (close < 0 || rest.slice(close + 1).trim()) return undefined;
+  const [inputs, outputs, extra] = splitTopLevel(rest.slice(match[0].length, close), '|');
+  if (extra !== undefined) return undefined;
+  return { target: match[1].toUpperCase(), args: inputs.trim() ? splitTopLevel(inputs, ',').map(s => s.trim()) : [],
+    outputs: outputs?.trim() ? splitTopLevel(outputs, ',').map(s => s.trim()) : [] };
+}
+
 function flowEvidence(expression: string, state: FlowState): {
   reasons: string[]; trace: Array<{ line: number; description: string }>;
 } {
@@ -476,6 +510,7 @@ function solveSourceFlow(
   const lines = text.split(/\r\n|\r|\n/);
   const labelsByLine = collectLabelsByLine(text);
   const labels = new Map<string, number>();
+  const duplicates = new Set<string>();
   const ends = new Map<number, number>();
   const roots = [0];
   let lastRoot = 0;
@@ -485,7 +520,9 @@ function solveSourceFlow(
     if (i > lastRoot) ends.set(lastRoot, i);
     if (i !== 0) roots.push(i);
     lastRoot = i;
-    labels.set(label[1].trim().toUpperCase(), i);
+    const key = label[1].trim().toUpperCase();
+    if (labels.has(key)) duplicates.add(key);
+    labels.set(key, i);
   }
   ends.set(lastRoot, lines.length);
   const assignments = new Map<number, AssignmentConstraint[]>();
@@ -511,15 +548,27 @@ function solveSourceFlow(
   }
   // Only values needed to name a dynamic reference (and their transitive inputs) get states.
   const relevant = new Set<string>();
+  const indexedReads = new Set<string>();
+  const aliases = new Map<string, NestedVariableReference>();
+  const extractedTargets = new Set(parsed.extracts.flatMap(extract => extract.targets));
   const addDependencies = (expression: string) => {
     for (const name of expressionDependencies(expression)) relevant.add(name);
     for (const nested of extractNestedVariableReferences(expression)) {
+      indexedReads.add(normalizeScriptVariableName(nested.base));
+      const alias = '__ALIAS:' + normalizeNestedVariableReference(nested);
+      if (extractedTargets.has(alias.slice('__ALIAS:'.length))) {
+        aliases.set(alias, nested); relevant.add(alias);
+      }
       for (const name of parsed.explicitVariables) if (name.startsWith(normalizeScriptVariableName(nested.base))) relevant.add(name);
     }
   };
   for (const reference of references) addDependencies(reference.expression);
   for (const flag of flags) addDependencies(flag.content + ' ' + (flag.countExpression || ''));
   for (const source of parsed.eventSources) for (const expression of source.arguments) addDependencies(expression);
+  for (const line of lines) {
+    const returns = /^\s*(?:#(?:ACT|ELSEACT)\s+)?RETURN\b(.*)$/i.exec(line);
+    if (returns) addDependencies(returns[1]);
+  }
   for (let round = 0; round < 32; round++) {
     const count = relevant.size;
     for (const assignment of parsed.assignments) if (relevant.has(assignment.target)) {
@@ -527,8 +576,20 @@ function solveSourceFlow(
       if ('rowExpression' in assignment) addDependencies(assignment.rowExpression + ' ' + assignment.columnExpression);
       if ('lineExpression' in assignment) addDependencies(assignment.lineExpression);
     }
-    for (const extract of parsed.extracts) if (extract.targets.some(target => relevant.has(target))) addDependencies(extract.sourceExpression);
-    for (const move of parsed.dynamicMoves) if ([...relevant].some(name => name.startsWith(normalizeScriptVariableName(move.targetBase)))) {
+    for (const extract of parsed.extracts) {
+      for (const target of extract.targets) {
+        if (!target.includes('<$') || aliases.has('__ALIAS:' + target)) continue;
+        const ref = extractNestedVariableReferences(target).find(item => item.raw === target);
+        if (ref && (indexedReads.has(ref.base) || [...relevant].some(name => name.startsWith(ref.base) && name.length > ref.base.length))) {
+          addDependencies(target);
+        }
+      }
+      if (extract.targets.some(target => relevant.has(target) || aliases.has('__ALIAS:' + target))) {
+        addDependencies(extract.sourceExpression);
+      }
+    }
+    for (const move of parsed.dynamicMoves) if (indexedReads.has(normalizeScriptVariableName(move.targetBase)) ||
+      [...relevant].some(name => name.startsWith(normalizeScriptVariableName(move.targetBase)))) {
       addDependencies(move.expression); addDependencies(move.targetExpression);
     }
     for (const line of lines) {
@@ -557,6 +618,8 @@ function solveSourceFlow(
       foreign: /^\s*<\$[^>]+>\./.test(content) });
   }
   const successors: number[][] = lines.map(() => []);
+  const comparisons = new Map<number, {target: string; value: string; yes: number[]; no: number[]}>();
+  const canExitWithoutNext = new Set<number>();
   for (const root of roots) {
     const end = ends.get(root) || lines.length;
     for (let i = root; i < end - 1; i++) successors[i] = [i + 1];
@@ -583,25 +646,78 @@ function solveSourceFlow(
       }
       // Missing branches proceed to the next condition; terminal commands below
       // still override these normal edges, but only on their own branch.
-      successors[sections[0].line - 1] = [...new Set([
-        ...nextByBranch.get(true)!, ...nextByBranch.get(false)!,
-      ])];
+      // An empty #IF is unconditional, so the false edge cannot skip its writes.
+      const hasCondition = !!lines[i].replace(/^\s*#IF\b/i, '').trim()
+        || lines.slice(i + 1, sections[0].line).some(line => line.trim().length > 0);
+      if (hasCondition && !after.length && (!nextByBranch.get(false)!.length || !nextByBranch.get(true)!.length))
+        canExitWithoutNext.add(sections[0].line - 1);
+      successors[sections[0].line - 1] = hasCondition
+        ? [...new Set([...nextByBranch.get(true)!, ...nextByBranch.get(false)!])]
+        : nextByBranch.get(true)!;
+      // Plain #IF conditions are conjunctive. A successful integer equality also
+      // constrains later CHECKs inside the condition, before the first #ACT.
+      if (/^\s*#IF\s*$/i.test(lines[i]) && !lines.slice(i + 1, sections[0].line).some(line => /^\s*#/.test(line))) {
+        for (let pos = i + 1; pos < sections[0].line; pos++) {
+          const equal = /^\s*EQUAL\s+(\S+)\s+([+-]?\d{1,16})\s*$/i.exec(lines[pos]);
+          const target = equal && normalizeAssignmentTarget(equal[1]);
+          if (!equal || !target || !/^(?:N\$|[PDMNIGUJ]\d+$)/i.test(target)) continue;
+          const yes = pos + 1 < sections[0].line ? [pos + 1] : nextByBranch.get(true)!;
+          const no = nextByBranch.get(false)!;
+          comparisons.set(pos, {target, value: String(BigInt(equal[2])), yes, no});
+          successors[pos] = [...new Set([...yes, ...no])];
+        }
+      }
     }
   }
   const gotoTargets = new Set<number>();
+  const calls = new Map<number, LocalScriptCall>();
+  const bareContinuations = new Map<number, number[]>();
+  const leafHelpers = new Map<number, LocalScriptCall>();
+  const simpleLabels = new Set([...labels].filter(([name, start]) => !duplicates.has(name) &&
+    commands.slice(start, ends.get(start)).every(cmd => !cmd.action || !/^(?:GOTO|LOOPGOTO|RANDOMGOTO|GOTOLABEL|GOTOLABELEX|HCALL|BREAK|CLOSE|EXIT|MESSAGEBOX)$/.test(cmd.name)))
+    .map(([name]) => name));
   for (let i = 0; i < commands.length; i++) {
     const command = commands[i];
     if (!command.action) continue;
     if (command.name === 'GOTO') {
+      const call = localScriptCall(command.rest);
+      if (call) { calls.set(i, call); continue; }
       const match = /^@([^\s()<>]+)\s*$/.exec(command.rest);
       const target = match ? labels.get(match[1].toUpperCase()) : undefined;
-      if (target !== undefined) { successors[i] = [target]; gotoTargets.add(target); }
+      if (target !== undefined) {
+        // Existing GOM NPCs also invoke a bare helper and then continue producing
+        // the dialog. Carry a conservative caller snapshot along that possible
+        // continuation until the helper's complete effects are available.
+        const continuation = parsed.engine === 'GOM' ? successors[i].filter(next => next !== target) : [];
+        if (continuation.length) {
+          bareContinuations.set(i, continuation);
+          const name = match![1].toUpperCase();
+          if (simpleLabels.has(name)) leafHelpers.set(i, {target: name, args: [], outputs: []});
+        }
+        successors[i] = [target, ...continuation]; gotoTargets.add(target);
+      }
       else successors[i] = [];
-    } else if (/^(BREAK|CLOSE|EXIT)$/.test(command.name)) successors[i] = [];
+    } else if (command.name === 'MESSAGEBOX' && parsed.engine === 'GOM') {
+      // Confirmation runs the callback with the current player's script variables.
+      for (const arg of splitArguments(command.rest).slice(1)) {
+        const target = /^@[^@<>()\s]+$/.test(arg) ? labels.get(arg.slice(1).toUpperCase()) : undefined;
+        if (target !== undefined) { successors[i].push(target); gotoTargets.add(target); }
+      }
+    } else if (/^(BREAK|CLOSE|EXIT|RETURN)$/.test(command.name)) successors[i] = [];
   }
+  const trackedNames = (state: FlowState) => new Set([...relevant, ...state.values.keys()]);
   const write = (state: FlowState, target: string, result: ValueResult | undefined, line: number,
     expression: string, description: string, weak = false) => {
-    if (!relevant.has(target)) return;
+    // An address computed at runtime can be read again through a different
+    // subscript without its concrete spelling ever occurring in the script.
+    if (!relevant.has(target) && ![...indexedReads].some(base => target.length > base.length && target.startsWith(base))) return;
+    for (const [key, alias] of aliases) {
+      const sameFamily = target.startsWith(normalizeScriptVariableName(alias.base)) && target.length > alias.base.length;
+      if (sameFamily || expressionDependencies(alias.expression).includes(target)) {
+        state.values.delete(key); state.complete.delete(key); state.traces.delete(key); state.reasons.delete(key);
+      }
+    }
+    if (!relevant.has(target) && !state.values.has(target) && state.values.size >= relevant.size + MAX_INFERRED_VALUES) return;
     const evidence = flowEvidence(expression, state);
     for (const match of expression.matchAll(/<\$SCRIPTPARAM(\d+)>/gi)) {
       const parameter = parsed.eventParameters.get(labelsByLine[line] || '')?.get(Number(match[1]));
@@ -620,17 +736,82 @@ function solveSourceFlow(
     state.reasons.set(target, isComplete ? [] : [...new Set([...evidence.reasons,
       !result ? '输入值或命令结果无法静态确定' : next.size > MAX_INFERRED_VALUES ? '可能值超过分析上限' : weak ? '存在可能覆盖或不完整的动态写入' : '输入值域不完整'])]);
   };
-  const transfer = (line: number, incoming: FlowState): FlowState => {
+  const bindDynamicTarget = (base: string, index: string, label: string, snapshot: FlowState, written = snapshot) => {
+    const suffix = evaluateStrInner(index, label, snapshot.values, snapshot.complete, parsed, 0);
+    const names = new Set(constructVariableNames(base, suffix?.values || new Set()));
+    const certain = suffix?.complete === true && names.size > 0 && names.size === suffix.values.size;
+    if (!certain) {
+      const prefix = normalizeScriptVariableName(base);
+      for (const name of trackedNames(written)) {
+        if (name.length > prefix.length && name.startsWith(prefix)) names.add(name);
+      }
+    }
+    return {names, certain, base: normalizeScriptVariableName(base)};
+  };
+  const invalidateDynamicAliases = (state: FlowState, base: string) => {
+    for (const [key, alias] of aliases) if (normalizeScriptVariableName(alias.base) === base) {
+      state.values.delete(key); state.complete.delete(key); state.traces.delete(key); state.reasons.delete(key);
+    }
+  };
+  const edgeState = (line: number, next: number, outgoing: FlowState): FlowState | undefined => {
+    if (bareContinuations.get(line)?.includes(next)) {
+      const helper = leafHelpers.get(line);
+      const state = helper ? evaluateCall(helper, line, outgoing, [], {remaining: 1024}).state : cloneFlowState(outgoing);
+      for (const target of trackedNames(state)) {
+        state.complete.set(target,false);
+        state.reasons.set(target, [helper ? '来自无返回参数的 GOTO 子标签可能继续执行的路径' : '无返回参数的 GOTO 子标签写入尚未完全确定']);
+      }
+      return state;
+    }
+    const test = comparisons.get(line);
+    if (!test || !relevant.has(test.target)) return outgoing;
+    const yes = test.yes.includes(next), no = test.no.includes(next);
+    if (yes === no) return outgoing;
+    const old = outgoing.values.get(test.target) || new Set<string>();
+    // Only compare integer domains. Script coercion of strings is engine-specific.
+    if ([...old].some(value => !/^[+-]?\d+$/.test(value))) return outgoing;
+    const matches = (value: string) => String(BigInt(value)) === test.value;
+    const complete = outgoing.complete.get(test.target) === true;
+    const values = new Set(yes ? [test.value] : [...old].filter(value => !matches(value)));
+    if (complete && (yes ? ![...old].some(matches) : !values.size)) return undefined;
+    const state = cloneFlowState(outgoing);
+    write(state, test.target, {values, complete: yes || complete}, line, test.target, yes ? 'EQUAL 成立' : 'EQUAL 不成立');
+    return state;
+  };
+  const transfer = (line: number, incoming: FlowState, stack: readonly string[] = [], budget = {remaining: 1024}): FlowState => {
     const state = cloneFlowState(incoming);
     const command = commands[line];
     const label = labelsByLine[line] || '';
     if (!command.action && !command.condition) return state;
     if (command.foreign) {
-      for (const target of relevant) {
+      for (const target of trackedNames(state)) {
         state.complete.set(target, false);
         state.reasons.set(target, ['对象前缀的变量归属尚未建模']);
       }
       return state;
+    }
+    const call = calls.get(line);
+    if (call) {
+      const result = evaluateCall(call, line, incoming, stack, budget);
+      const outgoing = result.state;
+      const targets = call.outputs.map(raw => {
+        const fixed = normalizeAssignmentTarget(raw);
+        if (fixed) return {names: new Set([fixed]), certain: true, base: ''};
+        const dynamic = extractNestedVariableReferences(raw).find(ref => ref.raw === raw);
+        return dynamic && bindDynamicTarget(dynamic.base, dynamic.expression, label, incoming, outgoing);
+      });
+      const fixed = targets.flatMap(t => t?.certain && t.names.size === 1 ? [...t.names] : []);
+      const valid = targets.every(Boolean) && new Set(fixed).size === fixed.length;
+      for (const [index, target] of targets.entries()) {
+        if (!target) continue;
+        if (target.base && !target.certain) invalidateDynamicAliases(outgoing, target.base);
+        for (const name of target.names) {
+          const overlap = targets.some((other, i) => i !== index && other?.names.has(name));
+          write(outgoing, name, valid ? result.values[index] : undefined, line, command.rest, 'GOTO/RETURN ' + name,
+            !target.certain || target.names.size !== 1 || (valid && overlap));
+        }
+      }
+      return outgoing;
     }
     for (const assignment of assignments.get(line) || []) {
       if (!relevant.has(assignment.target)) continue;
@@ -638,23 +819,35 @@ function solveSourceFlow(
         'expression' in assignment ? assignment.expression : command.rest, `${command.name} ${assignment.target}`);
     }
     for (const move of dynamicMoves.get(line) || []) {
-      const resolved = evaluateDynamicMove(move, incoming.values, incoming.complete, parsed);
-      const targets = resolved.targetsComplete ? resolved.targets : [...new Set([...resolved.targets,
-        ...[...relevant].filter(name => name.startsWith(normalizeScriptVariableName(move.targetBase)))])];
-      for (const target of targets) write(state, target, resolved.value, line,
-        move.expression + ' ' + move.targetExpression, `MOV ${target}（动态目标）`, !resolved.targetsComplete || targets.length !== 1);
+      const bound = bindDynamicTarget(move.targetBase, move.targetExpression, label, incoming);
+      const value = evaluateTemplate(move.expression, label, incoming.values, incoming.complete, parsed);
+      if (!bound.certain) invalidateDynamicAliases(state, bound.base);
+      for (const target of bound.names) write(state, target, value, line,
+        move.expression + ' ' + move.targetExpression, `MOV ${target}（动态目标）`, !bound.certain || bound.names.size !== 1);
     }
     for (const extract of extracts.get(line) || []) {
       const result = evaluateTemplate(extract.sourceExpression, label, incoming.values, incoming.complete, parsed);
       for (let index = 0; index < extract.targets.length; index++) {
+        const target = extract.targets[index];
+        const alias = aliases.get('__ALIAS:' + target);
+        if (!alias && !relevant.has(target)) continue;
         const fields = new Set<string>();
         let valid = result?.complete === true;
         for (const value of result?.values || []) {
           const field = value.split(extract.delimiter)[index];
           if (field === undefined) valid = false; else fields.add(field.trim());
         }
-        write(state, extract.targets[index], result ? { values: fields, complete: valid } : undefined, line,
-          extract.sourceExpression, `EXTRACTSTRING ${extract.targets[index]}`);
+        const value = result ? { values: fields, complete: valid } : undefined;
+        if (alias) {
+          const suffix = evaluateStrInner(alias.expression, label, incoming.values, incoming.complete, parsed, 0);
+          const names = constructVariableNames(alias.base, suffix?.values || new Set());
+          for (const name of names) write(state, name, value, line, extract.sourceExpression, 'EXTRACTSTRING ' + name,
+            !suffix?.complete || names.length !== 1);
+          for (const [key, other] of aliases) if (other.base === alias.base) {
+            state.values.delete(key); state.complete.delete(key);
+          }
+          write(state, '__ALIAS:' + target, value, line, extract.sourceExpression, 'EXTRACTSTRING ' + target);
+        } else write(state, target, value, line, extract.sourceExpression, 'EXTRACTSTRING ' + target);
       }
     }
     const parts = splitArguments(command.rest);
@@ -690,13 +883,15 @@ function solveSourceFlow(
           leftExpression + ' ' + (rightExpression || ''), `${command.name} ${target} ${rightExpression || ''}`);
       } else {
         const dynamic = extractNestedVariableReferences(parts[0] || '')[0];
-        if (dynamic) for (const possible of relevant) {
-          if (possible.startsWith(normalizeScriptVariableName(dynamic.base))) write(state, possible, undefined, line,
-            command.rest, `${command.name}（动态目标尚未求值）`, true);
+        if (dynamic) {
+          const bound = bindDynamicTarget(dynamic.base, dynamic.expression, label, incoming);
+          if (!bound.certain) invalidateDynamicAliases(state, bound.base);
+          for (const possible of bound.names) write(state, possible, undefined, line,
+            command.rest, `${command.name}（动态目标尚未求值）`, !bound.certain || bound.names.size !== 1);
         }
       }
     } else if (/^(READCONFIGFILEITEM|MOVR)$/.test(command.name) && !(assignments.get(line)?.length)) {
-      const rawTarget = command.name === 'MOVR' ? parts[0] : parts[parts.length - 1];
+      const rawTarget = command.name === 'MOVR' ? parts[0] : parts[3];
       const target = normalizeAssignmentTarget(rawTarget || '');
       if (target) write(state, target, undefined, line, command.rest, `${command.name}（读取失败或未支持）`);
     } else if (command.name === 'TEXTLENGTH') {
@@ -715,8 +910,11 @@ function solveSourceFlow(
         `${command.name}（未建模的输出值）`);
       if (!target) {
         const dynamic = extractNestedVariableReferences(parts[index] || '')[0];
-        if (dynamic) for (const possible of relevant) if (possible.startsWith(normalizeScriptVariableName(dynamic.base))) {
-          write(state, possible, undefined, line, command.rest, `${command.name}（动态输出目标）`, true);
+        if (dynamic) {
+          const bound = bindDynamicTarget(dynamic.base, dynamic.expression, label, incoming);
+          if (!bound.certain) invalidateDynamicAliases(state, bound.base);
+          for (const possible of bound.names) write(state, possible, undefined, line, command.rest,
+            `${command.name}（动态输出目标）`, !bound.certain || bound.names.size !== 1);
         }
       }
     }
@@ -725,7 +923,7 @@ function solveSourceFlow(
     }
     for (const index of runtimePreviewOutputFamilyIndexes(command.name, parsed.engine || 'GOM') || []) {
       const prefix = normalizeAssignmentTarget(parts[index] || '');
-      if (prefix) for (const target of relevant) if (target.startsWith(prefix) && /^\d+$/.test(target.slice(prefix.length))) {
+      if (prefix) for (const target of trackedNames(state)) if (target.startsWith(prefix) && /^\d+$/.test(target.slice(prefix.length))) {
         write(state, target, undefined, line, command.rest, `${command.name}（输出变量族）`);
       }
     }
@@ -735,14 +933,91 @@ function solveSourceFlow(
         /^(LOOPGOTO|RANDOMGOTO|GOTOLABEL|GOTOLABELEX|HCALL)$/.test(command.name) ||
         (command.name === 'SUM' && parsed.engine === 'GEE') ||
         (command.name === 'MOV' && /^<\$CSTR\s*\(/i.test(parts[0] || ''))) {
-      for (const target of relevant) {
+      for (const target of trackedNames(state)) {
         state.complete.set(target, false);
         state.reasons.set(target, ['跨文件、隐式累加或其他对象的写入尚未建模']);
       }
     }
     return state;
   };
+  // Independent callee frames keep different callers' input and return values apart.
+  function evaluateCall(call: LocalScriptCall, line: number, caller: FlowState, stack: readonly string[], budget: {remaining: number}) {
+    const start = labels.get(call.target), states = new Map<number, FlowState>();
+    const queue: number[] = [], terminals: FlowState[] = [], returns: Array<Array<ValueResult | undefined>> = [];
+    let incomplete = false;
+    if (start === undefined || duplicates.has(call.target) || stack.includes(call.target) || stack.length >= 8 ||
+        (parsed.engine === '996PC' && (call.args.length > 5 || call.outputs.length > 17))) {
+      const state = cloneFlowState(caller);
+      for (const target of trackedNames(state)) state.complete.set(target, false);
+      return {state, values: [] as Array<ValueResult | undefined>};
+    }
+    const input = cloneFlowState(caller);
+    input.values.set('__CALL_FRAME', new Set());
+    for (const key of input.values.keys()) if (key.startsWith('__ARG:')) { input.values.delete(key); input.complete.delete(key); }
+    call.args.forEach((arg, index) => {
+      const value = evaluateTemplate(stripMatchingQuotes(arg), labelsByLine[line] || '', caller.values, caller.complete, parsed);
+      input.values.set('__ARG:' + (index + 1), value?.values || new Set());
+      input.complete.set('__ARG:' + (index + 1), value?.complete === true);
+    });
+    states.set(start, input); queue.push(start);
+    const end = ends.get(start) || lines.length, nextStack = [...stack, call.target];
+    for (let index = 0; index < queue.length; index++) {
+      if (--budget.remaining < 0) { incomplete = true; break; }
+      const position = queue[index], current = states.get(position)!;
+      const cmd = commands[position];
+      if (cmd.action && cmd.name === 'RETURN') {
+        const operands = splitArguments(cmd.rest);
+        terminals.push(current);
+        if (operands.length !== call.outputs.length) incomplete = true;
+        else returns.push(operands.map(value => evaluateTemplate(stripMatchingQuotes(value), call.target, current.values, current.complete, parsed)));
+        continue;
+      }
+      const outgoing = transfer(position, current, nextStack, budget);
+      if (canExitWithoutNext.has(position) || !successors[position].length) { incomplete = true; terminals.push(outgoing); }
+      for (const next of successors[position]) {
+        if (next < start || next >= end || next <= position) { incomplete = true; continue; }
+        const edge = edgeState(position, next, outgoing);
+        if (!edge) continue;
+        const old = states.get(next), joined = old ? joinFlowStates(old, edge) : edge;
+        if (!old || !sameFlowValues(old, joined)) { states.set(next, joined); queue.push(next); }
+      }
+    }
+    const state = cloneFlowState(terminals.length ? terminals.reduce(joinFlowStates) : caller);
+    for (const key of new Set([...state.values.keys(), ...caller.values.keys()])) if (key.startsWith('__ARG:') || key === '__CALL_FRAME') {
+      state.values.delete(key); state.complete.delete(key);
+      if (caller.values.has(key)) state.values.set(key, caller.values.get(key)!);
+      if (caller.complete.has(key)) state.complete.set(key, caller.complete.get(key)!);
+    }
+    if (incomplete) for (const target of trackedNames(state)) state.complete.set(target, false);
+    return {state, values: call.outputs.map((_, i) => {
+      const result = mergeValueResults(returns.map(row => row[i]));
+      return result && {values: result.values, complete: result.complete && !incomplete};
+    })};
+  }
   let finalStates = new Map<number, FlowState>();
+  // A GOM NPC button starts a new action. Player variables visible when its
+  // SAY was generated are possible inputs; other entries or later changes
+  // prevent the click from proving any one value. Never copy a local call frame.
+  const buttons = new Map<number, Array<{destination: number; variables: string[]}>>();
+  if (parsed.engine === 'GOM') {
+    const readers = new Map<string, Set<string>>();
+    for (const ref of [...references, ...flags]) {
+      const label = labelsByLine[ref.line];
+      const names = readers.get(label) || new Set<string>();
+      for (const name of expressionDependencies('expression' in ref ? ref.expression : ref.content + ' ' + (ref.countExpression || ''))) {
+        if (/^[NS]\$/.test(name)) names.add(name);
+      }
+      readers.set(label, names);
+    }
+    for (const source of parsed.eventSources) {
+      const line = source.sourceLine, destination = labels.get(source.targetLabel), names = readers.get(source.targetLabel);
+      if (source.kind !== 'call' || line === undefined || destination === undefined || !names?.size ||
+          commands[line].action || commands[line].condition || duplicates.has(source.targetLabel)) continue;
+      const events = buttons.get(line) || [];
+      events.push({destination, variables: [...names]}); buttons.set(line, events);
+    }
+  }
+  const visitLimit = aliases.size && parsed.assignments.some(assignment => assignment.kind === 'list-line') ? 96 : 32;
   // UI parameters use their caller's SAY snapshot, not a global final value pool.
   for (let parameterRound = 0; parameterRound < 8; parameterRound++) {
     const states = new Map<number, FlowState>();
@@ -789,9 +1064,10 @@ function solveSourceFlow(
       const line = queue[cursor]; queued.delete(line);
       const count = (visits.get(line) || 0) + 1; visits.set(line, count);
       const incoming = states.get(line)!;
-      if (count > 32) {
+      // Allow a modest finite table walk to propagate through branch joins before widening.
+      if (count > visitLimit) {
         const widened = cloneFlowState(incoming);
-        for (const target of relevant) {
+        for (const target of trackedNames(widened)) {
           widened.complete.set(target, false);
           widened.reasons.set(target, ['循环或控制流达到分析上限']);
         }
@@ -808,13 +1084,28 @@ function solveSourceFlow(
         continue;
       }
       const outgoing = transfer(line, incoming);
-      for (const next of successors[line]) enqueue(next, outgoing);
+      for (const button of buttons.get(line) || []) {
+        const clicked = emptyFlowState();
+        for (const name of button.variables) {
+          const values = incoming.values.get(name);
+          if (!values?.size) continue;
+          clicked.values.set(name, values);
+          clicked.complete.set(name, false);
+          clicked.traces.set(name, [...(incoming.traces.get(name) || []), {line, description: 'NPC 点击时可能沿用 ' + name}].slice(-8));
+          clicked.reasons.set(name, ['按钮显示与玩家点击之间的变量值可能变化']);
+        }
+        if (clicked.values.size) enqueue(button.destination, clicked);
+      }
+      for (const next of successors[line]) {
+        const edge = edgeState(line, next, outgoing);
+        if (edge) enqueue(next, edge);
+      }
     }
     finalStates = states;
     if (!updateSourceParameters(parsed, states)) break;
     if (parameterRound === 7) {
       for (const byIndex of parsed.eventParameters.values()) for (const parameter of byIndex.values()) parameter.complete = false;
-      for (const state of states.values()) for (const target of relevant) state.complete.set(target, false);
+      for (const state of states.values()) for (const target of trackedNames(state)) state.complete.set(target, false);
     }
   }
   return finalStates;
@@ -854,10 +1145,15 @@ function updateSourceParameters(parsed: ParsedScript, states: ReadonlyMap<number
       for (const source of sources) {
         const state = source.sourceLine === undefined ? undefined : states.get(source.sourceLine);
         const expression = source.arguments[index - 1];
-        const result = state && expression ? evaluateTemplate(expression, source.callerLabel, state.values, state.complete, parsed) : undefined;
+        // A literal in an explicit UI call remains a possible input when control flow
+        // has no caller snapshot (for example, SAY after an unmodeled bare GOTO).
+        // Runtime-dependent operands must never be recovered from another caller.
+        const result = state && expression ? evaluateTemplate(expression, source.callerLabel, state.values, state.complete, parsed)
+          : expression && source.kind === 'call' && !expression.includes('<$')
+            ? {values: new Set([expression]), complete: false} : undefined;
         if (!result) { complete = false; continue; }
         complete = complete && result.complete;
-        for (const step of flowEvidence(expression, state!).trace) trace.set(`${step.line}:${step.description}`, step);
+        if (state) for (const step of flowEvidence(expression, state).trace) trace.set(`${step.line}:${step.description}`, step);
         const step = { line: source.sourceLine || 0, description: `NPC参数${index} ← ${[...result.values].slice(0, 4).join(',')}` };
         trace.set(`${step.line}:${step.description}`, step);
         for (const value of result.values) {
@@ -885,7 +1181,7 @@ export function resolveScriptValueExpressions(
   if (requests.length === 0) return [];
   const activeText = maskCommentLines(text);
   const labelsByLine = collectLabelsByLine(activeText);
-  const references = extractNestedVariableReferences(activeText);
+  const references = extractNestedVariableReferences(activeText, options.engine);
   const parsed = parseScript(activeText, options, labelsByLine, references);
   const inferredValues = solveValues(parsed);
   solveCompleteness(parsed, inferredValues);
@@ -987,6 +1283,11 @@ function parseScript(
     }
     if (!actionContext) continue;
 
+    if (name === 'GOTO') {
+      const call = localScriptCall(rest);
+      if (call) eventSources.push({targetLabel: call.target, callerLabel: currentLabel,
+        arguments: call.args, sourceLine, kind: 'call'});
+    }
     if (name === 'MOV') {
       const move = /^(\S+)(?:\s+([\s\S]*))?$/.exec(rest);
       if (move) {
@@ -1017,7 +1318,22 @@ function parseScript(
     if (name === 'MOVR') {
       const parts = splitArguments(rest);
       const target = normalizeAssignmentTarget(parts[0] || '');
-      if (parts.length >= 3 && target) {
+      if ((options.engine || 'GOM') === 'GOM' && target && (parts.length === 2 || parts.length === 3)
+          && parts.slice(1).every(part => /^[+-]?\d{1,19}$/.test(part))) {
+        const first = BigInt(parts[1]), second = parts[2] === undefined ? undefined : BigInt(parts[2]);
+        const twoBounds = second !== undefined && second > 0n && second > first;
+        const lower = twoBounds ? first : 0n;
+        const upper = twoBounds ? second! : first > 0n ? first : 0n;
+        const distance = upper - lower;
+        // Large ranges include the upper endpoint but exceed the finite set budget.
+        if (first >= -(1n << 63n) && first < (1n << 63n) && upper < (1n << 63n)
+            && distance >= 0n && distance <= BigInt(MAX_INFERRED_VALUES)) {
+          const values = new Set<string>();
+          for (let value = lower; value < upper; value++) values.add(String(value));
+          if (!values.size) values.add('0');
+          assignments.push({kind: 'values', target, values, complete: true});
+        } else incompleteTargets.add(target);
+      } else if ((options.engine || 'GOM') !== 'GOM' && parts.length >= 3 && target) {
         const minimum = Number(parts[1]);
         const maximum = Number(parts[2]);
         if (Number.isInteger(minimum) && Number.isInteger(maximum) &&
@@ -1053,9 +1369,13 @@ function parseScript(
     if (name === 'EXTRACTSTRING') {
       const parts = splitArguments(rest);
       if (parts.length >= 3) {
-        const targets = parts.slice(2)
-          .map(normalizeAssignmentTarget)
-          .filter((target): target is string => target !== undefined);
+        // Unsupported/discarded output operands still consume their original column.
+        const targets = parts.slice(2).map(operand => {
+          const direct = normalizeAssignmentTarget(operand);
+          if (direct) return direct;
+          const nested = extractNestedVariableReferences(operand).find(ref => ref.raw === operand);
+          return nested ? normalizeNestedVariableReference(nested) : '';
+        });
         if (targets.length > 0) {
           extracts.push({
             kind: 'extract',
@@ -1071,6 +1391,7 @@ function parseScript(
 
     if (name === 'READCONFIGFILEITEM') {
       const parts = splitArguments(rest);
+      if ((options.engine || 'GOM') === 'GOM' && parts.length === 5 && /^FAST$/i.test(parts[4])) parts.pop();
       const target = normalizeAssignmentTarget(parts[parts.length - 1] || '');
       if (parts.length >= 4 && target && options.resolveConfigValues) {
         const result = options.resolveConfigValues({
@@ -1177,7 +1498,7 @@ function parseScript(
     eventSources,
     eventParameters,
     tables,
-    explicitVariables: collectConcreteVariables(text, nestedReferences),
+    explicitVariables: collectConcreteVariables(text, nestedReferences, options.engine),
   };
 }
 
@@ -1336,7 +1657,7 @@ function evaluateAssignment(
 
   // The independently documented FORMULATION outputs are numeric N registers/N$ names.
   // Do not coerce string/list/dictionary variables into numeric result registers.
-  if (assignment.kind === 'formula' && !/^N(?:\d+|\$[A-Za-z0-9_\u3400-\u9fff]+)$/i.test(assignment.target)) return undefined;
+  if (assignment.kind === 'formula' && !/^N(?:\d|\$)/i.test(assignment.target)) return undefined;
 
   const evaluated = evaluateTemplate(
     assignment.expression,
@@ -1402,9 +1723,12 @@ function evaluateTemplate(
     }
     combinations = appendLiteral(combinations, expression.slice(offset, placeholder));
 
-    const scriptParameter = /^<\$SCRIPTPARAM(\d+)>/i.exec(expression.slice(placeholder));
+    const scriptParameter = /^<\$SCRIPTPARAM(?:\((\d+)\)|(\d+))>/i.exec(expression.slice(placeholder));
     if (scriptParameter) {
-      const parameter = parsed.eventParameters.get(label)?.get(Number(scriptParameter[1]));
+      const index = Number(scriptParameter[1] || scriptParameter[2]);
+      const key = '__ARG:' + index;
+      const parameter = values.has('__CALL_FRAME') ? { values: values.get(key) || new Set<string>(), complete: complete.get(key) === true }
+        : parsed.eventParameters.get(label)?.get(index);
       if (!parameter || parameter.values.size === 0) return undefined;
       combinations = combineValues(combinations, parameter.values);
       allComplete = allComplete && parameter.complete;
@@ -1490,6 +1814,9 @@ function evaluateStrInner(
   const dynamic = extractNestedVariableReferences(inner)
     .find(reference => reference.start === 0 && reference.end === inner.length);
   if (dynamic) {
+    const alias = '__ALIAS:' + normalizeNestedVariableReference(dynamic);
+    const written = values.get(alias);
+    if (written?.size && complete.get(alias)) return {values: new Set(written), complete: true};
     const suffix = evaluateStrInner(
       dynamic.expression,
       label,
@@ -1498,10 +1825,10 @@ function evaluateStrInner(
       parsed,
       recursionDepth + 1,
     );
-    if (!suffix) return undefined;
-    const names = constructVariableNames(dynamic.base, suffix.values);
-    const result = new Set<string>();
-    let allComplete = suffix.complete;
+    if (!suffix && !written?.size) return undefined;
+    const names = constructVariableNames(dynamic.base, suffix?.values || new Set());
+    const result = new Set<string>(written);
+    let allComplete = suffix?.complete === true && !written?.size;
     for (const name of names) {
       const known = values.get(name);
       if (!known || known.size === 0) {
@@ -1717,13 +2044,12 @@ function addPersonalFlag(flags: Set<number>, value: number, range: { min: number
 function collectConcreteVariables(
   text: string,
   references: readonly NestedVariableReference[],
+  engine: EngineId = 'GOM',
 ): Set<string> {
   const variables = new Set<string>();
-  let match: RegExpExecArray | null;
-  CONCRETE_VARIABLE.lastIndex = 0;
-  while ((match = CONCRETE_VARIABLE.exec(text)) !== null) {
+  for (const match of findScriptVariables(text, engine)) {
     if (isNestedVariableBaseOffset(match.index, references)) continue;
-    variables.add(normalizeScriptVariableName(match[0]));
+    variables.add(match.name);
   }
   return variables;
 }
@@ -1752,14 +2078,14 @@ function findExplicitFamily(
 function constructVariableNames(baseName: string, suffixes: ReadonlySet<string>): string[] {
   const base = normalizeScriptVariableName(baseName);
   const numeric = /^[PDMNSIGAUTJZ]\d*$/i.test(base);
-  const custom = /^(?:GL|[NSLD])\$[A-Za-z0-9_\u3400-\u9fff]*$/i.test(base);
+  const custom = /^(?:GL|[NSLD])\$[\p{L}\p{N}_·]*$/iu.test(base);
   if (!numeric && !custom) return [];
 
   const names = new Set<string>();
   for (const rawSuffix of suffixes) {
     const suffix = rawSuffix.trim();
     if (!suffix || (numeric && !/^\d+$/.test(suffix))) continue;
-    if (custom && !/^[A-Za-z0-9_\u3400-\u9fff]+$/.test(suffix)) continue;
+    if (custom && !VARIABLE_NAME.test(base + suffix)) continue;
     names.add(normalizeScriptVariableName(base + suffix));
   }
   return [...names];
@@ -2435,9 +2761,9 @@ function lineAtOffset(starts: readonly number[], offset: number): number {
 }
 
 function isVariableCharacter(character: string): boolean {
-  return /[A-Za-z0-9_$\u3400-\u9fff]/.test(character);
+  return /[\p{L}\p{N}_$·]/u.test(character);
 }
 
 function maskCommentLines(text: string): string {
-  return text.replace(/^[ \t]*(?:;|\/\/)[^\r\n]*/gm, line => ' '.repeat(line.length));
+  return text.replace(/[^\r\n]+/g, line => scriptCodeBeforeComment(line).padEnd(line.length));
 }

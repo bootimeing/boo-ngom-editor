@@ -34,7 +34,7 @@ function run() {
     ].join('\n'), {}, engine);
     assert.ok(visible(nested).includes('乙/甲'), `${engine}: nested input and return snapshots`);
   }
-  assert.ok(visible(parse(source, {}, '996PC')).includes('结果=0/文字=预览文字'), 'do not borrow GOM/LFM RETURN contract for 996PC');
+  assert.ok(visible(parse(source, {}, '996PC')).includes('结果=6/文字=文字'), '996PC GOTO and RETURN pass numeric and text results');
   const staticOnly = parse(source, {}, 'GOM', { previewValues: undefined });
   assert.ok(visible(staticOnly).includes('结果=0/文字=预览文字'), 'legacy non-scenario static mode retains its resource safety contract');
 

@@ -1,119 +1,8 @@
 const assert = require('node:assert/strict');
-const Module = require('node:module');
 const path = require('node:path');
-const { fileURLToPath, pathToFileURL } = require('node:url');
+const { activateWithStub, makeDocument, TestPosition } = require('./helpers/assistant-host');
 
-// Exercise the actual registrations made by activateAssistant, not a copied
-// regular expression or extracted provider body. No extension host is started.
-const runtime = path.resolve(process.env.BOO_SCRIPT_RUNTIME_ROOT || path.join(__dirname, '..'));
-const disposable = () => ({ dispose() {} });
 let cases = 0;
-let documentVersion = 0;
-
-class TestUri {
-  constructor(value) { this.value = value; this.scheme = value.split(':')[0]; this.fsPath = this.scheme === 'file' ? fileURLToPath(value) : ''; }
-  static file(value) { return new TestUri(pathToFileURL(path.resolve(value)).href); }
-  static parse(value) { return new TestUri(value); }
-  toString() { return this.value; }
-}
-class TestPosition { constructor(line, character) { this.line = line; this.character = character; } }
-class TestRange {
-  constructor(...args) {
-    this.start = typeof args[0] === 'number' ? new TestPosition(args[0], args[1]) : args[0];
-    this.end = typeof args[0] === 'number' ? new TestPosition(args[2], args[3]) : args[1];
-  }
-}
-class TestLocation { constructor(uri, position) { this.uri = uri; this.range = position.start ? position : new TestRange(position, position); } }
-class TestCodeLens { constructor(range, command) { this.range = range; this.command = command; } }
-class TestEventEmitter { constructor() { this.event = disposable; } fire() {} dispose() {} }
-
-function makeDocument(text, fileName = path.join(runtime, 'test-fixtures', 'Mir200', 'Envir', 'QuestDiary', '延迟跳转.txt')) {
-  let content = text;
-  const document = {
-    fileName, uri: TestUri.file(fileName), languageId: 'gomscript', version: ++documentVersion, isDirty: true,
-    get lineCount() { return content.split(/\r\n|\r|\n/).length; },
-    getText(range) {
-      if (!range) return content;
-      return content.slice(document.offsetAt(range.start), document.offsetAt(range.end));
-    },
-    lineAt(index) {
-      const value = content.split(/\r\n|\r|\n/)[typeof index === 'number' ? index : index.line];
-      return { text: value, range: new TestRange(typeof index === 'number' ? index : index.line, 0, typeof index === 'number' ? index : index.line, value.length) };
-    },
-    positionAt(offset) {
-      const prefix = content.slice(0, Math.max(0, Math.min(offset, content.length)));
-      const lines = prefix.split(/\r\n|\r|\n/);
-      return new TestPosition(lines.length - 1, lines[lines.length - 1].length);
-    },
-    offsetAt(position) {
-      const lines = content.split(/\r\n|\r|\n/);
-      const starts = [...content.matchAll(/\r\n|\r|\n/g)];
-      return (position.line ? starts[position.line - 1].index + starts[position.line - 1][0].length : 0) + Math.min(position.character, lines[position.line].length);
-    },
-    getWordRangeAtPosition(position) {
-      const line = this.lineAt(position.line).text;
-      for (const match of line.matchAll(/[\p{L}\p{N}_]+/gu)) {
-        if (position.character >= match.index && position.character < match.index + match[0].length) return new TestRange(position.line, match.index, position.line, match.index + match[0].length);
-      }
-      return undefined;
-    },
-    replace(value) { content = value; this.version = ++documentVersion; },
-  };
-  return document;
-}
-
-function activateWithStub() {
-  const providers = {}, events = {}, commands = new Map(), diagnostics = new Map(), sideEffects = [];
-  let engine = 'GOM';
-  const workspace = {
-    workspaceFolders: [], textDocuments: [],
-    getConfiguration(_name, scope) {
-      return { get(key, fallback) { if (key === 'engine') return scope?.engine || engine; if (key === 'autoDetectEngine') return false; return fallback; } };
-    },
-    getWorkspaceFolder() { return undefined; },
-    async findFiles() { return []; },
-    async openTextDocument() { sideEffects.push('openTextDocument'); throw new Error('same-file jump must not read disk'); },
-    fs: { async readFile() { sideEffects.push('readFile'); throw new Error('unexpected file read'); }, async writeFile() { throw new Error('unexpected file write'); } },
-  };
-  for (const name of ['onDidChangeTextDocument', 'onDidSaveTextDocument', 'onDidChangeWorkspaceFolders', 'onDidChangeConfiguration', 'onDidOpenTextDocument', 'onDidCloseTextDocument', 'onDidCreateFiles', 'onDidDeleteFiles', 'onDidRenameFiles']) {
-    workspace[name] = callback => { (events[name] ||= []).push(callback); return disposable(); };
-  }
-  const languages = {
-    createDiagnosticCollection() {
-      return { set(uri, values) { diagnostics.set(uri.toString(), values); }, delete(uri) { diagnostics.delete(uri.toString()); }, clear() { diagnostics.clear(); }, forEach() {}, dispose() {} };
-    },
-  };
-  for (const kind of ['CompletionItem', 'Hover', 'Definition', 'DocumentLink', 'Reference', 'DocumentSymbol', 'FoldingRange', 'CodeLens', 'CodeActions', 'SignatureHelp', 'DocumentSemanticTokens']) {
-    languages[`register${kind}Provider`] = (_selector, provider) => { providers[kind] = provider; return disposable(); };
-  }
-  const window = {
-    activeTextEditor: undefined, visibleTextEditors: [],
-    createOutputChannel() { return { appendLine() {}, dispose() {} }; },
-    createTextEditorDecorationType: disposable,
-    onDidChangeActiveTextEditor: disposable, onDidChangeVisibleTextEditors: disposable,
-    registerTreeDataProvider: disposable,
-    createStatusBarItem() { return { show() {}, dispose() {} }; },
-    showWarningMessage() { throw new Error('definition lookup must not show UI'); },
-    showErrorMessage() { throw new Error('definition lookup must not show UI'); },
-  };
-  const api = {
-    Uri: TestUri, Position: TestPosition, Range: TestRange, Location: TestLocation, CodeLens: TestCodeLens,
-    EventEmitter: TestEventEmitter, TreeItem: class {}, ThemeIcon: class {}, SemanticTokensLegend: class {},
-    Diagnostic: class { constructor(range, message, severity) { this.range = range; this.message = message; this.severity = severity; } },
-    DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2, Hint: 3 },
-    StatusBarAlignment: { Right: 2 }, DecorationRangeBehavior: { ClosedOpen: 0 },
-    CodeActionKind: { QuickFix: 'quickfix' },
-    workspace, window, languages,
-    commands: { registerCommand(name, callback) { commands.set(name, callback); return disposable(); }, registerTextEditorCommand(name, callback) { commands.set(name, callback); return disposable(); }, async executeCommand() {} },
-  };
-  const state = { get(_key, fallback) { return fallback; }, async update() {} };
-  const context = { subscriptions: [], extensionPath: runtime, extensionUri: TestUri.file(runtime), globalState: state, workspaceState: state };
-  const originalLoad = Module._load;
-  Module._load = function(request, parent, isMain) { return request === 'vscode' ? api : originalLoad.call(this, request, parent, isMain); };
-  try { require(path.join(runtime, 'out', 'assistant')).activateAssistant(context); }
-  finally { Module._load = originalLoad; }
-  return { providers, events, commands, diagnostics, sideEffects, workspace, setEngine(value) { engine = value; }, dispose() { for (const subscription of context.subscriptions) subscription?.dispose(); } };
-}
 
 async function main() {
   const host = activateWithStub();
@@ -207,6 +96,57 @@ async function main() {
       assert.deepEqual(issues.map(item => ({ message: item.message, line: item.range.start.line })), [
         { message: '引用了未定义的标签 @确实缺失', line: 2 },
       ]);
+    });
+    await check('manual callbacks share definition, references and missing-label diagnostics', async () => {
+      const cases = {
+        GOM: ['PLAYDICE 1 @接受 30 50 0','SENDDELAYMSG 信息 30 250 0 @接受'],
+        GEE: ['HttpGet https://example.invalid @接受 S100','HttpPost https://example.invalid body text @接受 S100',
+          'SendCenterMsg 180 251 文字 0 30 @接受 0 25 88','SENDDELAYMSG 消息 30 250 0 @接受'],
+        '996PC': ['LoopBagItems @接受 N1 S1 N2','<Button|link=@接受>','<Button|dblink=@接受>',
+          '<传参/@接受#装备=布衣(男)#数量=2>'],
+      };
+      for (const [engine, calls] of Object.entries(cases)) {
+        host.setEngine(engine);
+        for (const call of calls) {
+          const doc = makeDocument(['[@main]',call.startsWith('<')?'#SAY':'#ACT',call,'; [@接受]','[@接受]'].join('\n'));
+          const loc = await jump(doc,2,call.indexOf('@接受')+1);
+          assert.equal(loc?.range.start.line,4,engine + ' ' + call);
+          const refs = await host.providers.Reference.provideReferences(doc,new TestPosition(4,2),{}, {});
+          assert.deepEqual(refs.map(x=>x.range.start.line).sort(),[2,4]);
+          doc.replace(doc.getText().replace(/\n\[@接受\]$/,''));
+          for (const handler of host.events.onDidSaveTextDocument) await handler(doc);
+          assert.ok(host.diagnostics.get(doc.uri.toString())?.some(d=>d.message.includes('未定义的标签 @接受')),call);
+        }
+      }
+    });
+    await check('cross-file callbacks stay inside the source Envir, including a same-name local definition', async () => {
+      const root = path.join(__dirname,'fixtures','服B','Mir200','Envir');
+      const a = makeDocument('[@DlgButtonClick1000]',path.join(__dirname,'fixtures','服A','Mir200','Envir','Market_Def','QFunction-0.txt'));
+      const qf = makeDocument('; [@DlgButtonClick1000]\n[@DlgButtonClick1000]\n[@选择]\n[@到期]',path.join(root,'Market_Def','QFunction-0.txt'));
+      const qm = makeDocument('[@OnTimerMS0]',path.join(root,'MapQuest_Def','QManage.txt'));
+      const ev = makeDocument('[@刷新]',path.join(root,'MapQuest_Def','QMapEvent-0.txt'));
+      host.workspace.textDocuments = [a,qf,qm,ev];
+      const probes = [
+        ['GEE','Market_Def/npc.txt','#ACT\nADDDLG 11 1 440 1 10:20 30:40 22 >倒计时：<COUNTDOWN:10:3:251:0:0/@1000>\n[@1000]','@1000',qf,1],
+        ['GOM','Market_Def/npc.txt','#ACT\nSELECTBAGITEM 选择 ItemIdx 31|42 提示\n[@选择]','选择',qf,2],
+        ['GOM','MapInfo.txt','[0 比奇] TIMEMAP(0|30|1|@到期)','@到期',qf,3],
+        ['GOM','MonGen.txt','3 333 333 蜈蚣 6 1 2 0 0 * 0 * 0 0 0 1 0 1@刷新:60,30,10','@刷新',ev,0],
+        ['996PC','Market_Def/npc.txt','#ACT\nSETONTIMERMS 0 300','0 300',qm,0],
+      ];
+      for (const [engine,file,body,key,targetDoc,line] of probes) {
+        host.setEngine(engine);
+        const doc = makeDocument(body,path.join(root,file)), pos = doc.positionAt(body.indexOf(key));
+        const loc = await jump(doc,pos.line,pos.character);
+        assert.equal(loc?.uri.fsPath,targetDoc.fileName,key);
+        assert.equal(loc.range.start.line,line,key);
+        const refs = await host.providers.Reference.provideReferences(doc,pos,{}, {});
+        assert.ok(refs.some(ref=>ref.uri.fsPath===doc.fileName && ref.range.start.line===pos.line));
+        assert.ok(refs.some(ref=>ref.uri.fsPath===targetDoc.fileName && ref.range.start.line===line));
+        assert.ok(refs.every(ref=>ref.uri.fsPath!==a.fileName));
+      }
+      host.setEngine('GEE');
+      const missing = makeDocument('#SAY\n<COUNTDOWN:10:3:251:0:0/@1000>', path.join(root,'Market_Def','npc.txt'));
+      assert.equal(await jump(missing,1,missing.lineAt(1).text.indexOf('@1000')),null);
     });
     console.log(`delayed-label-definition.test.js: PASS (${cases} cases; production registration, VS Code API stub)`);
   } finally { host.dispose(); }

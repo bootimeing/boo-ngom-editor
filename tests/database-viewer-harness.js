@@ -1,9 +1,20 @@
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
+const Module = require('node:module');
 
-const viewerPath = path.join(__dirname, '..', 'media', 'database-viewer.html');
 const port = Number(process.env.BOO_TEST_PORT || 18766);
+const mediaRoot = path.join(__dirname, '..', 'media');
+const uri = value => ({ fsPath: value, toString: () => value });
+const originalLoad = Module._load;
+let databaseViewerWebviewHtml;
+try {
+  Module._load = function(request, parent, isMain) {
+    if (request === 'vscode') return { Uri: { joinPath: (base, ...parts) => uri(path.join(base.fsPath, ...parts)) } };
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  ({ databaseViewerWebviewHtml } = require('../out/utils/database-viewer-webview'));
+} finally { Module._load = originalLoad; }
 const itemColumns = [
   'Idx', 'Name', 'StdMode', 'Shape', 'Weight', 'Anicount', 'Source', 'Reserved',
   'Looks', 'DuraMax', 'Ac', 'Ac2', 'Mac', 'Mac2', 'Dc', 'Dc2', 'Mc', 'Mc2',
@@ -82,6 +93,9 @@ const server = http.createServer((request, response) => {
     '/tabulator.css': path.join(__dirname, '..', 'media', 'vendor', 'tabulator', 'tabulator_midnight.min.css'),
     '/table-core.js': path.join(__dirname, '..', 'media', 'table-editor-core.js'),
     '/tabulator.js': path.join(__dirname, '..', 'media', 'vendor', 'tabulator', 'tabulator.min.js'),
+    '/vendor/tabulator/tabulator_midnight.min.css': path.join(mediaRoot, 'vendor', 'tabulator', 'tabulator_midnight.min.css'),
+    '/vendor/tabulator/tabulator.min.js': path.join(mediaRoot, 'vendor', 'tabulator', 'tabulator.min.js'),
+    '/table-editor-core.js': path.join(mediaRoot, 'table-editor-core.js'),
   };
   if (assets[request.url]) {
     const contentType = request.url.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8';
@@ -90,11 +104,14 @@ const server = http.createServer((request, response) => {
     return;
   }
   if (request.url !== '/') { response.writeHead(404).end('Not found'); return; }
-  const html = fs.readFileSync(viewerPath, 'utf8')
-    .replaceAll('{{TABULATOR_CSS_URI}}', '/tabulator.css')
-    .replaceAll('{{TABLE_EDITOR_CORE_URI}}', '/table-core.js')
-    .replaceAll('{{TABULATOR_JS_URI}}', '/tabulator.js')
-    .replace('<script>', bridge + '<script>');
+  const context = { extensionUri: uri(path.resolve(__dirname, '..')) };
+  const webview = {
+    cspSource: 'http://127.0.0.1:' + port,
+    asWebviewUri: value => ({ toString: () => '/' + path.relative(mediaRoot, value.fsPath).replaceAll('\\', '/') }),
+  };
+  const generated = databaseViewerWebviewHtml(context, webview);
+  const nonce = generated.match(/<script nonce="([a-z0-9]+)"/)[1];
+  const html = generated.replace(/<script nonce="[a-z0-9]+"/, bridge.replace('<script>', '<script nonce="' + nonce + '">') + '<script nonce="' + nonce + '"');
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   response.end(html);
 });

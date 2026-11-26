@@ -809,7 +809,7 @@ function executeFunction(
       continue;
     }
     const commandSource = options.previewValues !== undefined ? stripPreviewCommandComment(trimmed) : trimmed;
-    if (options.previewValues !== undefined && (options.engine === 'GOM' || options.engine === 'GEE')
+    if (options.previewValues !== undefined && (options.engine === 'GOM' || options.engine === 'GEE' || options.engine === '996PC')
       && /^#?(?:CALL|CALLEX)\b/i.test(commandSource)) {
       // The external body is not loaded by this local interpreter. Preserve
       // the existing snapshots, but do not certify a later RETURN as complete.
@@ -890,7 +890,9 @@ function executeFunction(
       const returnTargets = (invocation?.returnTargets || [])
         .map(rawTarget => resolveRuntimeOutputTarget(rawTarget, environment));
       let execution: FunctionExecutionResult = { kind: 'aborted' };
-      if (invocation?.target.startsWith('@')) {
+      const withinLimits = options.engine !== '996PC' || (!!invocation
+        && invocation.arguments.length <= 5 && returnTargets.length <= 17);
+      if (withinLimits && invocation?.target.startsWith('@')) {
         const savedParameters = new Map([...environment].filter(([name]) => /^SCRIPTPARAM\(\d+\)$/i.test(name)));
         if (options.previewValues !== undefined) bindPreviewParameters(invocation.arguments, environment, section.label);
         execution = executeFunction(
@@ -910,10 +912,10 @@ function executeFunction(
           if (options.engine !== 'GEE') for (const [name, value] of savedParameters) environment.set(name, value);
         }
       }
-      // Own GOM/LFM manuals prove matched N-value returns only. Missing or
+      // The three manuals document matched results. Missing or
       // mismatched values and ambiguous identities remain a local boundary;
       // do not guess client truncation, padding or duplicate-write ordering.
-      const supported = options.previewValues !== undefined && (options.engine === 'GOM' || options.engine === 'GEE');
+      const supported = options.previewValues !== undefined && (options.engine === 'GOM' || options.engine === 'GEE' || options.engine === '996PC');
       const returned = execution.kind === 'return' ? execution.values : undefined;
       const matched = supported && invocation?.complete === true && returned !== undefined
         && returned.length === returnTargets.length && returnTargets.every(target => target !== undefined)
@@ -933,7 +935,7 @@ function executeFunction(
       continue;
     }
     if (command.name === 'RETURN') {
-      if (options.previewValues === undefined || (options.engine !== 'GOM' && options.engine !== 'GEE')) break;
+      if (options.previewValues === undefined || !['GOM', 'GEE', '996PC'].includes(options.engine || '')) break;
       if (returnBlocked) return { kind: 'aborted' };
       // Resolve all operands against this callee snapshot before writing any
       // caller target. Copy raw/display values, never resource capabilities.

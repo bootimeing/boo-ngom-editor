@@ -24,6 +24,7 @@ async function main() {
         expected.set(name, [start, start + 1]);
       }
     }
+    lines.push('#ACT');
     for (let index = 1; index <= 1024; index++) {
       const start = lines.length;
       lines.push(`CHECK [${index}] 0`, `NOT CHECK [${index}] 1`, `SET [${index}] 1`);

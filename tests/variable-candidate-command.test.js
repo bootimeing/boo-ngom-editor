@@ -6,6 +6,8 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const { removeTemporaryDirectory } = require('./helpers/temp-cleanup');
 const { VariableListScanner, analyzeVariableListFile } = require('../out/utils/variable-list');
+const { loadCommandsData, loadEngineFunctionCatalog } = require('../out/data/loader');
+const { buildLanguageIndex } = require('../out/utils/command-index');
 
 async function main() {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'boo-candidate-command-'));
@@ -15,20 +17,40 @@ async function main() {
   fs.writeFileSync(file, 'MOV U1<$STR(N$未知)> 0\nNOT CHECK [9] 1\nCHECK [<$STR(N$未知标识)>] 0');
   const source = fs.readFileSync(path.join(__dirname, '../src/assistant.ts'), 'utf8');
   const ast = ts.createSourceFile('assistant.ts', source, ts.ScriptTarget.Latest, true);
-  const required = new Set(['scanCandidateUsage', 'invalidateCandidateUsage', 'pickUnusedScriptCandidate', 'analyzeVariables', 'escapeHtml', 'reportVariableCategory']);
+  const required = new Set([
+    'variableScanOptions', 'scanCandidateUsage', 'invalidateCandidateUsage', 'pickUnusedScriptCandidate',
+    'analyzeVariables', 'escapeHtml', 'reportVariableCategory', 'resolveNestedConfigValues', 'resolveNestedListData',
+    'resolveNestedTableData', 'resolveNestedDataFile', 'statisticsFileInput', 'parseIniSections',
+    'findAncestorDirectory', 'configuredMapCodesForFile', 'mapInfoPathForFile',
+  ]);
+  const events = [];
   const functions = [];
   const visit = node => {
     if (ts.isFunctionDeclaration(node) && node.name && required.has(node.name.text)) {
       required.delete(node.name.text); functions.push(node.getText(ast));
     }
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+      const name = node.expression.name.text;
+      const callback = node.arguments[0]?.getText(ast);
+      if ((name === 'onDidChangeTextDocument' && callback === 'invalidateCandidateUsage') ||
+          (name === 'onDidCloseTextDocument' && callback?.includes('invalidateCandidateUsage()'))) {
+        events.push(node.getText(ast));
+      }
+    }
     ts.forEachChild(node, visit);
   };
   visit(ast);
   assert.equal(required.size, 0);
+  assert.equal(events.length, 2, 'actual document change and close hooks should invalidate candidate results');
+  const repository = path.resolve(__dirname, '..');
+  const language = buildLanguageIndex(loadCommandsData(repository, () => {}), null, loadEngineFunctionCatalog(repository, () => {}), 'GOM');
   const warnings = [], picks = [], logs = [], reports = [];
+  let changeDocument, closeDocument;
   const uri = target => ({ scheme: 'file', fsPath: target, toString: () => target });
   const workspace = {
     workspaceFolders: [{ uri: uri(directory) }], textDocuments: [],
+    onDidChangeTextDocument: callback => { changeDocument = callback; },
+    onDidCloseTextDocument: callback => { closeDocument = callback; },
     getConfiguration: () => ({ get: () => 'GOM' }),
     findFiles: async pattern => { assert.ok(pattern.includes('[tT]')); return [uri(file)]; },
     fs: { readFile: target => fs.promises.readFile(target.fsPath) },
@@ -42,9 +64,14 @@ async function main() {
     ...require('../out/utils/webview-security'),
     VariableListScanner, analyzeVariableListFile,
     normalizeEngineId: value => value,
-    resolveNestedConfigValues: () => undefined, resolveNestedTableData: () => undefined, resolveNestedListData: () => undefined,
-    configuredMapCodesForFile: () => new Set(), resolveIndexedCommandToken: () => undefined,
-    findMapCodeRangesInText: () => [], log: text => logs.push(text),
+    ...require('../out/utils/map-code-context'),
+    isScriptCommentLine: require('../out/utils/script-labels').isScriptCommentLine,
+    ...require('../out/utils/statistics-table-data'),
+    fs, path, Buffer, languageIndex: language,
+    nestedConfigCache: new Map(), nestedListCache: new Map(), nestedTableCache: new Map(), mapCodeCache: new Map(),
+    resolveIndexedCommandToken: name => language.commandByName.get(name.toUpperCase()),
+    diagnosticTimeouts: new Map(), diagnosticCollection: { delete() {} }, isWorkspaceScriptAuditPath: () => false,
+    log: text => logs.push(text),
     vscode: {
       workspace, ProgressLocation: { Notification: 15 }, ViewColumn: { Active: -1 },
       window: {
@@ -57,7 +84,7 @@ async function main() {
     },
   };
   vm.createContext(scope);
-  const compiled = ts.transpileModule('let candidateUsageCache; let candidateUsageGeneration = 0;\n' + functions.join('\n'), {
+  const compiled = ts.transpileModule('let candidateUsageCache; let candidateUsageGeneration = 0;\n' + [...functions, ...events].join('\n;\n'), {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
   }).outputText;
   vm.runInContext(compiled, scope);
@@ -106,7 +133,59 @@ async function main() {
     await scope.pickUnusedScriptCandidate({ uri: file, kind: 'variable', family: 'U' });
     assert.equal(picks.length, 3);
     assert.ok(warnings.at(-1).includes('未扫描到脚本'));
-    console.log('variable-candidate-command.test.js: PASS (actual command + scanner; uncertainty labels, NOT CHECK, A999, failure/empty guards)');
+    workspace.workspaceFolders = [{ uri: uri(directory) }];
+    const envir = path.dirname(directory);
+    const external = path.join(envir, 'data');
+    fs.mkdirSync(external);
+    const inputs = [
+      { path: path.join(external, 'slots.ini'), disk: '[slots]\nid=101', draft: '[slots]\nid=201' },
+      { path: path.join(external, 'names.txt'), disk: '102', draft: '202' },
+      { path: path.join(external, 'cells.csv'), disk: 'id,103', draft: 'id,203' },
+      { path: path.join(envir, 'MapInfo.txt'), disk: '[U105 磁盘地图]', draft: '[U205 草稿地图]' },
+    ];
+    for (const input of inputs) fs.writeFileSync(input.path, input.disk);
+    fs.writeFileSync(file, [
+      '[@main]', '#ACT', 'READCONFIGFILEITEM ../data/slots.ini slots id N$配置',
+      'EQUAL U<$STR(N$配置)> 0', 'GETLISTSTRING ../data/names.txt 0 S$名单',
+      'EQUAL U<$STR(S$名单)> 0', 'CSVGETCELLTEXT ../data/cells.csv 0 1 N$表格',
+      'EQUAL U<$STR(N$表格)> 0', 'MAPMOVE U105 10 10', 'MAPMOVE U205 20 20',
+    ].join('\n'));
+    const diskSlots = ['U101', 'U102', 'U103', 'U205'];
+    const draftSlots = ['U201', 'U202', 'U203', 'U105'];
+    async function checkCommandViews(used, free) {
+      const previousReports = reports.length;
+      const previousPicks = picks.length;
+      await scope.analyzeVariables();
+      assert.equal(reports.length, previousReports + 1);
+      const report = reports.at(-1).webview.html;
+      await scope.pickUnusedScriptCandidate({ uri: file, kind: 'variable', family: 'U' });
+      assert.equal(picks.length, previousPicks + 1);
+      const candidates = new Set(picks.at(-1).items.map(item => item.label));
+      for (const name of used) {
+        assert.ok(report.includes('>' + name + '</td>'), 'report should include ' + name);
+        assert.ok(!candidates.has(name), 'candidate list should exclude used ' + name);
+      }
+      for (const name of free) {
+        assert.ok(!report.includes('>' + name + '</td>'), 'report should exclude ' + name);
+        assert.ok(candidates.has(name), 'candidate list should include unused ' + name);
+      }
+    }
+    scope.invalidateCandidateUsage();
+    await checkCommandViews(diskSlots, draftSlots);
+    workspace.textDocuments = inputs.map(input => ({
+      fileName: input.path, uri: uri(input.path), isDirty: true, getText: () => input.draft,
+    }));
+    for (const document of workspace.textDocuments) changeDocument({ document });
+    await checkCommandViews(draftSlots, diskSlots);
+    const sidebar = await new VariableListScanner(scope.variableScanOptions()).scan([directory]);
+    for (const name of diskSlots) assert.ok(sidebar.usages.has(name), 'sidebar should use saved ' + name);
+    for (const name of draftSlots) assert.ok(!sidebar.usages.has(name), 'sidebar should ignore unsaved ' + name);
+    const discarded = workspace.textDocuments;
+    workspace.textDocuments = [];
+    for (const document of discarded) closeDocument(document);
+    await checkCommandViews(diskSlots, draftSlots);
+    for (const input of inputs) assert.equal(fs.readFileSync(input.path, 'utf8'), input.disk);
+    console.log('variable-candidate-command.test.js: PASS (command, draft dependencies, disk sidebar, close recovery, failure/empty guards)');
   } finally { removeTemporaryDirectory(temporary); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

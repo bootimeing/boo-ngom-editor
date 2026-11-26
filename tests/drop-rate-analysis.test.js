@@ -3,6 +3,21 @@ const path = require('node:path');
 const runtime = path.resolve(process.env.BOO_NPC_DIALOG_RUNTIME_ROOT || path.join(__dirname, '..'));
 const { analyzeDropRates, dropAnalysisMarkdown } = require(path.join(runtime, 'out/utils/drop-rate-analysis'));
 const child = (header, body) => `${header}\n(\n${body}\n)`;
+const weighted = child('#CHILD 1/2 RANDOM', '1/1 木剑\n1/100 金币 1000 {WEIGHT=3}');
+const weightedRows = analyzeDropRates(weighted, 'GOM').rows;
+assert.deepEqual(weightedRows.map(row => row.baselineFraction), ['1/8', '3/8']);
+const guaranteedGroup = analyzeDropRates(weighted.replace('1/2 RANDOM', '1/1 RANDOM'), 'GOM');
+assert.deepEqual(guaranteedGroup.rows.map(row => row.baselineFraction), ['1/4', '3/4']);
+assert.equal(weightedRows[1].quantity, '1000');
+for (const extra of ['{WEIGHT=0}', '{WEIGHT=1000001}', '{WEIGHT=X}', '{WEIGHT=3;DRAW=2}']) {
+  const result = analyzeDropRates(weighted.replace('{WEIGHT=3}', extra), 'GOM');
+  assert(result.rows.every(row => row.baselineFraction === undefined));
+}
+for (const engine of ['GEE', '996PC']) {
+  assert(analyzeDropRates(weighted, engine).rows.every(row => row.baselineFraction === undefined));
+}
+const pity = weighted.replace('1/2 RANDOM', '1/2 RANDOM [POOL=R;PITY=2]');
+assert(analyzeDropRates(pity, 'GOM').rows.every(row => row.baselineFraction === undefined));
 for (const engine of ['GOM', 'GEE', '996PC']) {
   let result = analyzeDropRates('1/10 木剑\n1/2 金币 10000', engine);
   assert.deepEqual(result.rows.map(r => r.baselineFraction), ['1/10', '1/2']);

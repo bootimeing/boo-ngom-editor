@@ -12,7 +12,7 @@ const { unusedVariableCandidates } = require('../out/utils/variable-candidates')
 function actualResolver() {
   const source = fs.readFileSync(path.join(__dirname, '../src/assistant.ts'), 'utf8');
   const ast = ts.createSourceFile('assistant.ts', source, ts.ScriptTarget.Latest, true);
-  const required = new Set(['resolveNestedTableData', 'resolveNestedDataFile', 'findAncestorDirectory']);
+  const required = new Set(['resolveNestedTableData', 'statisticsFileInput', 'resolveNestedDataFile', 'findAncestorDirectory']);
   const functions = [];
   const visit = node => {
     if (ts.isFunctionDeclaration(node) && node.name && required.has(node.name.text)) {
@@ -25,7 +25,7 @@ function actualResolver() {
   const reader = fs.existsSync(path.join(__dirname, '../out/utils/statistics-table-data.js'))
     ? require('../out/utils/statistics-table-data') : {};
   const warnings = [];
-  const scope = { fs, path, nestedTableCache: new Map(), ...reader,
+  const scope = { fs, path, Buffer, variableListPathKey: require('../out/utils/variable-list').variableListPathKey, nestedTableCache: new Map(), ...reader,
     ...require('../out/utils/table-data'), ...require('../out/utils/text'), log: text => warnings.push(text) };
   vm.createContext(scope);
   vm.runInContext(ts.transpileModule(functions.join('\n'), {

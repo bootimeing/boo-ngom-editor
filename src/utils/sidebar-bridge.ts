@@ -131,6 +131,7 @@ function applySidebarResourceRoots() {
     return [resolved.toLowerCase(), resolved];
   })).values()];
   _sidebarView.webview.options = {
+    ..._sidebarView.webview.options,
     enableScripts: true,
     localResourceRoots: webviewResourceRoots(uniqueRoots),
   };

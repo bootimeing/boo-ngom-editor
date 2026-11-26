@@ -32,7 +32,6 @@ function main() {
     '### 文件、表格与多区同步',
     '### M2 在线重载',
     '### 常用辅助工具',
-    '### DeepSeek Harness AI 助手',
   ];
   let previous = readme.indexOf('## 功能总览');
   for (const heading of featureHeadings) {
@@ -61,8 +60,7 @@ function main() {
   for (const token of ['CHECKTEXTLIST', 'AutoRunRobot.txt', 'SETONTIMER ID', 'ADDBUTTON', 'ADDDLG', 'QFunction-0.txt', 'QuestDiary']) assert.ok(script.includes(token));
   assert.match(script, /GOM\/翎风[^\n]*`DELAYGOTO`[^\n]*996PC[^\n]*`DELAYCALL`[^\n]*静态标签[^\n]*当前脚本定义/);
   assert.match(script, /独立的静态标签参数[^\n]*不猜测动态表达式或带调用参数的写法/);
-  // These commands have audit evidence, but their navigation rules are not yet implemented.
-  assert.doesNotMatch(script, /HCALL|SendCenterMsg|SENDDELAYMSG/i);
+  assert.match(script, /GOM[^\n]*翎风[^\n]*`SendCenterMsg` 第 6 个参数[^\n]*`SENDDELAYMSG` 第 5 个参数[^\n]*静态 `@标签`/i);
   assert.match(script, /MerChant\.txt[^\n]*第一列[^\n]*缺失[^\n]*确认创建/i);
   assert.match(script, /第五列[^\n]*原始地图/);
   assert.match(script, /当前文档所属服务端[^\n]*取消不创建[^\n]*不覆盖/);
@@ -132,6 +130,8 @@ function main() {
   assert.doesNotMatch(resources, /新建 JPK|导出 GIF/);
 
   const database = feature('数据库编辑器');
+  assert.match(database, /原始深色界面[^\n]*顶部页签[^\n]*满宽表格[^\n]*独立侧栏/);
+  assert.match(database, /!Setup\.txt[^\n]*不把同目录备份库合并/);
   assert.match(database, /SQLite[^\n]*cfg_item\.xls/);
   assert.match(database, /Access MDB[^\n]*Windows[^\n]*Jet\/ACE[^\n]*增删改[^\n]*Ctrl\+Z/);
   assert.match(database, /组件不可用时保留只读并提示原因/);
@@ -154,7 +154,8 @@ function main() {
   const reload = feature('M2 在线重载');
   assert.match(reload, /连续保存请求会自动合并/);
   assert.match(reload, /等待当前菜单命令完成/);
-  assert.match(feature('DeepSeek Harness AI 助手'), /独立 DeepSeek 入口[^\n]*本机 DeepSeek Harness/);
+  assert.doesNotMatch(readme, /DeepSeek|Harness|AI 助手/,
+    'README must not advertise the removed Harness integration');
   assert.match(readme, /按工作区添加或移除 Mir200 相对路径/);
   assert.match(readme, /\| `Ctrl\+F12` \| 打开当前 `\[@函数\]` 的独立 NPC 界面可视化面板 \|/);
 

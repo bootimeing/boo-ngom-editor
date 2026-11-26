@@ -182,6 +182,7 @@ const tests = [
   'flow-link-runtime-action.test.js',
   'gee-adddlg-provider.test.js',
   'gee-adddlg.test.js',
+  'manual-dialog-updates.test.js',
   'gom-addbuttonex-coordinate-edit.test.js',
   'img-strict-runtime.test.js',
   'imgnum-customitem-runtime.test.js',

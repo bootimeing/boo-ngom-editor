@@ -2,10 +2,12 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const crypto = require('node:crypto');
+const { loadAuditCatalog, corpusDigest } = require('./runtime-audit-catalog');
 const {
   buildHelpCorpus,
   commandUsageLines,
+  documentedObjectCommand,
+  indexedTriggerEvidence,
   normalizeText,
 } = require('./audit-engine-language-accuracy');
 
@@ -26,22 +28,15 @@ const options = {
   gomHelp: option('gom-help', path.join(defaultHelpBase, 'gom')),
   geeHelp: option('gee-help', path.join(defaultHelpBase, 'gee')),
   pc996Help: option('996pc-help', path.join(defaultHelpBase, 'pc996')),
-  accuracy: option(
-    'accuracy',
-    path.join(projectRoot, 'data', 'audit-report', 'language-accuracy-final.json')
-  ),
+  accuracy: option('accuracy'),
   output: option(
     'output',
-    path.join(projectRoot, 'data', 'audit-report', 'final-engine-language-entry-ledger.json')
+    path.join(projectRoot, 'data', 'audit-report', 'final-engine-language-entry-ledger-current.json')
   ),
 };
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-}
-
-function dataFile(name) {
-  return readJson(path.join(projectRoot, 'data', name));
 }
 
 function normalizeName(value) {
@@ -78,6 +73,8 @@ function evidenceTokens(entry) {
 
 function pageHasEvidence(page, entry) {
   if (!page) return false;
+  if (entry.label && indexedTriggerEvidence(entry.name, page)) return true;
+  if (entry.syntax && documentedObjectCommand(page, entry.name)) return true;
   const normalized = normalizeText(page.text);
   return evidenceTokens(entry).some(token => {
     if (page.tokenCounts.get(token) > 0 || normalized.includes(token)) return true;
@@ -148,7 +145,7 @@ function commandIssues(command, completionNames, accuracyRecord, evidence) {
   }
   if (evidence.sourceStatus !== 'matched') issues.push('source-page-missing');
   if (!evidence.tokenMatched) issues.push('source-token-missing');
-  if (completionIncluded && !accuracyRecord?.documented) issues.push('completion-not-definition-backed');
+  if (completionIncluded && (accuracyRecord ? !accuracyRecord.documented : !evidence.tokenMatched || evidence.sourceStatus !== 'matched')) issues.push('completion-not-definition-backed');
   if (completionIncluded && accuracyRecord?.documentation?.sourceStatus === 'absent') {
     issues.push('completion-source-absent');
   }
@@ -185,25 +182,11 @@ function completionStatus(enabled, verified, included) {
   return 'disabled';
 }
 
-function corpusDigest(corpus) {
-  const hash = crypto.createHash('sha256');
-  for (const page of [...corpus.pages].sort((left, right) => (
-    left.relativePath.localeCompare(right.relativePath, 'en')
-  ))) {
-    hash.update(page.relativePath.replace(/\\/g, '/'));
-    hash.update('\0');
-    hash.update(page.hash);
-    hash.update('\0');
-  }
-  return hash.digest('hex');
-}
 
 function main() {
   const { ENGINE_DEFINITIONS } = require(path.join(projectRoot, 'out', 'utils', 'engine-registry'));
-  const { buildLanguageIndex } = require(path.join(projectRoot, 'out', 'utils', 'command-index'));
-  const commands = dataFile('commands.json');
-  const variables = dataFile('variables.json');
-  const accuracy = readJson(options.accuracy);
+  const { commands, catalogs: functionCatalog, indexes, fingerprint } = loadAuditCatalog();
+  const reference = options.accuracy ? readJson(options.accuracy) : undefined;
   const helpRoots = {
     GOM: options.gomHelp,
     GEE: options.geeHelp,
@@ -212,16 +195,16 @@ function main() {
   const corpora = Object.fromEntries(
     Object.entries(helpRoots).map(([engine, root]) => [engine, buildHelpCorpus(root)])
   );
-  const functionCatalog = {};
-  const constantCatalog = {};
-  for (const definition of ENGINE_DEFINITIONS) {
-    functionCatalog[definition.id] = dataFile(definition.functionFile);
-    constantCatalog[definition.id] = dataFile(definition.constantsFile);
-  }
+  const sameInputs = reference?.catalogFingerprint === fingerprint && Object.entries(corpora)
+    .every(([engine, corpus]) => reference.corpusFingerprints?.[engine] === corpusDigest(corpus));
+  const accuracy = sameInputs ? reference : undefined;
 
   const report = {
     schemaVersion: 1,
-    revision: '2026-07-26',
+    revision: new Date().toISOString().slice(0, 10),
+    catalogFingerprint: fingerprint,
+    comparison: !reference ? 'current-corpus' : sameInputs ? 'matching-accuracy-report' : 'historical-reference-only',
+    referenceRevision: reference?.revision,
     method: 'runtime-index-plus-own-help-entry-ledger',
     helpInventory: {},
     summary: {},
@@ -232,20 +215,14 @@ function main() {
   for (const definition of ENGINE_DEFINITIONS) {
     const engine = definition.id;
     const corpus = corpora[engine];
-    const index = buildLanguageIndex(
-      commands,
-      variables,
-      functionCatalog,
-      engine,
-      constantCatalog
-    );
+    const index = indexes[engine];
     const completionNames = new Set(index.commandCompletions.map(entry => normalizeName(entry.aliasOf || entry.name)));
     const checkNames = new Set(index.checks.map(entry => normalizeName(entry.name)));
     const detectionCommands = [];
     const executionCommands = [];
     for (const command of index.commands) {
       const key = normalizeName(command.name);
-      const accuracyRecord = accuracy.resolvedLanguage?.engines?.[engine]?.[key];
+      const accuracyRecord = accuracy?.resolvedLanguage?.engines?.[engine]?.[key];
       const evidence = sourceEvidence(corpus, command, true);
       const issues = commandIssues(command, completionNames, accuracyRecord, evidence);
       const included = completionNames.has(key);
@@ -271,7 +248,7 @@ function main() {
 
     const engineFunctions = index.triggers.map(entry => {
       const key = normalizeName(entry.name);
-      const evidenceState = accuracy.resolvedSymbols?.triggers?.[key]?.engineEvidence?.[engine];
+      const evidenceState = accuracy?.resolvedSymbols?.triggers?.[key]?.engineEvidence?.[engine];
       const evidence = sourceEvidence(corpus, entry, false);
       const issues = triggerIssues(entry, evidenceState, evidence);
       totalIssues += issues.length;

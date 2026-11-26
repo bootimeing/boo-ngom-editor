@@ -246,7 +246,7 @@ function main() {
   }
 
   assert.equal(packageJson.contributes.snippets, undefined);
-  assert.equal(packageJson.version, '4.4.0');
+  assert.equal(packageJson.version, '4.5.1');
   assert.equal(accuracyReport.schemaVersion, 4);
   assert.equal(accuracyReport.method, 'strict-definition-and-final-visible-language');
   assert.deepEqual(accuracyReport.summary, {
@@ -407,6 +407,7 @@ function main() {
   assert.equal(staticLanguage.schemaVersion, 1);
   assert.equal(staticLanguage.revision, '2026-08-24');
 
+  require('./current-engine-manual-catalog.test').checkCurrentManualCatalog();
   console.log('engine-help-data.test.js: PASS');
 }
 

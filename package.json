@@ -2,7 +2,7 @@
   "name": "boo-ngom-editor",
   "displayName": "BOO UI编辑器",
   "description": "面向传奇类游戏 GM 的 VS Code 开发工具，提供脚本智能提示、UI 可视化编辑、PAK/JPK 读取、数据库与地图查看及 M2 重载。",
-  "version": "4.4.0",
+  "version": "4.5.1",
   "publisher": "boo1213",
   "author": "boo1213",
   "license": "MIT",
@@ -35,16 +35,13 @@
     "onView:boo.editorView",
     "onView:boo.dbView",
     "onView:boo.mapPreviewView",
-    "onView:boo.deepseekView",
-    "onCommand:boo.deepseek.openPanel",
-    "onCommand:boo.deepseek.openInBrowser",
-    "onCommand:boo.deepseek.startServer",
     "onCustomEditor:boo.tableEditor",
     "onCustomEditor:boo.xlsEditor",
     "onCommand:boo.syncToOtherZones",
     "onCommand:boo.openScriptSync",
     "onCommand:boo.openNpcDialogVisualEditor",
     "onCommand:boo.analyzeDropRates",
+    "onCommand:boo.auditServerReferences",
     "onCommand:boo.resourceEditor.open"
   ],
   "main": "./out/extension.js",
@@ -204,6 +201,10 @@
         "command": "boo.resourceEditor.open",
         "title": "BOO: 打开补丁资源工作台",
         "icon": "$(file-media)"
+      },
+      {
+        "command": "boo.auditServerReferences",
+        "title": "BOO: 核对服务端怪物、物品和地图坐标"
       },
       {
         "command": "boo.analyzeDropRates",
@@ -397,18 +398,6 @@
       {
         "command": "boo.saveAll",
         "title": "全部保存"
-      },
-      {
-        "command": "boo.deepseek.openPanel",
-        "title": "DeepSeek: 在右侧打开 AI 助手"
-      },
-      {
-        "command": "boo.deepseek.openInBrowser",
-        "title": "DeepSeek: 在浏览器中打开"
-      },
-      {
-        "command": "boo.deepseek.startServer",
-        "title": "DeepSeek: 启动本地服务"
       }
     ],
     "keybindings": [
@@ -489,11 +478,6 @@
           "id": "boo-map-preview",
           "title": "地图预览",
           "icon": "resources/map-icon.svg"
-        },
-        {
-          "id": "boo-deepseek",
-          "title": "DeepSeek",
-          "icon": "resources/deepseek-icon.svg"
         }
       ]
     },
@@ -550,14 +534,6 @@
           "type": "webview",
           "id": "boo.mapPreviewView",
           "name": "地图预览",
-          "visibility": "visible"
-        }
-      ],
-      "boo-deepseek": [
-        {
-          "type": "webview",
-          "id": "boo.deepseekView",
-          "name": "DeepSeek",
           "visibility": "visible"
         }
       ]
@@ -687,18 +663,6 @@
           "type": "boolean",
           "default": true,
           "description": "启用代码审查(诊断)功能"
-        },
-        "boo.deepseek.host": {
-          "type": "string",
-          "default": "127.0.0.1",
-          "description": "DeepSeek Harness 本地服务地址"
-        },
-        "boo.deepseek.port": {
-          "type": "number",
-          "default": 3080,
-          "minimum": 1,
-          "maximum": 65535,
-          "description": "复用已有 DeepSeek Harness 实例时探测的端口；本扩展新启动的服务会自动选择空闲端口"
         }
       }
     }
@@ -750,11 +714,12 @@
     "watch": "tsc -watch -p ./",
     "package": "node tools/release/package-vsix.js",
     "lint": "eslint \"src/**/*.ts\"",
-    "test:996pc": "npm run compile && node tests/engine-detect.test.js && node tests/engine-language-isolation.test.js && node tests/static-language.test.js && node tests/engine-help-data.test.js && node tests/server-language-audit.test.js && node tests/completion-search.test.js && node tests/script-labels.test.js && node tests/script-call-context.test.js && node tests/jpk-reader.test.js && node tests/pak-password.test.js && node tests/patch-cache.test.js && node tests/patch-manager.test.js && node tests/database-biff8.test.js && node tests/database-browser.test.js && node tests/item-image.test.js && node tests/minimap.test.js && node tests/m2-target.test.js && node tests/ui-codegen.test.js && node tests/ui-regressions.test.js",
+    "test:996pc": "npm run compile && node tests/engine-detect.test.js && node tests/engine-language-isolation.test.js && node tests/script-hover-provider.test.js && node tests/completion-editor-manual-save.test.js && node tests/static-language.test.js && node tests/engine-help-data.test.js && node tests/server-language-audit.test.js && node tests/completion-search.test.js && node tests/script-labels.test.js && node tests/script-call-context.test.js && node tests/jpk-reader.test.js && node tests/pak-password.test.js && node tests/patch-cache.test.js && node tests/patch-manager.test.js && node tests/database-biff8.test.js && node tests/database-browser.test.js && node tests/item-image.test.js && node tests/minimap.test.js && node tests/m2-target.test.js && node tests/ui-codegen.test.js && node tests/ui-regressions.test.js",
     "test:map-middle-real": "npm run compile && node tests/map-middle-word-real-browser.test.js",
-    "test:access": "npm run compile && node tests/database-access.test.js && node tests/database-access-browser.test.js && node tests/database-detail-fields-only-browser.test.js",
+    "test:database-integration": "npm run compile && node tests/database-source.test.js && node tests/database-detail-actions.test.js && node tests/database-detail-actions-browser.test.js && node tests/database-detail-resource-target.test.js && node tests/database-viewer-browser.test.js",
+    "test:access": "npm run test:database-integration && node tests/database-access.test.js && node tests/database-access-browser.test.js && node tests/database-detail-fields-only-browser.test.js",
     "test:cache": "npm run compile && python -B tests/pak-geepak3-unicode.test.py && python -B tests/pak-geepak2-local.test.py && node tests/geepak3-unicode-global.test.js && node tests/gom-reader-tolerance.test.js && node tests/cache-storage.test.js && node tests/archive-index.test.js && node tests/geepak2-parser.test.js && node tests/wil-wzl-reader.test.js && node tests/original-map-wil-wzl.test.js && node tests/original-map-tile-cache.test.js && node tests/original-map-tile-resource-provider.test.js && node tests/map-preview-persistent-tile-provider.test.js && node tests/map-single-cell-provider.test.js && node tests/original-map-tile-browser.test.js && node tests/client-resources.test.js && node tests/patch-cache.test.js && node tests/pak-history.test.js && node tests/pak-password.test.js && node tests/pak-index.test.js && node tests/pak-format.test.js && node tests/jpk-reader.test.js && node tests/patch-manager.test.js && node tests/database-browser.test.js && node tests/database-detail.test.js && node tests/database-biff8.test.js && node tests/item-image.test.js && node tests/minimap.test.js && node tests/map-marker-state.test.js && node tests/map-entities.test.js && node tests/map-effects.test.js && node tests/map-effect-provider-real-sample.test.js && node tests/map-effect-real-sample.test.js && node tests/map-blend-real-sample.test.js && node tests/official-npc.test.js && node tests/map-preview-resource-roots.test.js && node tests/m2-target.test.js && node tests/ui-codegen.test.js && node tests/ui-regressions.test.js",
-    "test:language": "npm run compile && node tests/completion-range.test.js && node tests/completion-search.test.js && node tests/command-arguments.test.js && node tests/map-variable-filter.test.js && node tests/document-symbols.test.js && node tests/script-labels.test.js && node tests/delayed-label-definition.test.js && node tests/script-call-context.test.js && node tests/robot-definition.test.js && node tests/script-path-reference.test.js && node tests/merchant-script-reference.test.js && node tests/map-config-links.test.js && node tests/mongen-drop-files.test.js && node tests/mongen-drop-command.test.js && node tests/script-audit-scope.test.js && node tests/script-static-arithmetic.test.js && node tests/variable-source-flow.test.js && node tests/variable-source-flow-branches.test.js && node tests/variable-branch-oracle.test.js && node tests/variable-source-flow-safety.test.js && node tests/statistics-table-data.test.js && node tests/variable-statistics.test.js && node tests/variable-list.test.js && node tests/variable-list-provider.test.js && node tests/variable-utag-flags.test.js && node tests/variable-candidate-command.test.js && node tests/variable-candidates.test.js && node tests/nested-variable-analysis.test.js && node tests/personal-flag-analysis.test.js && node tests/dynamic-reference.test.js && node tests/variable-wrap.test.js && node tests/custom-language.test.js && node tests/command-index.test.js && node tests/semantic-commands.test.js && node tests/engine-language-isolation.test.js && node tests/static-language.test.js && node tests/engine-detect.test.js && node tests/engine-help-data.test.js && node tests/final-engine-language-catalog.test.js && node tests/server-language-audit.test.js && node tests/table-configs.test.js && node tests/item-desc-preview.test.js && node tests/xls-table.test.js && node tests/original-map.test.js && node tests/help-command-coverage.test.js && node tests/help-command-apply.test.js && node tests/help-command-manual-review.test.js",
+    "test:language": "npm run compile && node tests/completion-range.test.js && node tests/completion-search.test.js && node tests/command-arguments.test.js && node tests/map-variable-filter.test.js && node tests/document-symbols.test.js && node tests/script-labels.test.js && node tests/delayed-label-definition.test.js && node tests/mongen-labels.test.js && node tests/mongen-label-definition.test.js && node tests/server-reference-audit.test.js && node tests/script-call-context.test.js && node tests/robot-definition.test.js && node tests/script-path-reference.test.js && node tests/merchant-script-reference.test.js && node tests/map-config-links.test.js && node tests/mongen-drop-files.test.js && node tests/mongen-drop-command.test.js && node tests/script-audit-scope.test.js && node tests/script-static-arithmetic.test.js && node tests/variable-source-flow.test.js && node tests/variable-source-flow-branches.test.js && node tests/variable-branch-oracle.test.js && node tests/variable-source-flow-safety.test.js && node tests/statistics-table-data.test.js && node tests/variable-statistics.test.js && node tests/variable-list.test.js && node tests/variable-list-provider.test.js && node tests/variable-utag-flags.test.js && node tests/variable-candidate-command.test.js && node tests/variable-candidates.test.js && node tests/nested-variable-analysis.test.js && node tests/personal-flag-analysis.test.js && node tests/dynamic-reference.test.js && node tests/variable-wrap.test.js && node tests/custom-language.test.js && node tests/command-index.test.js && node tests/semantic-commands.test.js && node tests/engine-language-isolation.test.js && node tests/script-hover-provider.test.js && node tests/completion-editor-manual-save.test.js && node tests/static-language.test.js && node tests/engine-detect.test.js && node tests/engine-help-data.test.js && node tests/final-engine-language-catalog.test.js && node tests/server-language-audit.test.js && node tests/table-configs.test.js && node tests/item-desc-preview.test.js && node tests/xls-table.test.js && node tests/original-map.test.js && node tests/help-command-coverage.test.js && node tests/help-command-apply.test.js && node tests/help-command-manual-review.test.js",
     "test:extras": "npm run compile && node tests/chromium-dom-lifecycle.test.js && node tests/csv-table.test.js && node tests/table-editor-core.test.js && node tests/table-editor-assets.test.js && node tests/table-editor-browser.test.js && node tests/database-grid-browser.test.js && node tests/database-grid-scroll-retention-browser.test.js && node tests/help-all-token-manual-review.test.js && node tests/map-preview-editor.test.js && node tests/map-viewport-protocol-browser.test.js && node tests/map-animation-browser.test.js && node tests/map-blend-browser.test.js && node tests/map-preview.test.js && node tests/npc-dialog-visual.test.js && node tests/adddlg-companion.test.js && node tests/adddlg-provider.test.js && node tests/adddlg-window-browser.test.js && node tests/npc-dialog-visual-browser.test.js && node tests/pak-image-index.test.js && node tests/pak-inflate.test.js && node tests/pak-slots.test.js && node tests/text-encoding.test.js && node tests/batch-number-edit.test.js && node tests/zone-sync.test.js && node tests/zone-sync-command.test.js && node tests/script-sync-tree.test.js && node tests/script-sync-panel.test.js && node tests/quick-files.test.js && node tests/webview-security.test.js",
     "test:npc-dialog-strict": "npm run compile && node tests/npc-dialog-strict-suite.js",
     "test:layout": "node tests/project-layout.test.js && node tests/readme-marketplace.test.js && node tests/packaged-npc-dialog-runtime.test.js",

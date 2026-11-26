@@ -749,7 +749,7 @@ class NpcDialogVisualEditorManager implements vscode.Disposable {
   constructor(private readonly context: vscode.ExtensionContext) {
     this.staticLanguage = loadStaticLanguageData(context.extensionPath, message => {
       console.info(`[BOO NPC界面] ${message}`);
-    });
+    }, 'renderer');
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument(event => this.onDocumentChanged(event)),
       vscode.workspace.onDidCloseTextDocument(document => this.onDocumentClosed(document)),

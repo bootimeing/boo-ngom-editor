@@ -4,6 +4,7 @@ function main() {
   const {
     describeCommandParameter,
     findScriptCommandArgumentAt,
+    findScriptCommandHoverAt,
     findScriptCommandInvocations,
     formatCommandParameterMeaning,
     isMapParameterDescription,
@@ -29,6 +30,63 @@ function main() {
   assert.equal(check.typedName, 'CHECK');
   assert.deepEqual(check.arguments.map(item => item.text), ['[12]', '1']);
   assert.equal(findScriptCommandArgumentAt(checkLine, checkLine.indexOf('12'), resolve).index, 0);
+
+  const active = new Map([
+    ['NOT', { kind: 'check', name: 'NOT', params: ['检测命令及参数'] }],
+    ['CHECK', { kind: 'check', name: 'CHECK', params: ['标志', '期望值'] }],
+    ['H.CHECKLEVEL', { kind: 'check', name: 'H.CHECKLEVEL', params: ['比较符', '等级'] }],
+    ['CHECKGAMEGOLD', { kind: 'check', name: 'CHECKGAMEGOLD', params: ['比较符', '元宝'] }],
+    ['SETMONBURSTITEMS', { kind: 'action', name: 'SETMONBURSTITEMS', params: ['爆物'] }],
+  ]);
+  const resolveActive = name => active.get(name.toUpperCase());
+  const hover = (line, character) => findScriptCommandHoverAt(line, character, resolveActive, cmd => cmd.kind === 'check');
+  function target(line, fragment, kind, name, param) {
+    const start = line.indexOf(fragment);
+    assert.notEqual(start, -1, fragment);
+    for (const at of new Set([start, start + fragment.length - 1])) {
+      const hit = hover(line, at);
+      if (!kind) { assert.equal(hit, undefined, line); continue; }
+      assert.equal(hit?.kind, kind, line);
+      assert.equal(hit.invocation.command.name, name, line);
+      if (kind === 'argument') assert.equal(hit.index, param, line);
+      const span = kind === 'argument' ? hit.argument : hit.invocation.commandSpan;
+      assert.equal(line.slice(span.start, span.end), span.text, line);
+      assert.ok(at >= span.start && at < span.end, line);
+    }
+  }
+  const negated = ' #iF( nOt   H.ChecKLevel < 50 ) trailing';
+  target(negated, 'nOt', 'command', 'NOT');
+  target(negated, 'H.ChecKLevel', 'command', 'H.CHECKLEVEL');
+  target(negated, '<', 'argument', 'H.CHECKLEVEL', 0);
+  target(negated, '50', 'argument', 'H.CHECKLEVEL', 1);
+  target(negated, 'trailing');
+  target('NOT NOT CHECK [12] 1', '[12]', 'argument', 'CHECK', 0);
+  target('NOT Unknown 15', 'Unknown', 'argument', 'NOT', 0);
+  target('NOT SETMONBURSTITEMS 15', 'SETMONBURSTITEMS', 'argument', 'NOT', 0);
+  target('NOT SETMONBURSTITEMS 15', '15', 'argument', 'NOT', 1);
+  target('#ACT(NOT CHECK [12] 1)', 'CHECK', 'argument', 'NOT', 0);
+  target('  ; NOT CHECK [12] 1', 'CHECK');
+  target('// NOT CHECK [12] 1', 'CHECK');
+  const dynamic = 'nOt <$CURRRTARGETNAME>.CHECKGAMEGOLD > 123';
+  target(dynamic, 'CURRRTARGETNAME');
+  target(dynamic, 'CHECKGAMEGOLD', 'command', 'CHECKGAMEGOLD');
+  target(dynamic, '123', 'argument', 'CHECKGAMEGOLD', 1);
+  const expression = '<$STR(S$对象)>.SETMONBURSTITEMS 物品';
+  target(expression, 'S$对象');
+  target(expression, 'SETMONBURSTITEMS', 'command', 'SETMONBURSTITEMS');
+  target(expression, '物品', 'argument', 'SETMONBURSTITEMS', 0);
+  const nested = '#IF(NOT M.<$STR(S$队长)>.<$STR(S$对象)>.H.CHECKLEVEL < 51)';
+  target(nested, '队长');
+  target(nested, '对象');
+  target(nested, 'H.CHECKLEVEL', 'command', 'H.CHECKLEVEL');
+  target(nested, '51', 'argument', 'H.CHECKLEVEL', 1);
+  target('not 996引擎.CHECKGAMEGOLD = 500', '996引擎');
+  target('not 996引擎.CHECKGAMEGOLD = 500', '500', 'argument', 'CHECKGAMEGOLD', 1);
+  target('角色甲.SETMONBURSTITEMS 掉落', '掉落', 'argument', 'SETMONBURSTITEMS', 0);
+  target('7.CHECKGAMEGOLD = 16', 'CHECKGAMEGOLD', 'command', 'CHECKGAMEGOLD');
+  target('<$STR(S$对象).CHECKGAMEGOLD > 88', '88');
+  assert.equal(findScriptCommandInvocations('NOT CHECK [1] 0', resolveActive)[0].typedName, 'NOT');
+  assert.equal(findScriptCommandInvocations(expression, resolveActive).length, 0, 'non-hover consumers retain their original object grammar');
 
   const objectLine = '  M.ADDHPPER 25';
   const object = findScriptCommandInvocations(objectLine, resolve)[0];

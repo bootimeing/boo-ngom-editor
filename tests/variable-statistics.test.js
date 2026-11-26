@@ -67,7 +67,7 @@ function main() {
   assert.deepEqual(semanticNames('CALCVAR HUMAN QQQQ + 5'), ['HUMAN(QQQQ)']);
   assert.deepEqual(semanticNames('LOADVAR HUMAN QQQQ VARSAVE.TXT'), ['HUMAN(QQQQ)']);
   assert.deepEqual(semanticNames('SAVEVAR HUMAN QQQQ VARSAVE.TXT'), ['HUMAN(QQQQ)']);
-  assert.deepEqual(semanticNames('VAR INTEGER GUILD QQQQ'), []);
+  assert.deepEqual(semanticNames('VAR INTEGER GUILD QQQQ'), ['GUILD(QQQQ)']);
   assert.deepEqual(semanticNames('VAR INTEGER GUILD QQQQ', 'GEE'), ['GUILD(QQQQ)']);
   assert.deepEqual(semanticNames('SAVEVAR GUILD QQQQ guild.txt', 'GEE'), ['GUILD(QQQQ)']);
   assert.deepEqual(semanticNames('LOADVAR GUILD QQQQ guild.txt', 'GEE'), [], 'LOADVAR GUILD lacks own-command evidence');
